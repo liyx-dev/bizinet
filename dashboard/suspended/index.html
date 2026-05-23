@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Suspended — Bizinet</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; }
+    .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+  </style>
+
+  <script>
+    // ── UNIVERSAL ROUTING ENGINE ──
+    function safeNavigate(targetPath) {
+      const cleanTarget = targetPath.startsWith('/') ? targetPath.substring(1) : targetPath;
+      const depth = window.location.pathname.split('/').filter(p => p.length > 0).length;
+      const isGitHubPages = window.location.hostname.includes('github.io');
+      let prefix = '';
+      if (depth > (isGitHubPages ? 2 : 1)) {
+        prefix = '../'.repeat(depth - (isGitHubPages ? 2 : 1));
+      }
+      window.location.replace(window.location.origin + (isGitHubPages ? '/' + window.location.pathname.split('/')[1] : '') + '/' + cleanTarget);
+    }
+  </script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+
+  <!-- Danger Background Accents -->
+  <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-red-600/20 rounded-full blur-3xl"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange-600/10 rounded-full blur-3xl"></div>
+
+  <main class="w-full max-w-md relative z-10 text-center">
+    
+    <!-- Suspended Card -->
+    <div class="glass-panel rounded-3xl p-10 shadow-2xl">
+      
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 text-red-500 rounded-full mb-6 ring-4 ring-red-500/20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+
+      <h1 class="text-2xl font-black text-white tracking-tight mb-3">Account Suspended</h1>
+      
+      <p class="text-slate-400 text-sm leading-relaxed mb-8">
+        Your Bizinet storefront has been temporarily disabled. This usually happens due to a billing failure or a violation of our terms of service. 
+      </p>
+
+      <div class="space-y-3">
+        <a href="mailto:support@bizinet.com" class="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold py-3.5 rounded-xl transition flex justify-center items-center gap-2">
+          <span>Contact Support</span>
+        </a>
+        
+        <button onclick="logoutMerchant()" class="w-full bg-transparent text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 font-medium py-3.5 rounded-xl transition flex justify-center items-center gap-2">
+          <span>Sign Out</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── BACKEND CONNECTION & SECURITY GUARD ── -->
+  <script>
+    // ⚠️ REPLACE WITH YOUR SUPABASE CREDENTIALS
+    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ── REVERSE-GUARD LOGIC ──
+    async function verifySuspensionState() {
+      // 1. Check if they are even logged in
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+      
+      if (sessionError || !session) {
+        safeNavigate('auth');
+        return;
+      }
+
+      // 2. Fetch their live state from the database
+      const { data: runtimeState, error: rpcError } = await supabaseClient.rpc('get_store_runtime_state');
+      
+      if (rpcError || !runtimeState || runtimeState.length === 0) return;
+
+      const state = runtimeState[0];
+
+      // 3. The Reverse Trap: If their account is NOT suspended, rescue them!
+      if (state.account_status !== 'SUSPENDED') {
+        console.log("Account is active. Rerouting to dashboard...");
+        safeNavigate('dashboard');
+      }
+    }
+
+    // ── LOGOUT LOGIC ──
+    async function logoutMerchant() {
+      await supabaseClient.auth.signOut();
+      safeNavigate('auth');
+    }
+
+    // Run the verification on load
+    verifySuspensionState();
+  </script>
+
+</body>
+</html>
