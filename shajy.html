@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Liyog Commerce — Store Onboarding</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Global -->
+  <script src="../../global.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: #f8fafc;
+      color: #0f172a;
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .hero-bg {
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,0.25), transparent 25%),
+        radial-gradient(circle at top right, rgba(147,51,234,0.18), transparent 25%),
+        linear-gradient(135deg, #020617 0%, #111827 100%);
+    }
+
+    .glass {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.5rem;
+      box-shadow:
+        0 1px 2px rgba(15,23,42,0.05),
+        0 10px 30px rgba(15,23,42,0.04);
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 1rem;
+      padding: 0.95rem 1rem;
+      outline: none;
+      transition: 0.2s ease;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.95rem;
+    }
+
+    .textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.10);
+    }
+
+    .upload-box {
+      transition: 0.2s ease;
+    }
+
+    .upload-box:hover {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    .spinner-dark {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(15,23,42,0.15);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    .preview-image {
+      width: 110px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 1.25rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .badge-trial {
+      background: rgba(59,130,246,0.12);
+      color: #1d4ed8;
+    }
+
+    .badge-active {
+      background: rgba(16,185,129,0.12);
+      color: #047857;
+    }
+
+    .badge-inactive {
+      background: rgba(239,68,68,0.12);
+      color: #b91c1c;
+    }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(255,255,255,0.65),
+          transparent
+        );
+      animation: shimmer 1.3s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toast {
+      animation: fadeUp .2s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- ===================================== -->
+  <!-- LOADER -->
+  <!-- ===================================== -->
+  <div
+    id="bootLoader"
+    class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center"
+  >
+    <div class="text-center text-white">
+      <div class="spinner mx-auto mb-5"></div>
+
+      <h2 class="font-black text-2xl">
+        Preparing your store...
+      </h2>
+
+      <p class="text-slate-400 text-sm mt-2">
+        Verifying secure runtime state
+      </p>
+    </div>
+  </div>
+
+  <!-- ===================================== -->
+  <!-- TOAST -->
+  <!-- ===================================== -->
+  <div
+    id="toastContainer"
+    class="fixed top-5 right-5 z-[100] space-y-3"
+  ></div>
+
+  <!-- ===================================== -->
+  <!-- HERO -->
+  <!-- ===================================== -->
+  <section class="hero-bg text-white">
+    <div class="max-w-7xl mx-auto px-5 py-12">
+
+      <div class="grid lg:grid-cols-2 gap-10 items-center">
+
+        <!-- LEFT -->
+        <div>
+
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/10 text-sm mb-6">
+            🚀 Welcome to Liyog Commerce
+          </div>
+
+          <h1 class="text-4xl lg:text-6xl font-black leading-tight">
+            Launch your
+            <span class="text-blue-300">
+              online store
+            </span>
+            professionally
+          </h1>
+
+          <p class="mt-6 text-slate-300 text-lg leading-relaxed max-w-2xl">
+            Add your business identity, WhatsApp contact,
+            logo and branding to make your storefront look
+            trustworthy and conversion ready.
+          </p>
+
+          <div class="flex flex-wrap gap-3 mt-8">
+
+            <div class="glass border border-white/10 rounded-2xl px-4 py-3 text-sm">
+              ⚡ SaaS-ready onboarding
+            </div>
+
+            <div class="glass border border-white/10 rounded-2xl px-4 py-3 text-sm">
+              🔒 Secure tenant isolation
+            </div>
+
+            <div class="glass border border-white/10 rounded-2xl px-4 py-3 text-sm">
+              📈 Better customer trust
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="glass border border-white/10 rounded-3xl p-6">
+
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold">
+              Setup Progress
+            </h3>
+
+            <span
+              id="progressText"
+              class="text-sm text-slate-300"
+            >
+              0%
+            </span>
+          </div>
+
+          <div class="h-3 rounded-full overflow-hidden bg-white/10">
+            <div
+              id="progressBar"
+              class="h-full bg-blue-500 progress-bar"
+              style="width:0%"
+            ></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-6">
+
+            <div class="bg-white/10 rounded-2xl p-4">
+              <p class="text-slate-300 text-sm">
+                Identity
+              </p>
+
+              <h4 class="font-bold mt-1">
+                Store Branding
+              </h4>
+            </div>
+
+            <div class="bg-white/10 rounded-2xl p-4">
+              <p class="text-slate-300 text-sm">
+                Customers
+              </p>
+
+              <h4 class="font-bold mt-1">
+                WhatsApp Setup
+              </h4>
+            </div>
+
+            <div class="bg-white/10 rounded-2xl p-4">
+              <p class="text-slate-300 text-sm">
+                Presence
+              </p>
+
+              <h4 class="font-bold mt-1">
+                Store Visibility
+              </h4>
+            </div>
+
+            <div class="bg-white/10 rounded-2xl p-4">
+              <p class="text-slate-300 text-sm">
+                Trust
+              </p>
+
+              <h4 class="font-bold mt-1">
+                Professional Look
+              </h4>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================== -->
+  <!-- MAIN -->
+  <!-- ===================================== -->
+  <main class="max-w-7xl mx-auto px-5 py-10">
+
+    <div class="grid lg:grid-cols-3 gap-8">
+
+      <!-- ===================================== -->
+      <!-- FORM -->
+      <!-- ===================================== -->
+      <div class="lg:col-span-2">
+
+        <form
+          id="onboardingForm"
+          class="space-y-8"
+        >
+
+          <!-- ===================================== -->
+          <!-- BUSINESS INFO -->
+          <!-- ===================================== -->
+          <section class="card p-6 lg:p-8">
+
+            <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+
+              <div>
+                <h2 class="text-3xl font-black">
+                  Business Information
+                </h2>
+
+                <p class="text-slate-500 mt-2">
+                  Add your store identity and contact details.
+                </p>
+              </div>
+
+              <div
+                id="profileStatusBadge"
+                class="hidden badge badge-active"
+              >
+                ✓ Existing profile loaded
+              </div>
+
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-5">
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  Business Name *
+                </label>
+
+                <input
+                  type="text"
+                  id="business_name"
+                  maxlength="80"
+                  class="input"
+                  placeholder="Liyog Fashion Store"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  Business Type *
+                </label>
+
+                <input
+                  type="text"
+                  id="business_type"
+                  maxlength="60"
+                  class="input"
+                  placeholder="Fashion, Gadgets, Beauty..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  WhatsApp Number *
+                </label>
+
+                <input
+                  type="tel"
+                  id="whatsapp_number"
+                  maxlength="30"
+                  class="input"
+                  placeholder="+234..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  Currency
+                </label>
+
+                <select
+                  id="currency_symbol"
+                  class="select"
+                >
+                  <option value="">
+                    Loading currencies...
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  Country *
+                </label>
+
+                <select
+                  id="store_country"
+                  class="select"
+                  required
+                >
+                  <option value="">
+                    Loading countries...
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-2">
+                  City
+                </label>
+
+                <input
+                  type="text"
+                  id="store_city"
+                  maxlength="80"
+                  class="input"
+                  placeholder="Lagos"
+                />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block font-semibold mb-2">
+                  Tagline
+                </label>
+
+                <input
+                  type="text"
+                  id="tagline"
+                  maxlength="120"
+                  class="input"
+                  placeholder="Affordable luxury for everyone"
+                />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block font-semibold mb-2">
+                  Store Bio
+                </label>
+
+                <textarea
+                  id="bio"
+                  maxlength="1000"
+                  class="textarea"
+                  placeholder="Tell customers about your business..."
+                ></textarea>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- ===================================== -->
+          <!-- BRANDING -->
+          <!-- ===================================== -->
+          <section class="card p-6 lg:p-8">
+
+            <div class="mb-6">
+              <h2 class="text-3xl font-black">
+                Store Branding
+              </h2>
+
+              <p class="text-slate-500 mt-2">
+                Upload your business logo using your secure R2 upload flow.
+              </p>
+            </div>
+
+            <div>
+
+              <div class="flex items-center justify-between gap-4 mb-3 flex-wrap">
+                <label class="block font-semibold">
+                  Store Logo *
+                </label>
+
+                <span class="text-sm text-slate-500">
+                  PNG, JPG or WEBP • Max 5MB
+                </span>
+              </div>
+
+              <label class="upload-box border-2 border-dashed border-slate-300 rounded-3xl p-8 block text-center cursor-pointer">
+
+                <input
+                  type="file"
+                  id="logoInput"
+                  accept="image/png,image/jpeg,image/webp"
+                  class="hidden"
+                />
+
+                <div class="space-y-3">
+
+                  <div class="text-5xl">
+                    🖼️
+                  </div>
+
+                  <div>
+                    <h3 class="font-bold text-lg">
+                      Upload Store Logo
+                    </h3>
+
+                    <p class="text-slate-500 text-sm mt-1">
+                      Secure multi-tenant upload validation enabled
+                    </p>
+                  </div>
+
+                </div>
+
+              </label>
+
+              <div
+                id="logoPreview"
+                class="mt-5"
+              ></div>
+
+            </div>
+
+          </section>
+
+          <!-- ===================================== -->
+          <!-- ACTIONS -->
+          <!-- ===================================== -->
+          <section class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+
+            <button
+              type="button"
+              id="skipBtn"
+              class="w-full sm:w-auto border border-slate-300 hover:bg-slate-100 px-6 py-4 rounded-2xl font-semibold transition"
+            >
+              Skip For Now
+            </button>
+
+            <button
+              type="submit"
+              id="completeBtn"
+              class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition"
+            >
+              Complete Setup
+            </button>
+
+          </section>
+
+        </form>
+
+      </div>
+
+      <!-- ===================================== -->
+      <!-- SIDEBAR -->
+      <!-- ===================================== -->
+      <div class="space-y-6">
+
+        <!-- STORE -->
+        <div class="card p-6">
+
+          <div class="flex items-start justify-between gap-4">
+
+            <div>
+              <p class="text-slate-500 text-sm">
+                Store
+              </p>
+
+              <h3
+                id="storeName"
+                class="text-2xl font-black mt-1 break-words"
+              >
+                Loading...
+              </h3>
+
+              <p
+                id="storeSlug"
+                class="text-slate-500 text-sm mt-1"
+              >
+                --
+              </p>
+            </div>
+
+            <div class="text-4xl">
+              🏪
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-6">
+
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p class="text-xs uppercase tracking-wide text-slate-500">
+                Plan
+              </p>
+
+              <h4
+                id="planBadge"
+                class="font-black text-lg mt-1"
+              >
+                Trial
+              </h4>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p class="text-xs uppercase tracking-wide text-slate-500">
+                Role
+              </p>
+
+              <h4
+                id="roleBadge"
+                class="font-black text-lg mt-1 capitalize"
+              >
+                Owner
+              </h4>
+            </div>
+
+          </div>
+
+          <div class="mt-5">
+
+            <div
+              id="subscriptionStatus"
+              class="badge badge-trial"
+            >
+              Trial Active
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- WHY -->
+        <div class="card p-6">
+
+          <h3 class="font-black text-2xl mb-5">
+            Why Complete Setup?
+          </h3>
+
+          <div class="space-y-5">
+
+            <div class="flex gap-4">
+              <div class="text-3xl">
+                🛍️
+              </div>
+
+              <div>
+                <h4 class="font-bold">
+                  Professional Storefront
+                </h4>
+
+                <p class="text-sm text-slate-500 mt-1">
+                  Customers trust complete stores more.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="text-3xl">
+                📈
+              </div>
+
+              <div>
+                <h4 class="font-bold">
+                  Better Sales Conversion
+                </h4>
+
+                <p class="text-sm text-slate-500 mt-1">
+                  Branding increases customer engagement.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="text-3xl">
+                💬
+              </div>
+
+              <div>
+                <h4 class="font-bold">
+                  WhatsApp Ready
+                </h4>
+
+                <p class="text-sm text-slate-500 mt-1">
+                  Customers can contact you instantly.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- SECURITY -->
+        <div class="bg-slate-900 text-white rounded-3xl p-6">
+
+          <div class="flex items-center justify-between mb-4">
+
+            <div>
+              <p class="text-slate-400 text-sm">
+                Security
+              </p>
+
+              <h3 class="font-black text-3xl mt-1">
+                Protected
+              </h3>
+            </div>
+
+            <div class="text-5xl">
+              🔒
+            </div>
+
+          </div>
+
+          <div class="bg-white/10 rounded-2xl p-4">
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Runtime access is verified server-side before onboarding,
+              uploads and dashboard access are allowed.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================== -->
+  <!-- SCRIPT -->
+  <!-- ===================================== -->
+  <script>
+
+    /*
+    =====================================
+    CONFIG
+    =====================================
+    */
+
+    const SUPABASE_URL =
+      "https://ugffezktrojjhfbaxrrq.supabase.co";
+
+    const SUPABASE_ANON_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
+
+    const EDGE_FUNCTION_BASE =
+      "https://ugffezktrojjhfbaxrrq.supabase.co/functions/v1";
+
+    const supabaseClient =
+      supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true
+          }
+        }
+      );
+
+    /*
+    =====================================
+    STATE
+    =====================================
+    */
+
+    let runtimeState = null;
+    let currentProfile = null;
+    let logoFile = null;
+    let uploadedLogoUrl = null;
+
+    /*
+    =====================================
+    HELPERS
+    =====================================
+    */
+
+    function hardRedirect(path) {
+      window.location.replace(path);
+    }
+
+    function sanitizeText(value = "") {
+      return value
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    function showToast(message, type = "success") {
+
+      const toast = document.createElement("div");
+
+      toast.className =
+        `toast px-5 py-4 rounded-2xl shadow-xl text-white font-semibold ${
+          type === "error"
+            ? "bg-red-600"
+            : "bg-slate-900"
+        }`;
+
+      toast.innerText = message;
+
+      document
+        .getElementById("toastContainer")
+        .appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 3500);
+    }
+
+    function setButtonLoading(button, text) {
+
+      button.disabled = true;
+
+      button.innerHTML = `
+        <div class="flex items-center justify-center gap-3">
+          <div class="spinner"></div>
+          <span>${text}</span>
+        </div>
+      `;
+    }
+
+    function resetButton(button, text) {
+
+      button.disabled = false;
+      button.innerHTML = text;
+    }
+
+    function validateLogo(file) {
+
+      if (!file) {
+        throw new Error("Store logo is required");
+      }
+
+      const allowedTypes = [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          "Only PNG, JPG and WEBP images are allowed"
+        );
+      }
+
+      const maxSize =
+        5 * 1024 * 1024;
+
+      if (file.size > maxSize) {
+        throw new Error(
+          "Logo size must not exceed 5MB"
+        );
+      }
+    }
+
+    function safeValue(value) {
+      return value || "";
+    }
+
+/*
+=====================================
+COMPRESS IMAGE
+=====================================
+*/
+async function compressImage(
+  file,
+  {
+    maxWidth = 800,
+    quality = 0.8
+  } = {}
+) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas =
+        document.createElement("canvas");
+
+      let width = img.width;
+      let height = img.height;
+
+      /*
+      =====================================
+      RESIZE LARGE IMAGES
+      =====================================
+      */
+      if (width > maxWidth) {
+        height =
+          (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx =
+        canvas.getContext("2d");
+
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        width,
+        height
+      );
+
+      /*
+      =====================================
+      EXPORT AS WEBP
+      =====================================
+      */
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(
+              new Error(
+                "Image compression failed"
+              )
+            );
+            return;
+          }
+
+          const compressedFile =
+            new File(
+              [blob],
+              file.name.replace(
+                /\.[^/.]+$/,
+                ".webp"
+              ),
+              {
+                type: "image/webp"
+              }
+            );
+
+          resolve(compressedFile);
+        },
+        "image/webp",
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      reject(
+        new Error(
+          "Unable to process image"
+        )
+      );
+    };
+
+    img.src =
+      URL.createObjectURL(file);
+  });
+}
+
+    /*
+    =====================================
+    AUTH
+    =====================================
+    */
+
+    async function requireAuth() {
+
+      const {
+        data: { session }
+      } = await supabaseClient.auth.getSession();
+
+      if (!session) {
+        hardRedirect("/auth/");
+        return null;
+      }
+
+      return session;
+    }
+
+    /*
+    =====================================
+    RUNTIME STATE
+    =====================================
+    */
+
+    async function getRuntimeState() {
+
+      const { data, error } =
+        await supabaseClient.rpc(
+          "get_store_runtime_state"
+        );
+
+      if (error) {
+        console.error(error);
+
+        throw new Error(
+          "Unable to verify store runtime state"
+        );
+      }
+
+      if (!data || !data.length) {
+        throw new Error(
+          "Store runtime state not found"
+        );
+      }
+
+      return data[0];
+    }
+
+    /*
+    =====================================
+    LOAD PROFILE
+    =====================================
+    */
+
+    async function loadProfile() {
+
+      const { data, error } =
+        await supabaseClient.rpc(
+          "get_profile"
+        );
+
+      if (error) {
+        console.error(error);
+        return null;
+      }
+
+      if (!data || !data.length) {
+        return null;
+      }
+
+      return data[0];
+    }
+
+    /*
+    =====================================
+    LOAD CURRENCIES
+    =====================================
+    */
+
+    async function loadCurrencies() {
+
+      const select =
+        document.getElementById(
+          "currency_symbol"
+        );
+
+      try {
+
+        const { data, error } =
+          await supabaseClient.rpc(
+            "get_currencies"
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        select.innerHTML = "";
+
+        data.forEach((currency) => {
+
+          const option =
+            document.createElement("option");
+
+          option.value =
+            currency.symbol;
+
+          option.textContent =
+            `${currency.symbol} — ${currency.name}`;
+
+          select.appendChild(option);
+        });
+
+      } catch (err) {
+
+        console.error(err);
+
+        select.innerHTML = `
+          <option value="₦">₦ — Nigerian Naira</option>
+        `;
+      }
+    }
+
+    /*
+    =====================================
+    LOAD COUNTRIES
+    =====================================
+    */
+
+    async function loadCountries() {
+
+      const select =
+        document.getElementById(
+          "store_country"
+        );
+
+      try {
+
+        const { data, error } =
+          await supabaseClient.rpc(
+            "get_countries"
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        select.innerHTML = `
+          <option value="">
+            Select country
+          </option>
+        `;
+
+        data.forEach((country) => {
+
+          const option =
+            document.createElement("option");
+
+          option.value =
+            country.name;
+
+          option.textContent =
+            `${country.flag || "🌍"} ${country.name}`;
+
+          select.appendChild(option);
+        });
+
+      } catch (err) {
+
+        console.error(err);
+
+        select.innerHTML = `
+          <option value="">
+            Unable to load countries
+          </option>
+        `;
+      }
+    }
+
+    /*
+    =====================================
+    POPULATE PROFILE
+    =====================================
+    */
+
+    function populateProfile(profile) {
+
+      if (!profile) {
+        return;
+      }
+
+      currentProfile = profile;
+
+      document.getElementById(
+        "profileStatusBadge"
+      ).classList.remove("hidden");
+
+      document.getElementById(
+        "business_name"
+      ).value =
+        safeValue(profile.business_name);
+
+      document.getElementById(
+        "business_type"
+      ).value =
+        safeValue(profile.business_type);
+
+      document.getElementById(
+        "whatsapp_number"
+      ).value =
+        safeValue(profile.whatsapp_number);
+
+      document.getElementById(
+        "store_country"
+      ).value =
+        safeValue(profile.store_country);
+
+      document.getElementById(
+        "store_city"
+      ).value =
+        safeValue(profile.store_city);
+
+      document.getElementById(
+        "tagline"
+      ).value =
+        safeValue(profile.tagline);
+
+      document.getElementById(
+        "bio"
+      ).value =
+        safeValue(profile.bio);
+
+      document.getElementById(
+        "currency_symbol"
+      ).value =
+        safeValue(profile.currency_symbol || "₦");
+
+      if (profile.logo_url) {
+
+        uploadedLogoUrl =
+          profile.logo_url;
+
+        renderLogoPreview(
+          profile.logo_url,
+          true
+        );
+      }
+
+      updateProgress();
+    }
+
+    /*
+    =====================================
+    UI RUNTIME
+    =====================================
+    */
+
+    function applyRuntimeUI(state) {
+
+      document.getElementById(
+        "storeName"
+      ).innerText =
+        state.store_name || "My Store";
+
+      document.getElementById(
+        "storeSlug"
+      ).innerText =
+        state.slug
+          ? `/${state.slug}`
+          : "--";
+
+      document.getElementById(
+        "roleBadge"
+      ).innerText =
+        state.role || "member";
+
+      document.getElementById(
+        "planBadge"
+      ).innerText =
+        state.plan || "Trial";
+
+      const statusEl =
+        document.getElementById(
+          "subscriptionStatus"
+        );
+
+      const status =
+        state.subscription_status || "trial";
+
+      statusEl.innerText =
+        status.charAt(0).toUpperCase() +
+        status.slice(1);
+
+      statusEl.className =
+        "badge";
+
+      if (
+        status === "active"
+      ) {
+
+        statusEl.classList.add(
+          "badge-active"
+        );
+
+      } else if (
+        status === "trial"
+      ) {
+
+        statusEl.classList.add(
+          "badge-trial"
+        );
+
+      } else {
+
+        statusEl.classList.add(
+          "badge-inactive"
+        );
+      }
+    }
+
+    /*
+    =====================================
+    RENDER LOGO
+    =====================================
+    */
+
+    function renderLogoPreview(src, existing = false) {
+
+      document.getElementById(
+        "logoPreview"
+      ).innerHTML = `
+        <div class="flex items-center gap-4 flex-wrap">
+          <img
+            src="${src}"
+            class="preview-image"
+          />
+
+          <div>
+            <p class="font-bold text-slate-900">
+              ${
+                existing
+                  ? "Current Store Logo"
+                  : "Selected Logo"
+              }
+            </p>
+
+            <p class="text-sm text-slate-500 mt-1">
+              ${
+                existing
+                  ? "Previously uploaded logo"
+                  : "Ready for secure upload"
+              }
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    /*
+    =====================================
+    PROGRESS
+    =====================================
+    */
+
+    const trackedFields = [
+      "business_name",
+      "business_type",
+      "whatsapp_number",
+      "store_country"
+    ];
+
+    trackedFields.forEach((id) => {
+
+      document
+        .getElementById(id)
+        .addEventListener(
+          "input",
+          updateProgress
+        );
+
+      document
+        .getElementById(id)
+        .addEventListener(
+          "change",
+          updateProgress
+        );
+    });
+
+    function updateProgress() {
+
+      let total =
+        trackedFields.length + 1;
+
+      let completed = 0;
+
+      trackedFields.forEach((id) => {
+
+        const value =
+          document
+            .getElementById(id)
+            .value
+            .trim();
+
+        if (value) {
+          completed++;
+        }
+      });
+
+      if (
+        logoFile ||
+        uploadedLogoUrl
+      ) {
+        completed++;
+      }
+
+      const percent =
+        Math.floor(
+          (completed / total) * 100
+        );
+
+      document.getElementById(
+        "progressBar"
+      ).style.width =
+        percent + "%";
+
+      document.getElementById(
+        "progressText"
+      ).innerText =
+        percent + "%";
+    }
+
+    /*
+    =====================================
+    LOGO PICKER
+    =====================================
+    */
+
+    const logoInput =
+      document.getElementById(
+        "logoInput"
+      );
+
+    logoInput.addEventListener(
+      "change",
+      async (e) => {
+
+        try {
+
+          const file =
+            e.target.files[0];
+
+          validateLogo(file);
+
+/*
+=====================================
+COMPRESS BEFORE UPLOAD
+=====================================
+*/
+const compressedFile =
+  await compressImage(file);
+
+logoFile = compressedFile;
+
+const reader =
+  new FileReader();
+
+          reader.onload = () => {
+
+            renderLogoPreview(
+              reader.result,
+              false
+            );
+          };
+          reader.readAsDataURL(compressedFile);
+
+          updateProgress();
+
+        } catch (err) {
+
+          logoInput.value = "";
+          logoFile = null;
+
+          showToast(
+            err.message,
+            "error"
+          );
+        }
+      }
+    );
+
+    /*
+    =====================================
+    SECURE EDGE UPLOAD
+    =====================================
+    */
+
+    async function uploadViaEdgeFunction(file, folder) {
+
+      validateLogo(file);
+
+      const {
+        data: { session }
+      } =
+        await supabaseClient.auth.getSession();
+
+      if (!session) {
+        throw new Error(
+          "Session expired"
+        );
+      }
+
+      /*
+      =====================================
+      STEP 1:
+      REQUEST SIGNED URL
+      =====================================
+      */
+
+      const response =
+        await fetch(
+          `${EDGE_FUNCTION_BASE}/generate-r2-upload-url`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+              Authorization:
+                `Bearer ${session.access_token}`
+            },
+
+            body: JSON.stringify({
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              folder
+            })
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+
+        throw new Error(
+          result.error ||
+          "Unable to generate upload URL"
+        );
+      }
+
+      /*
+      =====================================
+      STEP 2:
+      DIRECT R2 UPLOAD
+      =====================================
+      */
+
+      const uploadResponse =
+        await fetch(
+          result.uploadUrl,
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type": file.type
+            },
+
+            body: file
+          }
+        );
+
+      if (!uploadResponse.ok) {
+
+        throw new Error(
+          "Secure upload failed"
+        );
+      }
+
+      return {
+        publicUrl:
+          result.publicUrl,
+        fileKey:
+          result.fileKey
+      };
+    }
+
+    /*
+    =====================================
+    VALIDATION
+    =====================================
+    */
+
+    function collectFormData() {
+
+      const payload = {
+
+        business_name:
+          sanitizeText(
+            document.getElementById(
+              "business_name"
+            ).value
+          ),
+
+        business_type:
+          sanitizeText(
+            document.getElementById(
+              "business_type"
+            ).value
+          ),
+
+        whatsapp_number:
+          sanitizeText(
+            document.getElementById(
+              "whatsapp_number"
+            ).value
+          ),
+
+        store_country:
+          sanitizeText(
+            document.getElementById(
+              "store_country"
+            ).value
+          ),
+
+        store_city:
+          sanitizeText(
+            document.getElementById(
+              "store_city"
+            ).value
+          ),
+
+        tagline:
+          sanitizeText(
+            document.getElementById(
+              "tagline"
+            ).value
+          ),
+
+        bio:
+          sanitizeText(
+            document.getElementById(
+              "bio"
+            ).value
+          ),
+
+        currency_symbol:
+          sanitizeText(
+            document.getElementById(
+              "currency_symbol"
+            ).value
+          )
+      };
+
+      if (
+        !payload.business_name ||
+        !payload.business_type ||
+        !payload.whatsapp_number ||
+        !payload.store_country
+      ) {
+
+        throw new Error(
+          "Please complete all required fields"
+        );
+      }
+
+      return payload;
+    }
+
+    /*
+    =====================================
+    COMPLETE ONBOARDING
+    =====================================
+    */
+
+    document
+      .getElementById(
+        "onboardingForm"
+      )
+      .addEventListener(
+        "submit",
+        async (e) => {
+
+          e.preventDefault();
+
+          const completeBtn =
+            document.getElementById(
+              "completeBtn"
+            );
+
+          try {
+
+            setButtonLoading(
+              completeBtn,
+              "Completing Setup..."
+            );
+
+            /*
+            =====================================
+            NEVER TRUST OLD STATE
+            =====================================
+            */
+
+            runtimeState =
+              await getRuntimeState();
+
+            /*
+            =====================================
+            HARD ROUTING
+            =====================================
+            */
+
+            if (
+              runtimeState.redirect_to !==
+              "/dashboard/onboarding/"
+            ) {
+
+              hardRedirect(
+                runtimeState.redirect_to
+              );
+
+              return;
+            }
+
+            /*
+            =====================================
+            COLLECT DATA
+            =====================================
+            */
+
+            const formData =
+              collectFormData();
+
+            /*
+            =====================================
+            LOGO
+            =====================================
+            */
+
+            let finalLogoUrl =
+              uploadedLogoUrl || null;
+
+            if (logoFile) {
+
+              const upload =
+                await uploadViaEdgeFunction(
+                  logoFile,
+                  "logos"
+                );
+
+              finalLogoUrl =
+                upload.publicUrl;
+            }
+
+            if (!finalLogoUrl) {
+
+              throw new Error(
+                "Store logo is required"
+              );
+            }
+
+            /*
+            =====================================
+            SAVE PROFILE VIA SAFE RPC
+            NEVER TRUST FRONTEND
+            =====================================
+            */
+
+            const {
+              data: profileData,
+              error: profileError
+            } =
+              await supabaseClient.rpc(
+                "upsert_profile",
+                {
+                  p_id:
+                    currentProfile?.id || null,
+
+                  p_business_name:
+                    formData.business_name,
+
+                  p_business_type:
+                    formData.business_type,
+
+                  p_whatsapp_number:
+                    formData.whatsapp_number,
+
+                  p_store_country:
+                    formData.store_country,
+
+                  p_store_city:
+                    formData.store_city,
+
+                  p_tagline:
+                    formData.tagline,
+
+                  p_bio:
+                    formData.bio,
+
+                  p_currency_symbol:
+                    formData.currency_symbol,
+
+                  p_logo_url:
+                    finalLogoUrl
+                }
+              );
+
+            if (profileError) {
+
+              console.error(
+                profileError
+              );
+
+              throw new Error(
+                profileError.message ||
+                "Unable to save store profile"
+              );
+            }
+
+            if (
+              profileData &&
+              profileData.length
+            ) {
+
+              currentProfile =
+                profileData[0];
+            }
+
+            /*
+            =====================================
+            COMPLETE ONBOARDING RPC
+            =====================================
+            */
+
+            const {
+              error: completeError
+            } =
+              await supabaseClient.rpc(
+                "complete_onboarding"
+              );
+
+            if (completeError) {
+
+              console.error(
+                completeError
+              );
+
+              throw new Error(
+                completeError.message ||
+                "Unable to complete onboarding"
+              );
+            }
+
+            /*
+            =====================================
+            FINAL VERIFY
+            =====================================
+            */
+
+            runtimeState =
+              await getRuntimeState();
+
+            if (
+              runtimeState.onboarding_completed !== true
+            ) {
+
+              throw new Error(
+                "Onboarding verification failed"
+              );
+            }
+
+            showToast(
+              "Store setup completed successfully"
+            );
+
+            /*
+            =====================================
+            REDIRECT
+            =====================================
+            */
+
+            setTimeout(() => {
+
+              hardRedirect(
+                "/dashboard/"
+              );
+
+            }, 900);
+
+          } catch (err) {
+
+            console.error(err);
+
+            showToast(
+              err.message ||
+              "Something went wrong",
+              "error"
+            );
+
+          } finally {
+
+            resetButton(
+              completeBtn,
+              "Complete Setup"
+            );
+          }
+        }
+      );
+
+    /*
+    =====================================
+    SKIP
+    =====================================
+    */
+
+    document
+      .getElementById(
+        "skipBtn"
+      )
+      .addEventListener(
+        "click",
+        async () => {
+
+          try {
+
+            runtimeState =
+              await getRuntimeState();
+
+            hardRedirect(
+              runtimeState.redirect_to ||
+              "/dashboard/"
+            );
+
+          } catch (err) {
+
+            console.error(err);
+
+            showToast(
+              "Unable to continue",
+              "error"
+            );
+          }
+        }
+      );
+
+    /*
+    =====================================
+    AUTH WATCHER
+    =====================================
+    */
+
+    supabaseClient.auth.onAuthStateChange(
+      async (event) => {
+
+        if (
+          event === "SIGNED_OUT"
+        ) {
+
+          hardRedirect(
+            "/auth/"
+          );
+        }
+      }
+    );
+
+    /*
+    =====================================
+    BOOT
+    =====================================
+    */
+
+    async function bootGuard() {
+
+      try {
+
+        /*
+        =====================================
+        AUTH
+        =====================================
+        */
+
+        await requireAuth();
+
+        /*
+        =====================================
+        RUNTIME STATE
+        =====================================
+        */
+
+        runtimeState =
+          await getRuntimeState();
+
+        /*
+        =====================================
+        HARD SECURITY ROUTING
+        =====================================
+        */
+
+        if (
+          runtimeState.redirect_to !==
+          "/dashboard/onboarding/"
+        ) {
+
+          hardRedirect(
+            runtimeState.redirect_to
+          );
+
+          return;
+        }
+
+        /*
+        =====================================
+        EXTRA SAFETY
+        =====================================
+        */
+
+        if (
+          runtimeState.onboarding_completed === true
+        ) {
+
+          hardRedirect(
+            "/dashboard/"
+          );
+
+          return;
+        }
+
+        /*
+        =====================================
+        APPLY RUNTIME UI
+        =====================================
+        */
+
+        applyRuntimeUI(
+          runtimeState
+        );
+
+        /*
+        =====================================
+        LOAD REFERENCE DATA
+        =====================================
+        */
+
+        await Promise.all([
+          loadCurrencies(),
+          loadCountries()
+        ]);
+
+        /*
+        =====================================
+        LOAD PROFILE
+        =====================================
+        */
+
+        const profile =
+          await loadProfile();
+
+        if (profile) {
+          populateProfile(profile);
+        }
+
+        /*
+        =====================================
+        DONE
+        =====================================
+        */
+
+        document
+          .getElementById(
+            "bootLoader"
+          )
+          .remove();
+
+      } catch (err) {
+
+        console.error(err);
+
+        alert(
+          err.message ||
+          "Unable to initialize onboarding"
+        );
+
+        hardRedirect(
+          "/auth/"
+        );
+      }
+    }
+
+    /*
+    =====================================
+    START
+    =====================================
+    */
+
+    bootGuard();
+
+  </script>
+</body>
+</html>
+
+
