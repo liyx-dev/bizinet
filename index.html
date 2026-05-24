@@ -2,96 +2,1252 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bizinet — Launch Your WhatsApp Storefront Engine</title>
-  
-  <!-- Tailwind CSS Core -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Liyog — Secure Business Authentication</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind -->
+  <link
+    rel="stylesheet"
+    href="https://liyx-dev.github.io/whatsapp-sales/output.css"
+    id="mainStylesheet"
+  />
+<script src="https://liyx-dev.github.io/bizinet/global.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif;
+    :root{
+      --li-green:#28A428;
+      --li-green-dark:#228B22;
+      --li-gold:#FFD700;
+      --li-black:#111111;
+      --li-blue:#1877F2;
+      --li-red:#FF3B30;
+      --li-bg:#f8fafc;
     }
-    .hero-gradient {
-      background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 40%),
-                  radial-gradient(circle at bottom left, rgba(147, 51, 234, 0.15), transparent 40%);
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      font-family:'DM Sans',sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(40,164,40,.08), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255,215,0,.08), transparent 25%),
+        var(--li-bg);
+      min-height:100vh;
+      color:#0f172a;
+      overflow-x:hidden;
+    }
+
+    .auth-wrapper{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:1fr;
+    }
+
+    @media(min-width:980px){
+      .auth-wrapper{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    .hero-side{
+      position:relative;
+      display:none;
+      overflow:hidden;
+      background:
+      linear-gradient(
+        135deg,
+        #0f172a 0%,
+        #111827 40%,
+        #0f172a 100%
+      );
+    }
+
+    @media(min-width:980px){
+      .hero-side{
+        display:flex;
+      }
+    }
+
+    .hero-overlay{
+      position:absolute;
+      inset:0;
+      background:
+      radial-gradient(circle at top right, rgba(40,164,40,.18), transparent 30%),
+      radial-gradient(circle at bottom left, rgba(255,215,0,.10), transparent 35%);
+    }
+
+    .floating-circle{
+      position:absolute;
+      border-radius:999px;
+      filter:blur(8px);
+      animation:float 8s ease-in-out infinite;
+    }
+
+    .circle-one{
+      width:220px;
+      height:220px;
+      background:rgba(40,164,40,.25);
+      top:-60px;
+      right:-40px;
+    }
+
+    .circle-two{
+      width:180px;
+      height:180px;
+      background:rgba(255,215,0,.18);
+      bottom:40px;
+      left:-60px;
+      animation-delay:2s;
+    }
+
+    @keyframes float{
+      0%,100%{
+        transform:translateY(0px);
+      }
+      50%{
+        transform:translateY(-15px);
+      }
+    }
+
+    .hero-content{
+      position:relative;
+      z-index:3;
+      padding:60px;
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .hero-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      color:white;
+      width:max-content;
+      padding:12px 18px;
+      border-radius:999px;
+      backdrop-filter:blur(14px);
+      margin-bottom:28px;
+    }
+
+    .hero-title{
+      font-family:'Syne',sans-serif;
+      font-size:4rem;
+      line-height:1;
+      color:white;
+      margin-bottom:24px;
+      max-width:550px;
+    }
+
+    .hero-text{
+      color:rgba(255,255,255,.72);
+      font-size:1.1rem;
+      line-height:1.8;
+      max-width:540px;
+    }
+
+    .feature-grid{
+      margin-top:42px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:18px;
+      max-width:560px;
+    }
+
+    .feature-card{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      padding:22px;
+      backdrop-filter:blur(12px);
+    }
+
+    .feature-card h4{
+      color:white;
+      margin-top:14px;
+      font-size:1rem;
+    }
+
+    .feature-card p{
+      color:rgba(255,255,255,.6);
+      margin-top:8px;
+      font-size:.92rem;
+      line-height:1.5;
+    }
+
+    .auth-side{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .auth-card{
+      width:100%;
+      max-width:500px;
+      background:rgba(255,255,255,.88);
+      backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,.7);
+      border-radius:34px;
+      padding:34px;
+      box-shadow:
+      0 10px 40px rgba(15,23,42,.08),
+      0 2px 12px rgba(15,23,42,.04);
+      animation:fadeUp .45s ease;
+    }
+
+    @keyframes fadeUp{
+      from{
+        opacity:0;
+        transform:translateY(18px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0px);
+      }
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:30px;
+    }
+
+    .brand-logo{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      background:linear-gradient(135deg,var(--li-green),#34BF49);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:800;
+      font-size:1.2rem;
+      box-shadow:0 8px 25px rgba(40,164,40,.25);
+    }
+
+    .brand h1{
+      font-family:'Syne',sans-serif;
+      font-size:1.6rem;
+      color:#0f172a;
+    }
+
+    .brand p{
+      color:#64748b;
+      margin-top:2px;
+      font-size:.94rem;
+    }
+
+    .tab-row{
+      display:flex;
+      gap:10px;
+      background:#f1f5f9;
+      border-radius:18px;
+      padding:6px;
+      margin-bottom:26px;
+    }
+
+    .tab-btn{
+      flex:1;
+      border:none;
+      border-radius:14px;
+      padding:13px;
+      font-weight:700;
+      transition:.25s;
+      background:transparent;
+      color:#475569;
+    }
+
+    .tab-btn.active{
+      background:white;
+      color:var(--li-green);
+      box-shadow:0 4px 12px rgba(15,23,42,.06);
+    }
+
+    .form-group{
+      margin-bottom:18px;
+    }
+
+    .form-label{
+      display:block;
+      margin-bottom:9px;
+      font-weight:700;
+      color:#0f172a;
+      font-size:.95rem;
+    }
+
+    .input-wrap{
+      position:relative;
+    }
+
+    .premium-input{
+      width:100%;
+      border:1px solid #e2e8f0;
+      background:white;
+      border-radius:18px;
+      padding:16px;
+      transition:.25s;
+      font-size:.96rem;
+    }
+
+    .premium-input:focus{
+      outline:none;
+      border-color:var(--li-green);
+      box-shadow:0 0 0 4px rgba(40,164,40,.10);
+    }
+
+    .submit-btn{
+      width:100%;
+      border:none;
+      padding:17px;
+      border-radius:20px;
+      background:linear-gradient(
+        135deg,
+        var(--li-green),
+        #34BF49
+      );
+      color:white;
+      font-weight:800;
+      font-size:1rem;
+      transition:.25s;
+      margin-top:10px;
+      box-shadow:0 14px 30px rgba(40,164,40,.22);
+    }
+
+    .submit-btn:hover{
+      transform:translateY(-2px);
+    }
+
+    .submit-btn:disabled{
+      opacity:.7;
+      cursor:not-allowed;
+    }
+
+    .auth-footer{
+      margin-top:18px;
+      text-align:center;
+      color:#64748b;
+      font-size:.93rem;
+      line-height:1.7;
+    }
+
+    .link-btn{
+      background:none;
+      border:none;
+      color:var(--li-green);
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .message-box{
+      margin-bottom:18px;
+      border-radius:18px;
+      padding:15px 16px;
+      font-size:.94rem;
+      display:none;
+    }
+
+    .message-success{
+      background:#ecfdf5;
+      color:#065f46;
+      border:1px solid #a7f3d0;
+    }
+
+    .message-error{
+      background:#fef2f2;
+      color:#991b1b;
+      border:1px solid #fecaca;
+    }
+
+    .loader{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:2px solid rgba(255,255,255,.3);
+      border-top-color:white;
+      animation:spin .8s linear infinite;
+      display:inline-block;
+    }
+
+    @keyframes spin{
+      to{
+        transform:rotate(360deg);
+      }
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    .secure-note{
+      margin-top:20px;
+      padding:14px;
+      border-radius:18px;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      color:#475569;
+      line-height:1.6;
+      font-size:.92rem;
+    }
+
+    .secure-note strong{
+      color:#0f172a;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between hero-gradient">
 
-  <!-- ── NAVIGATION BAR ── -->
-  <header class="max-w-7xl mx-auto w-full px-6 py-6 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <span class="text-2xl">🛍️</span>
-      <span class="font-black text-xl tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-        BIZINET
-      </span>
-    </div>
-    
-    <nav class="flex items-center gap-6">
-      <!-- Clean paths linking directly to your directory folders -->
-      <a href="/auth/login/" class="text-sm font-semibold text-slate-300 hover:text-white transition">
-        Sign In
-      </a>
-      <a href="/auth/signup/" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20">
-        Get Started Free
-      </a>
-    </nav>
-  </header>
+<body>
 
-  <!-- ── HERO SECTION ── -->
-  <main class="max-w-5xl mx-auto px-6 py-20 text-center flex-grow flex flex-col justify-center items-center">
-    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-8">
-      ⚡ Automated Catalog-to-Chat Engine
+<div class="auth-wrapper">
+
+ 
+
+  <!-- RIGHT SIDE -->
+  <section class="auth-side">
+
+    <div class="auth-card">
+
+      <div class="brand">
+
+        <div class="brand-logo">
+          LY
+        </div>
+
+        <div>
+          <h1>Liyog Commerce</h1>
+          <p>Smart storefront infrastructure</p>
+        </div>
+
+      </div>
+
+      <!-- TABS -->
+      <div class="tab-row">
+        <button class="tab-btn active" id="signupTab">
+          Create Account
+        </button>
+
+        <button class="tab-btn" id="signinTab">
+          Login
+        </button>
+      </div>
+
+      <!-- MESSAGE -->
+      <div id="messageBox" class="message-box"></div>
+
+      <!-- SIGNUP FORM -->
+      <form id="signupForm">
+
+        <div class="form-group">
+          <label class="form-label">
+            Business / Store Name
+          </label>
+
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="businessName"
+              class="premium-input"
+              placeholder="Example: Liyog Fashion Hub"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Email Address
+          </label>
+
+          <div class="input-wrap">
+            <input
+              type="email"
+              id="signupEmail"
+              class="premium-input"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Password
+          </label>
+
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="signupPassword"
+              class="premium-input"
+              placeholder="Minimum 6 characters"
+              required
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="signupBtn">
+          Create Secure Store
+        </button>
+
+      </form>
+
+      <!-- SIGNIN FORM -->
+      <form id="signinForm" class="hidden">
+
+        <div class="form-group">
+          <label class="form-label">
+            Email Address
+          </label>
+
+          <input
+            type="email"
+            id="signinEmail"
+            class="premium-input"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Password
+          </label>
+
+          <input
+            type="password"
+            id="signinPassword"
+            class="premium-input"
+            placeholder="Your secure password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="submit-btn" id="signinBtn">
+          Login Securely
+        </button>
+
+      </form>
+
+      <!-- FORGOT PASSWORD -->
+      <div class="auth-footer">
+
+        <button class="link-btn" id="forgotPasswordBtn">
+          Forgot Password?
+        </button>
+
+      </div>  
+
     </div>
-    
-    <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight max-w-4xl">
-      Turn your WhatsApp into a <br>
-      <span class="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-        High-Converting Store
+
+  </section>
+
+</div>
+
+<script>
+/*
+==================================================
+SUPABASE CLIENT
+==================================================
+*/
+
+const supabaseUrl =
+  "https://ugffezktrojjhfbaxrrq.supabase.co";
+
+const supabaseKey =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
+
+const supabaseClient = supabase.createClient(
+  supabaseUrl,
+  supabaseKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+/*
+==================================================
+ELEMENTS
+==================================================
+*/
+
+const signupTab = document.getElementById("signupTab");
+const signinTab = document.getElementById("signinTab");
+
+const signupForm = document.getElementById("signupForm");
+const signinForm = document.getElementById("signinForm");
+
+const signupBtn = document.getElementById("signupBtn");
+const signinBtn = document.getElementById("signinBtn");
+
+const messageBox =
+  document.getElementById("messageBox");
+
+/*
+==================================================
+MESSAGE SYSTEM
+==================================================
+*/
+
+function showMessage(type, text) {
+
+  messageBox.style.display = "block";
+
+  messageBox.className =
+    `message-box ${
+      type === "success"
+        ? "message-success"
+        : "message-error"
+    }`;
+
+  messageBox.textContent = text;
+}
+
+function clearMessage() {
+  messageBox.style.display = "none";
+}
+
+/*
+==================================================
+LOADING
+==================================================
+*/
+
+function setLoading(button, state, text = "") {
+
+  if (state) {
+
+    button.disabled = true;
+
+    button.innerHTML = `
+      <span style="
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+      ">
+        <span class="loader"></span>
+        <span>${text}</span>
       </span>
-    </h1>
-    
-    <p class="mt-6 text-slate-400 text-lg md:text-xl max-w-2xl leading-relaxed">
-      Give your business an instant digital storefront. Build product catalogs, handle order checkouts, and receive direct checkout carts straight to your WhatsApp line.
+    `;
+
+    return;
+  }
+
+  button.disabled = false;
+
+  if (button.id === "signupBtn") {
+    button.innerHTML = "Create Secure Store";
+  }
+
+  if (button.id === "signinBtn") {
+    button.innerHTML = "Login Securely";
+  }
+}
+
+/*
+==================================================
+TAB SWITCHING
+==================================================
+*/
+
+signupTab.addEventListener("click", () => {
+
+  signupTab.classList.add("active");
+  signinTab.classList.remove("active");
+
+  signupForm.classList.remove("hidden");
+  signinForm.classList.add("hidden");
+
+  clearMessage();
+});
+
+signinTab.addEventListener("click", () => {
+
+  signinTab.classList.add("active");
+  signupTab.classList.remove("active");
+
+  signinForm.classList.remove("hidden");
+  signupForm.classList.add("hidden");
+
+  clearMessage();
+});
+
+/*
+==================================================
+SECURE RUNTIME ROUTER
+RPC IS THE ONLY SOURCE OF TRUTH
+==================================================
+*/
+
+async function resolveRuntimeRedirect() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    "get_store_runtime_state"
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+
+    return {
+      redirect_to: "dashboard/onboarding"
+    };
+  }
+
+  return data[0];
+}
+
+/*
+==================================================
+SIGNUP FLOW
+==================================================
+*/
+
+signupForm.addEventListener(
+  "submit",
+  async (e) => {
+
+    e.preventDefault();
+
+    clearMessage();
+
+    const businessName =
+      document
+        .getElementById("businessName")
+        .value
+        .trim();
+
+    const email =
+      document
+        .getElementById("signupEmail")
+        .value
+        .trim()
+        .toLowerCase();
+
+    const password =
+      document
+        .getElementById("signupPassword")
+        .value;
+
+    /*
+    ==========================================
+    VALIDATION
+    ==========================================
+    */
+
+    if (businessName.length < 2) {
+
+      showMessage(
+        "error",
+        "Business name is too short."
+      );
+
+      return;
+    }
+
+    if (password.length < 6) {
+
+      showMessage(
+        "error",
+        "Password must be at least 6 characters."
+      );
+
+      return;
+    }
+
+    setLoading(
+      signupBtn,
+      true,
+      "Creating workspace..."
+    );
+
+    try {
+
+      /*
+      ==========================================
+      CREATE AUTH USER
+      ==========================================
+      */
+
+      const {
+        data,
+        error
+      } = await supabaseClient.auth.signUp({
+
+        email,
+        password,
+
+        options: {
+          data: {
+            business_name: businessName,
+            display_name: businessName
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      /*
+      ==========================================
+      EMAIL CONFIRMATION FLOW
+      ==========================================
+      */
+
+      if (
+        data?.user &&
+        !data?.session
+      ) {
+
+        showMessage(
+          "success",
+          "Account created successfully. Verify your email before login."
+        );
+
+        signupForm.reset();
+
+        return;
+      }
+
+      /*
+      ==========================================
+      WAIT FOR BACKEND PROVISIONING
+      ==========================================
+      */
+
+      let attempts = 0;
+
+      while (attempts < 15) {
+
+        attempts++;
+
+        try {
+
+          const runtime =
+            await resolveRuntimeRedirect();
+
+          if (runtime?.redirect_to) {
+
+            safeNavigate(
+              runtime.redirect_to
+            );
+
+            return;
+          }
+
+        } catch (err) {}
+
+        await new Promise(resolve =>
+          setTimeout(resolve, 1200)
+        );
+      }
+
+      throw new Error(
+        "Workspace provisioning is taking longer than expected."
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      showMessage(
+        "error",
+        err.message || "Signup failed."
+      );
+
+    } finally {
+
+      setLoading(
+        signupBtn,
+        false
+      );
+    }
+  }
+);
+
+/*
+==================================================
+LOGIN FLOW
+ENTERPRISE SECURITY MODEL
+==================================================
+*/
+
+signinForm.addEventListener(
+  "submit",
+  async (e) => {
+
+    e.preventDefault();
+
+    clearMessage();
+
+    const email =
+      document
+        .getElementById("signinEmail")
+        .value
+        .trim()
+        .toLowerCase();
+
+    const password =
+      document
+        .getElementById("signinPassword")
+        .value;
+
+    setLoading(
+      signinBtn,
+      true,
+      "Authenticating..."
+    );
+
+    try {
+
+      /*
+      ==========================================
+      LOGIN
+      ==========================================
+      */
+
+      const {
+        error
+      } = await supabaseClient
+        .auth
+        .signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      /*
+      ==========================================
+      RUNTIME SECURITY CHECK
+      RPC ONLY
+      ==========================================
+      */
+
+      const runtime =
+        await resolveRuntimeRedirect();
+
+      if (!runtime?.redirect_to) {
+
+        throw new Error(
+          "Unable to resolve account access."
+        );
+      }
+
+      /*
+      ==========================================
+      SAFE CENTRALIZED NAVIGATION
+      ==========================================
+      */
+
+      safeNavigate(
+        runtime.redirect_to
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      showMessage(
+        "error",
+        err.message || "Login failed."
+      );
+
+    } finally {
+
+      setLoading(
+        signinBtn,
+        false
+      );
+    }
+  }
+);
+
+/*
+==================================================
+FORGOT PASSWORD MODAL
+==================================================
+*/
+
+const forgotModal = document.createElement("div");
+
+forgotModal.innerHTML = `
+<div id="forgotModalOverlay"
+style="
+position:fixed;
+inset:0;
+background:rgba(15,23,42,.65);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:9999;
+padding:20px;
+">
+
+  <div style="
+    width:100%;
+    max-width:420px;
+    background:white;
+    border-radius:28px;
+    padding:28px;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+  ">
+
+    <h3 style="
+      font-size:1.4rem;
+      font-weight:800;
+      margin-bottom:10px;
+    ">
+      Reset Password
+    </h3>
+
+    <p style="
+      color:#64748b;
+      margin-bottom:20px;
+      line-height:1.6;
+    ">
+      Enter your account email address.
     </p>
 
-    <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md">
-      <a href="/auth/signup/" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition text-center shadow-xl shadow-blue-600/20">
-        Create Your Store
-      </a>
-      <a href="/auth/login/" class="bg-slate-800 hover:bg-slate-700 text-white font-medium text-lg px-8 py-4 rounded-2xl transition text-center border border-slate-700">
-        Merchant Console
-      </a>
+    <input
+      type="email"
+      id="resetEmailInput"
+      class="premium-input"
+      placeholder="you@example.com"
+    />
+
+    <div style="
+      display:flex;
+      gap:12px;
+      margin-top:20px;
+    ">
+
+      <button
+        id="cancelResetBtn"
+        style="
+          flex:1;
+          border:none;
+          border-radius:16px;
+          padding:14px;
+          font-weight:700;
+          background:#e2e8f0;
+        "
+      >
+        Cancel
+      </button>
+
+      <button
+        id="sendResetBtn"
+        class="submit-btn"
+        style="
+          flex:1;
+          margin-top:0;
+        "
+      >
+        Send Link
+      </button>
+
     </div>
 
-    <!-- Features Grid -->
-    <div class="grid sm:grid-cols-3 gap-6 w-full mt-24 border-t border-slate-800 pt-12 text-left">
-      <div class="p-4">
-        <div class="text-2xl mb-2">📲</div>
-        <h3 class="font-bold text-lg text-slate-200">Catalog-to-Chat</h3>
-        <p class="text-slate-400 text-sm mt-1">Customers browse assets smoothly and submit formatted orders right to your inbox.</p>
-      </div>
-      <div class="p-4">
-        <div class="text-2xl mb-2">⏱️</div>
-        <h3 class="font-bold text-lg text-slate-200">3-Minute Setup</h3>
-        <p class="text-slate-400 text-sm mt-1">Zero technical programming skills required. Fill out onboarding details and go live instantly.</p>
-      </div>
-      <div class="p-4">
-        <div class="text-2xl mb-2">📈</div>
-        <h3 class="font-bold text-lg text-slate-200">Built to Scale</h3>
-        <p class="text-slate-400 text-sm mt-1">Manage trials, track active customer engagement parameters, and optimize conversions.</p>
-      </div>
-    </div>
-  </main>
+  </div>
+</div>
+`;
 
-  <!-- ── FOOTER ── -->
-  <footer class="border-t border-slate-900 bg-slate-950/50 py-6 text-center text-sm text-slate-500">
-    &copy; 2026 Bizinet Commerce Systems. All rights reserved.
-  </footer>
+document.body.appendChild(forgotModal);
 
+const forgotOverlay =
+  document.getElementById(
+    "forgotModalOverlay"
+  );
+
+document
+  .getElementById("forgotPasswordBtn")
+  .addEventListener("click", () => {
+
+    forgotOverlay.style.display = "flex";
+  });
+
+document
+  .getElementById("cancelResetBtn")
+  .addEventListener("click", () => {
+
+    forgotOverlay.style.display = "none";
+  });
+
+document
+  .getElementById("sendResetBtn")
+  .addEventListener(
+    "click",
+    async () => {
+
+      const email =
+        document
+          .getElementById("resetEmailInput")
+          .value
+          .trim();
+
+      if (!email) {
+
+        alert("Enter email");
+
+        return;
+      }
+
+      try {
+
+        const {
+          error
+        } = await supabaseClient
+          .auth
+          .resetPasswordForEmail(
+            email,
+            {
+              redirectTo:
+                window.location.origin +
+                "/auth/reset-password.html"
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+
+        forgotOverlay.style.display =
+          "none";
+
+        showMessage(
+          "success",
+          "Password reset link sent successfully."
+        );
+
+      } catch (err) {
+
+        console.error(err);
+
+        showMessage(
+          "error",
+          err.message ||
+          "Unable to send reset link."
+        );
+      }
+    }
+  );
+
+/*
+==================================================
+AUTO BOOT
+ZERO FRONTEND TRUST
+==================================================
+*/
+
+async function boot() {
+
+  try {
+
+    const {
+      data: { session }
+    } = await supabaseClient
+      .auth
+      .getSession();
+
+    /*
+    ==========================================
+    NO SESSION
+    ==========================================
+    */
+
+    if (!session) {
+      return;
+    }
+
+    /*
+    ==========================================
+    RPC RUNTIME CHECK
+    ==========================================
+    */
+
+    const runtime =
+      await resolveRuntimeRedirect();
+
+    if (
+      runtime &&
+      runtime.redirect_to
+    ) {
+
+      safeNavigate(
+        runtime.redirect_to
+      );
+    }
+
+  } catch (err) {
+
+    console.error(
+      "BOOT ERROR:",
+      err
+    );
+  }
+}
+
+/*
+==================================================
+AUTH STATE LISTENER
+==================================================
+*/
+
+supabaseClient.auth.onAuthStateChange(
+  async (event) => {
+
+    if (
+      event === "SIGNED_OUT"
+    ) {
+
+      safeNavigate("auth");
+
+      return;
+    }
+  }
+);
+
+/*
+==================================================
+INITIALIZE
+==================================================
+*/
+
+boot();
+</script>
 </body>
 </html>
+
+
