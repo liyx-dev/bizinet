@@ -2,564 +2,681 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Liyog Commerce — Store Onboarding</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#071407" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Liyog — Set Up Your Store</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Global -->
-  <script src="../../global.js"></script>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Google Fonts: DM Sans + Syne -->
+  <!-- ═══════════════════════════════════════════
+       FONTS
+  ═══════════════════════════════════════════ -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
 
+  <!-- ═══════════════════════════════════════════
+       LIYOG TAILWIND BUILD (primary)
+       Falls back to inline CSS if CDN fails
+  ═══════════════════════════════════════════ -->
+  <link
+    rel="stylesheet"
+    href="https://liyx-dev.github.io/whatsapp-sales/output.css"
+    id="liyogStylesheet"
+    onerror="window.__tailwindFailed=true;document.getElementById('offlineBanner').style.display='flex';"
+  />
+
+  <!-- Quill Editor CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+
+  <!-- ═══════════════════════════════════════════
+       GLOBAL DESIGN SYSTEM — ALWAYS LOADED
+       (fallback if Tailwind CDN fails)
+  ═══════════════════════════════════════════ -->
   <style>
+    /* ─── LIYOG DESIGN TOKENS ──────────────────── */
     :root {
-      --green:        #28A428;
-      --green-light:  #34BF49;
-      --green-dark:   #228B22;
-      --deep-green:   #006400;
-      --gold:         #FFD700;
-      --orange:       #FF7A00;
-      --blue:         #1877F2;
-      --black:        #111111;
-      --black-light:  #1A1A1A;
-      --red:          #FF3B30;
-      --surface:      #f4f7f4;
-      --border:       #d6e8d6;
-      --text:         #0f1f0f;
-      --text-muted:   #5a7a5a;
-      --card-bg:      #ffffff;
-      --radius-lg:    1.5rem;
-      --radius-xl:    2rem;
-      --radius-full:  9999px;
-      --shadow-card:  0 2px 4px rgba(15,31,15,0.04), 0 12px 32px rgba(15,31,15,0.06);
-      --shadow-hover: 0 4px 8px rgba(15,31,15,0.06), 0 20px 48px rgba(15,31,15,0.10);
+      --liyog-green:        #28A428;
+      --liyog-green-light:  #34BF49;
+      --liyog-green-dark:   #228B22;
+      --liyog-deep-green:   #006400;
+      --liyog-gold:         #FFD700;
+      --liyog-orange:       #FF7A00;
+      --liyog-blue:         #1877F2;
+      --liyog-black:        #111111;
+      --liyog-black-light:  #1A1A1A;
+      --liyog-red:          #FF3B30;
+      --liyog-red-dark:     #C1271A;
+      --liyog-yellow:       #FFEA00;
+
+      /* Surfaces */
+      --surface-bg:    #f0f4f0;
+      --surface-card:  #ffffff;
+      --surface-soft:  #f8faf8;
+      --border-color:  #e0ece0;
+      --border-focus:  var(--liyog-green);
+
+      /* Text */
+      --text-primary:   #0f172a;
+      --text-secondary: #475569;
+      --text-muted:     #94a3b8;
+      --text-hint:      #b0c8b0;
+
+      /* Fonts */
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+
+      /* Radii */
+      --r-sm:  8px;
+      --r-md:  12px;
+      --r-lg:  18px;
+      --r-xl:  24px;
+      --r-2xl: 32px;
+
+      /* Shadows */
+      --shadow-sm:    0 1px 4px rgba(15,23,42,0.06);
+      --shadow-md:    0 4px 16px rgba(15,23,42,0.08);
+      --shadow-lg:    0 12px 40px rgba(15,23,42,0.10);
+      --shadow-green: 0 6px 20px rgba(40,164,40,0.28);
+      --shadow-hover: 0 16px 48px rgba(15,23,42,0.13);
     }
 
-    *, *::before, *::after { box-sizing: border-box; }
-
-    html { scroll-behavior: smooth; }
+    /* ─── BASE ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
     body {
-      margin: 0;
-      background: var(--surface);
-      color: var(--text);
-      font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-      font-size: 1rem;
-      line-height: 1.6;
+      font-family: var(--font-body);
+      background-color: var(--surface-bg);
+      background-image:
+        radial-gradient(ellipse 70% 40% at 0% 0%,   rgba(40,164,40,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(24,119,242,0.04) 0%, transparent 60%);
+      color: var(--text-primary);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* ── HERO ─────────────────────────────────── */
+    button  { cursor: pointer; font-family: var(--font-body); }
+    img     { display: block; max-width: 100%; }
+    input, select, textarea { font-family: var(--font-body); }
+    a       { color: inherit; text-decoration: none; }
 
-    .hero-bg {
+    /* ─── OFFLINE BANNER ────────────────────────── */
+    #offlineBanner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 99999;
+      background: linear-gradient(135deg, var(--liyog-orange), #cc5e00);
+      color: #fff;
+      padding: 13px 20px;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(255,122,0,0.45);
+      animation: slideDown 0.35s ease-out;
+    }
+    #offlineBanner strong { color: var(--liyog-yellow); }
+
+    /* ─── NETWORK STATUS BAR ────────────────────── */
+    #networkBar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 99998;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      animation: slideUp 0.3s ease;
+    }
+    #networkBar.offline {
+      background: linear-gradient(135deg, #1a0a0a, #2d0f0f);
+      color: #ff8a80;
+      border-top: 1px solid rgba(255,59,48,0.3);
+    }
+    #networkBar.online {
+      background: linear-gradient(135deg, #071407, #0d210d);
+      color: #6ee66e;
+      border-top: 1px solid rgba(40,164,40,0.3);
+    }
+
+    /* ─── HERO ──────────────────────────────────── */
+    .hero-section {
       background:
-        radial-gradient(ellipse 60% 50% at 0% 0%,   rgba(40,164,40,0.22), transparent),
-        radial-gradient(ellipse 50% 60% at 100% 0%,  rgba(0,100,0,0.18),   transparent),
-        radial-gradient(ellipse 40% 80% at 50% 100%, rgba(255,215,0,0.08), transparent),
-        linear-gradient(145deg, #071407 0%, #0d210d 55%, #0a1a0a 100%);
+        radial-gradient(ellipse 65% 55% at 5% 5%,   rgba(40,164,40,0.28) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 65% at 95% 5%,   rgba(0,100,0,0.20)   0%, transparent 55%),
+        radial-gradient(ellipse 45% 80% at 50% 100%, rgba(255,215,0,0.07)  0%, transparent 60%),
+        linear-gradient(150deg, #061206 0%, #0b1e0b 50%, #091509 100%);
       position: relative;
       overflow: hidden;
     }
 
-    .hero-bg::before {
+    .hero-section::before {
       content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 28px 28px;
       pointer-events: none;
     }
 
     .hero-noise {
-      position: absolute;
-      inset: 0;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      position: absolute; inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       pointer-events: none;
     }
 
-    /* ── GLASS ────────────────────────────────── */
-
+    /* ─── GLASS ─────────────────────────────────── */
     .glass {
       background: rgba(255,255,255,0.07);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
     }
 
-    /* ── CARD ─────────────────────────────────── */
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-card);
-      transition: box-shadow 0.25s ease;
+    /* ─── CARD ──────────────────────────────────── */
+    .liyog-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-md);
+      transition: box-shadow 0.25s ease, transform 0.2s ease;
     }
+    .liyog-card:hover { box-shadow: var(--shadow-hover); }
 
-    .card:hover {
-      box-shadow: var(--shadow-hover);
-    }
-
-    /* ── SECTION HEADER ───────────────────────── */
-
-    .section-eyebrow {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.72rem;
+    /* ─── SECTION EYEBROW ───────────────────────── */
+    .eyebrow {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
       font-weight: 800;
-      letter-spacing: 0.13em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--green);
+      color: var(--liyog-green);
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+      margin-bottom: 0.45rem;
     }
-
-    .section-eyebrow::before {
+    .eyebrow::before {
       content: '';
       display: inline-block;
-      width: 18px;
-      height: 2px;
-      background: var(--green);
+      width: 16px; height: 2px;
+      background: var(--liyog-green);
       border-radius: 2px;
     }
 
-    /* ── INPUTS ───────────────────────────────── */
-
-    .input, .select, .textarea {
+    /* ─── FORM INPUTS ───────────────────────────── */
+    .liyog-input,
+    .liyog-select {
       width: 100%;
-      border: 1.5px solid var(--border);
-      border-radius: 0.9rem;
-      padding: 0.9rem 1rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--r-md);
+      padding: 0.875rem 1rem;
       outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      background: #fafcfa;
-      color: var(--text);
-      font-family: inherit;
-      font-size: 0.95rem;
+      background: var(--surface-soft);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.925rem;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      -webkit-appearance: none;
     }
-
-    .textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
-
-    .input:focus, .select:focus, .textarea:focus {
-      border-color: var(--green);
+    .liyog-input:focus,
+    .liyog-select:focus {
+      border-color: var(--liyog-green);
       background: #fff;
       box-shadow: 0 0 0 4px rgba(40,164,40,0.10);
     }
+    .liyog-input::placeholder { color: var(--text-hint); }
+    .liyog-input:disabled,
+    .liyog-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .input::placeholder, .textarea::placeholder {
-      color: #aabfaa;
+    /* select arrow */
+    .liyog-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 2.5rem;
+      cursor: pointer;
     }
 
-    .input:disabled, .select:disabled, .textarea:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* ── LABEL ────────────────────────────────── */
-
+    /* ─── FIELD LABEL ───────────────────────────── */
     .field-label {
       display: block;
       font-weight: 600;
-      font-size: 0.875rem;
-      color: var(--text);
-      margin-bottom: 0.5rem;
+      font-size: 0.855rem;
+      color: var(--text-primary);
+      margin-bottom: 0.45rem;
     }
-
-    .field-label .required {
-      color: var(--red);
+    .field-label .opt-tag {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 5px;
+    }
+    .field-label .req-tag {
+      color: var(--liyog-red);
       margin-left: 2px;
     }
 
-    /* ── UPLOAD BOX ───────────────────────────── */
-
-    .upload-box {
-      transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    /* ─── CHAR COUNTER ──────────────────────────── */
+    .char-count {
+      font-size: 0.72rem;
+      color: var(--text-hint);
+      text-align: right;
+      margin-top: 0.3rem;
+      transition: color 0.2s;
     }
+    .char-count.warn { color: var(--liyog-orange); font-weight: 600; }
+    .char-count.over { color: var(--liyog-red);    font-weight: 700; }
 
-    .upload-box:hover {
-      border-color: var(--green);
-      background: rgba(40,164,40,0.04);
+    /* ─── UPLOAD ZONE ───────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--r-xl);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      position: relative;
+    }
+    .upload-zone:hover {
+      border-color: var(--liyog-green);
+      background: rgba(40,164,40,0.03);
       transform: translateY(-1px);
     }
-
-    .upload-box.drag-over {
-      border-color: var(--green-light);
-      background: rgba(40,164,40,0.08);
+    .upload-zone.drag-active {
+      border-color: var(--liyog-green-light);
+      background: rgba(40,164,40,0.07);
       transform: scale(1.01);
     }
 
-    /* ── PROGRESS BAR ─────────────────────────── */
-
-    .progress-bar {
-      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* ─── LOGO PREVIEW ──────────────────────────── */
+    .logo-thumb {
+      width: 90px; height: 90px;
+      object-fit: cover;
+      border-radius: var(--r-lg);
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+      transition: transform 0.2s;
     }
+    .logo-thumb:hover { transform: scale(1.05); }
 
-    /* ── BUTTONS ──────────────────────────────── */
-
-    .btn-primary {
+    /* ─── BUTTONS ───────────────────────────────── */
+    .btn-green {
       display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      background: var(--green);
+      align-items: center; justify-content: center;
+      gap: 0.55rem;
+      background: var(--liyog-green);
       color: #fff;
-      font-family: inherit;
+      font-family: var(--font-body);
       font-weight: 700;
       font-size: 0.95rem;
       padding: 0.9rem 2rem;
       border: none;
-      border-radius: 0.9rem;
+      border-radius: var(--r-lg);
       cursor: pointer;
-      transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-      box-shadow: 0 4px 16px rgba(40,164,40,0.25);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+      box-shadow: var(--shadow-green);
+      white-space: nowrap;
     }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--green-dark);
-      box-shadow: 0 6px 24px rgba(40,164,40,0.35);
+    .btn-green:hover:not(:disabled) {
+      background: var(--liyog-green-dark);
+      box-shadow: 0 8px 28px rgba(40,164,40,0.38);
       transform: translateY(-1px);
     }
+    .btn-green:active:not(:disabled) { transform: translateY(0); }
+    .btn-green:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
-    .btn-primary:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-secondary {
+    .btn-ghost {
       display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
       gap: 0.5rem;
       background: transparent;
-      color: var(--text-muted);
-      font-family: inherit;
+      color: var(--text-secondary);
+      font-family: var(--font-body);
       font-weight: 600;
-      font-size: 0.95rem;
-      padding: 0.9rem 1.75rem;
-      border: 1.5px solid var(--border);
-      border-radius: 0.9rem;
+      font-size: 0.925rem;
+      padding: 0.875rem 1.75rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--r-lg);
       cursor: pointer;
-      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      white-space: nowrap;
     }
-
-    .btn-secondary:hover:not(:disabled) {
-      border-color: #b0c8b0;
-      background: rgba(40,164,40,0.04);
-      color: var(--text);
+    .btn-ghost:hover:not(:disabled) {
+      border-color: var(--liyog-green);
+      background: rgba(40,164,40,0.05);
+      color: var(--liyog-green-dark);
     }
+    .btn-ghost:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* ── SPINNER ──────────────────────────────── */
-
+    /* ─── SPINNER ───────────────────────────────── */
     .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.35);
+      width: 17px; height: 17px;
+      border: 2.5px solid rgba(255,255,255,0.3);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.75s linear infinite;
+      animation: spin 0.72s linear infinite;
       flex-shrink: 0;
     }
+    .spinner-dark {
+      border-color: rgba(40,164,40,0.2);
+      border-top-color: var(--liyog-green);
+    }
 
-    /* ── BADGE ────────────────────────────────── */
-
-    .badge {
+    /* ─── BADGE ─────────────────────────────────── */
+    .liyog-badge {
       display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 0.85rem;
-      border-radius: var(--radius-full);
-      font-size: 0.78rem;
+      align-items: center; gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
       font-weight: 700;
       letter-spacing: 0.01em;
     }
+    .badge-trial    { background: rgba(255,215,0,0.13);  color: #7a5800; }
+    .badge-active   { background: rgba(40,164,40,0.12);  color: var(--liyog-deep-green); }
+    .badge-inactive { background: rgba(255,59,48,0.10);  color: var(--liyog-red-dark); }
+    .badge-loaded   { background: rgba(40,164,40,0.10);  color: var(--liyog-green-dark); }
 
-    .badge-trial   { background: rgba(255,215,0,0.15);   color: #8a6500; }
-    .badge-active  { background: rgba(40,164,40,0.12);   color: var(--deep-green); }
-    .badge-inactive{ background: rgba(255,59,48,0.10);   color: #c1271a; }
-    .badge-loaded  { background: rgba(40,164,40,0.10);   color: var(--green-dark); }
-
-    /* ── PREVIEW IMG ──────────────────────────── */
-
-    .preview-image {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 1.1rem;
-      border: 1.5px solid var(--border);
-      box-shadow: 0 4px 16px rgba(15,31,15,0.10);
-      transition: transform 0.2s ease;
+    /* ─── PROGRESS BAR ──────────────────────────── */
+    .prog-bar {
+      transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
     }
 
-    .preview-image:hover {
-      transform: scale(1.04);
-    }
-
-    /* ── SKELETON ─────────────────────────────── */
-
-    .skeleton {
-      position: relative;
-      overflow: hidden;
-      background: #e4ede4;
-      border-radius: 0.5rem;
-    }
-
-    .skeleton::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      transform: translateX(-100%);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-      animation: shimmer 1.4s infinite;
-    }
-
-    /* ── TOAST ────────────────────────────────── */
-
-    .toast {
-      animation: toastIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: auto;
-    }
-
-    /* ── STEP INDICATOR ───────────────────────── */
-
+    /* ─── STEP DOTS ─────────────────────────────── */
     .step-dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.22);
-      transition: background 0.3s ease, transform 0.3s ease;
+      background: rgba(255,255,255,0.18);
+      transition: background 0.3s, transform 0.3s;
+    }
+    .step-dot.active { background: var(--liyog-gold); transform: scale(1.4); }
+    .step-dot.done   { background: var(--liyog-green-light); transform: scale(1.1); }
+
+    /* ─── SIDEBAR INFO ITEM ─────────────────────── */
+    .info-row {
+      display: flex; gap: 0.9rem; align-items: flex-start;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .info-row:last-child { border-bottom: none; }
+
+    /* ─── QUILL OVERRIDE ────────────────────────── */
+    .ql-container {
+      border-radius: 0 0 var(--r-md) var(--r-md) !important;
+      border-color: var(--border-color) !important;
+      font-family: var(--font-body) !important;
+      font-size: 0.925rem !important;
+      min-height: 130px;
+    }
+    .ql-toolbar {
+      border-radius: var(--r-md) var(--r-md) 0 0 !important;
+      border-color: var(--border-color) !important;
+      background: var(--surface-soft) !important;
+    }
+    .ql-editor { min-height: 120px; color: var(--text-primary) !important; }
+    .ql-editor.ql-blank::before { color: var(--text-hint) !important; font-style: normal !important; }
+    .ql-container.focused,
+    .ql-container:focus-within {
+      border-color: var(--liyog-green) !important;
+      box-shadow: 0 0 0 4px rgba(40,164,40,0.10);
+    }
+    .ql-toolbar.ql-focused { border-color: var(--liyog-green) !important; }
+
+    /* ─── BOOT LOADER ───────────────────────────── */
+    #bootLoader {
+      position: fixed; inset: 0; z-index: 9000;
+      background: linear-gradient(150deg, #061206, #0b1e0b);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 1.25rem;
+    }
+    .boot-spinner {
+      width: 44px; height: 44px;
+      border: 3px solid rgba(40,164,40,0.25);
+      border-top-color: var(--liyog-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
-    .step-dot.active {
-      background: var(--gold);
-      transform: scale(1.35);
+    /* ─── TOAST ─────────────────────────────────── */
+    .toast-item {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.875rem 1.1rem;
+      border-radius: var(--r-lg);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.45;
+      color: #fff;
+      pointer-events: auto;
+      animation: toastSlide 0.25s cubic-bezier(0.34,1.56,0.64,1);
     }
+    .toast-success { background: #0a1f0a; border: 1px solid rgba(40,164,40,0.35); }
+    .toast-error   { background: #1f0808; border: 1px solid rgba(255,59,48,0.35); }
+    .toast-info    { background: #080f1f; border: 1px solid rgba(24,119,242,0.35); }
+    .toast-warn    { background: #1a1000; border: 1px solid rgba(255,122,0,0.35); }
 
-    .step-dot.done {
-      background: var(--green-light);
-    }
-
-    /* ── FIELD WRAPPER ────────────────────────── */
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-
-    /* ── HIGHLIGHT RING on focus-within ───────── */
-
-    .field-group:focus-within .field-label {
-      color: var(--green-dark);
-    }
-
-    /* ── INFO ITEM ────────────────────────────── */
-
-    .info-item {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-      padding: 0.9rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .info-item:last-child { border-bottom: none; }
-
-    .info-icon {
-      font-size: 1.6rem;
-      line-height: 1;
+    .toast-icon {
       flex-shrink: 0;
-      margin-top: 2px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      margin-top: 1px;
     }
 
-    /* ── KEYFRAMES ────────────────────────────── */
+    /* ─── SKIP BANNER (in-page) ─────────────────── */
+    .skip-banner {
+      background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,122,0,0.06));
+      border: 1px solid rgba(255,215,0,0.22);
+      border-radius: var(--r-lg);
+      padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
 
+    /* ─── OPTIONAL HINT ─────────────────────────── */
+    .optional-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+
+    /* ─── KEYFRAMES ─────────────────────────────── */
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-
-    @keyframes shimmer {
-      100% { transform: translateX(100%); }
-    }
-
-    @keyframes toastIn {
-      from { transform: translateX(30px); opacity: 0; }
-      to   { transform: translateX(0);    opacity: 1; }
-    }
-
-    @keyframes fadeUp {
-      from { transform: translateY(16px); opacity: 0; }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
       to   { transform: translateY(0);    opacity: 1; }
     }
-
-    @keyframes pulse-ring {
-      0%   { box-shadow: 0 0 0 0 rgba(40,164,40,0.4); }
-      70%  { box-shadow: 0 0 0 10px rgba(40,164,40,0); }
-      100% { box-shadow: 0 0 0 0 rgba(40,164,40,0); }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes fadeUp {
+      from { transform: translateY(18px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes toastSlide {
+      from { transform: translateX(32px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    @keyframes shimmer {
+      0%   { transform: translateX(-150%) skewX(-15deg); }
+      100% { transform: translateX(150%) skewX(-15deg); }
+    }
+    @keyframes pulseGreen {
+      0%,100% { box-shadow: 0 0 0 0 rgba(40,164,40,0.4); }
+      50%      { box-shadow: 0 0 0 10px rgba(40,164,40,0); }
     }
 
-    .animate-fade-up {
-      animation: fadeUp 0.4s ease both;
-    }
+    .anim-fade-up  { animation: fadeUp 0.4s ease both; }
+    .anim-fade-up-2{ animation: fadeUp 0.4s ease 0.08s both; }
+    .anim-fade-up-3{ animation: fadeUp 0.4s ease 0.16s both; }
+    .anim-pulse-green { animation: pulseGreen 2.2s ease infinite; }
 
-    .animate-pulse-ring {
-      animation: pulse-ring 2s ease infinite;
-    }
-
-    /* ── CHAR COUNTER ─────────────────────────── */
-
-    .char-counter {
-      font-size: 0.75rem;
-      color: #aabfaa;
-      text-align: right;
-      margin-top: 0.3rem;
-      transition: color 0.2s ease;
-    }
-
-    .char-counter.warn  { color: var(--orange); }
-    .char-counter.over  { color: var(--red); font-weight: 700; }
-
-    /* ── RESPONSIVE ───────────────────────────── */
-
-    @media (max-width: 640px) {
-      .hero-stat { padding: 0.6rem 0.9rem; font-size: 0.8rem; }
+    /* ─── RESPONSIVE ────────────────────────────── */
+    @media (max-width: 480px) {
+      .hero-section { padding: 3rem 1.1rem 2.5rem; }
+      .action-row { flex-direction: column; }
+      .action-row .btn-green,
+      .action-row .btn-ghost { width: 100%; justify-content: center; }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- BOOT LOADER                                -->
-  <!-- ══════════════════════════════════════════ -->
-  <div id="bootLoader" class="fixed inset-0 z-[200] flex items-center justify-center"
-       style="background:linear-gradient(145deg,#071407,#0d210d);">
-    <div class="text-center text-white px-6">
-      <div style="width:48px;height:48px;border:3px solid rgba(40,164,40,0.3);border-top-color:#28A428;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.5rem;"></div>
-      <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin:0 0 0.5rem;">
-        Preparing your store...
+  <!-- ════════════════════════════════════════════
+       OFFLINE / CDN FAIL BANNER
+  ════════════════════════════════════════════ -->
+  <div id="offlineBanner">
+    <span>⚠️</span>
+    <span>Some styles couldn't load — <strong>check your connection</strong> and refresh.</span>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       NETWORK STATUS BAR
+  ════════════════════════════════════════════ -->
+  <div id="networkBar"></div>
+
+  <!-- ════════════════════════════════════════════
+       BOOT LOADER
+  ════════════════════════════════════════════ -->
+  <div id="bootLoader">
+    <div class="boot-spinner"></div>
+    <div style="text-align:center; color:#fff;">
+      <h2 style="font-family:var(--font-display);font-size:1.35rem;font-weight:800;margin-bottom:0.4rem;">
+        Getting things ready...
       </h2>
-      <p style="color:rgba(255,255,255,0.45);font-size:0.875rem;margin:0;">
-        Verifying secure runtime state
+      <p style="color:rgba(255,255,255,0.4);font-size:0.85rem;">
+        Checking your account securely
       </p>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- TOAST CONTAINER                            -->
-  <!-- ══════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════
+       TOAST CONTAINER
+  ════════════════════════════════════════════ -->
   <div id="toastContainer"
-       class="fixed top-5 right-5 z-[300] flex flex-col gap-3"
-       style="max-width:340px;width:calc(100vw - 2.5rem);pointer-events:none;">
+       style="position:fixed;top:1.25rem;right:1.1rem;z-index:8000;
+              display:flex;flex-direction:column;gap:0.65rem;
+              max-width:330px;width:calc(100vw - 2.2rem);pointer-events:none;">
   </div>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- HERO                                       -->
-  <!-- ══════════════════════════════════════════ -->
-  <section class="hero-bg text-white relative">
+  <!-- ════════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════ -->
+  <section class="hero-section" style="color:#fff; padding: 4rem 1.25rem 3.5rem;">
     <div class="hero-noise"></div>
 
-    <div class="relative max-w-7xl mx-auto px-5 py-14">
+    <div style="position:relative; max-width:1200px; margin:0 auto;">
+      <div style="display:grid; grid-template-columns:1fr; gap:2.5rem; align-items:center;">
 
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <!-- LEFT TEXT -->
+        <div class="anim-fade-up" style="max-width:640px;">
 
-        <!-- LEFT -->
-        <div class="animate-fade-up">
-
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-7"
-               style="border:1px solid rgba(255,215,0,0.25);background:rgba(255,215,0,0.08);font-size:0.82rem;font-weight:600;color:#FFD700;">
+          <div style="display:inline-flex;align-items:center;gap:0.55rem;
+                      padding:0.5rem 1rem;border-radius:999px;margin-bottom:1.5rem;
+                      border:1px solid rgba(255,215,0,0.22);
+                      background:rgba(255,215,0,0.08);
+                      font-size:0.82rem;font-weight:600;color:var(--liyog-gold);">
             🚀 Welcome to Liyog Commerce
           </div>
 
-          <h1 style="font-family:'Syne',sans-serif;font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;line-height:1.08;margin:0 0 1.25rem;">
-            Launch your
-            <span style="color:var(--green-light);display:inline-block;position:relative;">
+          <h1 style="font-family:var(--font-display);
+                     font-size:clamp(2rem,5vw,3.4rem);
+                     font-weight:800;
+                     line-height:1.09;
+                     margin-bottom:1.1rem;">
+            Build your
+            <span style="color:var(--liyog-green-light);position:relative;display:inline-block;">
               online store
-              <svg style="position:absolute;bottom:-4px;left:0;width:100%;height:6px;overflow:visible;" viewBox="0 0 200 6" preserveAspectRatio="none">
-                <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="#28A428" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <svg style="position:absolute;bottom:-5px;left:0;width:100%;height:6px;overflow:visible;" viewBox="0 0 200 6" preserveAspectRatio="none">
+                <path d="M0 5 Q50 1 100 4 Q150 7 200 2" stroke="#34BF49" stroke-width="2.5" fill="none" stroke-linecap="round"/>
               </svg>
             </span>
-            <br />professionally
+            <br/>and start selling today
           </h1>
 
-          <p style="color:rgba(255,255,255,0.6);font-size:1.05rem;line-height:1.7;max-width:480px;margin:0 0 2rem;">
-            Add your business identity, WhatsApp contact, logo and branding to make your storefront look trustworthy and conversion-ready.
+          <p style="color:rgba(255,255,255,0.58);font-size:1rem;line-height:1.72;
+                    max-width:480px; margin-bottom:1.75rem;">
+            Tell us a little about your business. You can always update everything later from your dashboard — there's no pressure to fill everything now.
           </p>
 
-          <div class="flex flex-wrap gap-3">
-            <div class="glass rounded-xl px-4 py-2.5 hero-stat" style="border:1px solid rgba(255,255,255,0.08);font-size:0.83rem;">
-              ⚡ SaaS-ready onboarding
+          <div style="display:flex;flex-wrap:wrap;gap:0.65rem;">
+            <div class="glass" style="border:1px solid rgba(255,255,255,0.08);
+                 border-radius:var(--r-md);padding:0.6rem 1rem;font-size:0.8rem;">
+              ⚡ Quick setup — under 2 minutes
             </div>
-            <div class="glass rounded-xl px-4 py-2.5 hero-stat" style="border:1px solid rgba(255,255,255,0.08);font-size:0.83rem;">
-              🔒 Secure tenant isolation
+            <div class="glass" style="border:1px solid rgba(255,255,255,0.08);
+                 border-radius:var(--r-md);padding:0.6rem 1rem;font-size:0.8rem;">
+              🔒 Your data is always safe
             </div>
-            <div class="glass rounded-xl px-4 py-2.5 hero-stat" style="border:1px solid rgba(255,255,255,0.08);font-size:0.83rem;">
-              📈 Better customer trust
+            <div class="glass" style="border:1px solid rgba(255,255,255,0.08);
+                 border-radius:var(--r-md);padding:0.6rem 1rem;font-size:0.8rem;">
+              📱 WhatsApp-powered selling
             </div>
           </div>
         </div>
 
-        <!-- RIGHT — PROGRESS CARD -->
-        <div class="glass rounded-3xl p-7 animate-fade-up" style="border:1px solid rgba(255,255,255,0.09);animation-delay:0.1s;">
+        <!-- RIGHT PROGRESS CARD -->
+        <div class="glass anim-fade-up-2"
+             style="border:1px solid rgba(255,255,255,0.09);
+                    border-radius:var(--r-2xl);
+                    padding:1.75rem;
+                    max-width:480px;">
 
-          <!-- Header -->
-          <div class="flex items-center justify-between mb-2">
-            <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;">
-              Setup Progress
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+            <span style="font-family:var(--font-display);font-weight:800;font-size:0.95rem;">
+              Your Setup Progress
             </span>
-            <span id="progressText" style="font-size:0.85rem;color:rgba(255,255,255,0.55);">0%</span>
+            <span id="progressText" style="font-size:0.82rem;color:rgba(255,255,255,0.45);">0%</span>
           </div>
 
-          <!-- Bar -->
-          <div style="height:6px;border-radius:99px;background:rgba(255,255,255,0.10);overflow:hidden;margin-bottom:1.5rem;">
-            <div id="progressBar" class="progress-bar" style="height:100%;background:linear-gradient(90deg,var(--green),var(--green-light));width:0%;border-radius:99px;"></div>
+          <!-- Progress bar -->
+          <div style="height:5px;background:rgba(255,255,255,0.10);border-radius:99px;overflow:hidden;margin-bottom:1.25rem;">
+            <div id="progressBar" class="prog-bar"
+                 style="height:100%;width:0%;border-radius:99px;
+                        background:linear-gradient(90deg,var(--liyog-green),var(--liyog-green-light));"></div>
           </div>
 
           <!-- Step dots -->
-          <div class="flex items-center gap-2 mb-6">
-            <div class="step-dot active" id="dot1"></div>
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem;">
+            <div class="step-dot active" id="sdot1"></div>
             <div style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></div>
-            <div class="step-dot" id="dot2"></div>
+            <div class="step-dot" id="sdot2"></div>
             <div style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></div>
-            <div class="step-dot" id="dot3"></div>
+            <div class="step-dot" id="sdot3"></div>
             <div style="flex:1;height:1px;background:rgba(255,255,255,0.12);"></div>
-            <div class="step-dot" id="dot4"></div>
+            <div class="step-dot" id="sdot4"></div>
           </div>
 
-          <!-- Quadrants -->
-          <div class="grid grid-cols-2 gap-3">
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:1rem;padding:1rem;">
-              <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);margin:0 0 0.25rem;">Identity</p>
-              <h4 style="font-weight:700;font-size:0.9rem;margin:0;">Store Branding</h4>
+          <!-- Quadrant cards -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;">
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);
+                        border-radius:var(--r-lg);padding:0.9rem;">
+              <p style="font-size:0.72rem;color:rgba(255,255,255,0.42);margin-bottom:0.2rem;">Your Identity</p>
+              <h4 style="font-weight:700;font-size:0.87rem;margin:0;">Store Details</h4>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:1rem;padding:1rem;">
-              <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);margin:0 0 0.25rem;">Customers</p>
-              <h4 style="font-weight:700;font-size:0.9rem;margin:0;">WhatsApp Setup</h4>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);
+                        border-radius:var(--r-lg);padding:0.9rem;">
+              <p style="font-size:0.72rem;color:rgba(255,255,255,0.42);margin-bottom:0.2rem;">Contact</p>
+              <h4 style="font-weight:700;font-size:0.87rem;margin:0;">WhatsApp Line</h4>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:1rem;padding:1rem;">
-              <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);margin:0 0 0.25rem;">Presence</p>
-              <h4 style="font-weight:700;font-size:0.9rem;margin:0;">Store Visibility</h4>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);
+                        border-radius:var(--r-lg);padding:0.9rem;">
+              <p style="font-size:0.72rem;color:rgba(255,255,255,0.42);margin-bottom:0.2rem;">Your Look</p>
+              <h4 style="font-weight:700;font-size:0.87rem;margin:0;">Logo & Brand</h4>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:1rem;padding:1rem;">
-              <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);margin:0 0 0.25rem;">Trust</p>
-              <h4 style="font-weight:700;font-size:0.9rem;margin:0;">Professional Look</h4>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);
+                        border-radius:var(--r-lg);padding:0.9rem;">
+              <p style="font-size:0.72rem;color:rgba(255,255,255,0.42);margin-bottom:0.2rem;">Trust</p>
+              <h4 style="font-weight:700;font-size:0.87rem;margin:0;">Customer Trust</h4>
             </div>
           </div>
         </div>
@@ -568,192 +685,238 @@
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- MAIN                                       -->
-  <!-- ══════════════════════════════════════════ -->
-  <main class="max-w-7xl mx-auto px-5 py-10">
+  <!-- ════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════ -->
+  <main style="max-width:1200px;margin:0 auto;padding:2.5rem 1.25rem 5rem;">
 
-    <div class="grid lg:grid-cols-3 gap-8">
+    <div style="display:grid;grid-template-columns:1fr;gap:1.75rem;">
 
-      <!-- ════════════════════════════════════ -->
-      <!-- FORM COL                             -->
-      <!-- ════════════════════════════════════ -->
-      <div class="lg:col-span-2">
-        <form id="onboardingForm" class="flex flex-col gap-7" novalidate>
+      <!-- ══════════════════════════════════════
+           FORM COLUMN
+      ══════════════════════════════════════ -->
+      <div id="formCol">
+        <form id="onboardingForm" novalidate style="display:flex;flex-direction:column;gap:1.5rem;">
 
-          <!-- ─────────────────────────────── -->
-          <!-- BUSINESS INFORMATION            -->
-          <!-- ─────────────────────────────── -->
-          <section class="card p-7 lg:p-9 animate-fade-up">
+          <!-- ────────────────────────────────
+               SKIP BANNER
+          ──────────────────────────────── -->
+          <div class="skip-banner anim-fade-up">
+            <div style="font-size:1.5rem; flex-shrink:0;">💡</div>
+            <div style="flex:1;min-width:200px;">
+              <p style="font-weight:700;font-size:0.9rem;color:var(--liyog-black);margin-bottom:0.2rem;">
+                Not ready yet? No problem.
+              </p>
+              <p style="font-size:0.82rem;color:var(--text-secondary);margin:0;">
+                Jump into your dashboard now and finish this anytime. Only your store name and WhatsApp number are required to get started.
+              </p>
+            </div>
+            <button type="button" id="skipBtn" class="btn-ghost"
+                    style="border-color:rgba(255,122,0,0.35);color:var(--liyog-orange);
+                           font-size:0.85rem;padding:0.7rem 1.25rem;flex-shrink:0;">
+              Skip for now →
+            </button>
+          </div>
 
-            <div class="flex items-start justify-between gap-4 flex-wrap mb-7">
+          <!-- ────────────────────────────────
+               SECTION 1: BUSINESS INFO
+          ──────────────────────────────── -->
+          <section class="liyog-card anim-fade-up" style="padding:1.75rem;">
+
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
               <div>
-                <div class="section-eyebrow">Step 1</div>
-                <h2 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin:0 0 0.35rem;">
-                  Business Information
+                <div class="eyebrow">Step 1 of 2</div>
+                <h2 style="font-family:var(--font-display);font-size:1.45rem;font-weight:800;margin-bottom:0.3rem;">
+                  About Your Business
                 </h2>
-                <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">
-                  Add your store identity and contact details.
+                <p style="color:var(--text-secondary);font-size:0.875rem;margin:0;">
+                  This is what your customers will see on your store page.
                 </p>
               </div>
-
-              <div id="profileStatusBadge" class="hidden badge badge-loaded">
-                ✓ Existing profile loaded
+              <div id="profileStatusBadge" class="liyog-badge badge-loaded" style="display:none;">
+                ✓ Your info was loaded
               </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-5">
+            <div style="display:grid;grid-template-columns:1fr;gap:1.1rem;">
 
-              <!-- Business Name -->
-              <div class="field-group">
-                <label class="field-label" for="business_name">
-                  Business Name <span class="required">*</span>
-                </label>
-                <input type="text" id="business_name" maxlength="80"
-                       class="input" placeholder="Liyog Fashion Store" required
-                       autocomplete="organization" />
-                <div class="char-counter" id="counter_business_name">0 / 80</div>
+              <!-- Row 1: Name + Type -->
+              <div style="display:grid;grid-template-columns:1fr;gap:1.1rem;" id="row1">
+
+                <div>
+                  <label class="field-label" for="business_name">
+                    Store Name <span class="req-tag">*</span>
+                  </label>
+                  <input type="text" id="business_name" maxlength="80"
+                         class="liyog-input" placeholder="e.g. Liyog Fashion House"
+                         autocomplete="organization" />
+                  <div class="char-count" id="cc_business_name">0 / 80</div>
+                </div>
+
+                <div>
+                  <label class="field-label" for="business_type">
+                    What do you sell?
+                    <span class="opt-tag">(optional)</span>
+                  </label>
+                  <select id="business_type" class="liyog-select">
+                    <option value="">e.g. Fashion, Gadgets, Beauty...</option>
+                  </select>
+                </div>
+
               </div>
 
-              <!-- Business Type -->
-              <div class="field-group">
-                <label class="field-label" for="business_type">
-                  Business Type <span class="required">*</span>
-                </label>
-                <input type="text" id="business_type" maxlength="60"
-                       class="input" placeholder="Fashion, Gadgets, Beauty..." required />
-                <div class="char-counter" id="counter_business_type">0 / 60</div>
+              <!-- Row 2: WhatsApp + Currency -->
+              <div style="display:grid;grid-template-columns:1fr;gap:1.1rem;" id="row2">
+
+                <div>
+                  <label class="field-label" for="whatsapp_number">
+                    WhatsApp Number <span class="req-tag">*</span>
+                  </label>
+                  <input type="tel" id="whatsapp_number" maxlength="30"
+                         class="liyog-input" placeholder="+234 800 000 0000"
+                         autocomplete="tel" inputmode="tel" />
+                  <p class="optional-hint">
+                    <span>📲</span> Customers will reach you here to place orders
+                  </p>
+                </div>
+
+                <div>
+                  <label class="field-label" for="currency_symbol">
+                    Your Currency
+                    <span class="opt-tag">(optional)</span>
+                  </label>
+                  <select id="currency_symbol" class="liyog-select">
+                    <option value="">Loading currencies...</option>
+                  </select>
+                </div>
+
               </div>
 
-              <!-- WhatsApp -->
-              <div class="field-group">
-                <label class="field-label" for="whatsapp_number">
-                  WhatsApp Number <span class="required">*</span>
-                </label>
-                <input type="tel" id="whatsapp_number" maxlength="30"
-                       class="input" placeholder="+234 800 000 0000" required
-                       autocomplete="tel" />
-              </div>
+              <!-- Row 3: Country + City -->
+              <div style="display:grid;grid-template-columns:1fr;gap:1.1rem;" id="row3">
 
-              <!-- Currency -->
-              <div class="field-group">
-                <label class="field-label" for="currency_symbol">Currency</label>
-                <select id="currency_symbol" class="select">
-                  <option value="">Loading currencies...</option>
-                </select>
-              </div>
+                <div>
+                  <label class="field-label" for="store_country">
+                    Country
+                    <span class="opt-tag">(optional)</span>
+                  </label>
+                  <select id="store_country" class="liyog-select">
+                    <option value="">Loading countries...</option>
+                  </select>
+                </div>
 
-              <!-- Country -->
-              <div class="field-group">
-                <label class="field-label" for="store_country">
-                  Country <span class="required">*</span>
-                </label>
-                <select id="store_country" class="select" required>
-                  <option value="">Loading countries...</option>
-                </select>
-              </div>
+                <div>
+                  <label class="field-label" for="store_city">
+                    City
+                    <span class="opt-tag">(optional)</span>
+                  </label>
+                  <input type="text" id="store_city" maxlength="80"
+                         class="liyog-input" placeholder="e.g. Lagos"
+                         autocomplete="address-level2" />
+                </div>
 
-              <!-- City -->
-              <div class="field-group">
-                <label class="field-label" for="store_city">City</label>
-                <input type="text" id="store_city" maxlength="80"
-                       class="input" placeholder="Lagos" autocomplete="address-level2" />
               </div>
 
               <!-- Tagline -->
-              <div class="field-group md:col-span-2">
-                <label class="field-label" for="tagline">Tagline</label>
+              <div>
+                <label class="field-label" for="tagline">
+                  Your Tagline
+                  <span class="opt-tag">(optional)</span>
+                </label>
                 <input type="text" id="tagline" maxlength="120"
-                       class="input" placeholder="Affordable luxury for everyone" />
-                <div class="char-counter" id="counter_tagline">0 / 120</div>
+                       class="liyog-input"
+                       placeholder="e.g. Quality you can trust, prices you'll love" />
+                <div class="char-count" id="cc_tagline">0 / 120</div>
               </div>
 
-              <!-- Bio -->
-              <div class="field-group md:col-span-2">
-                <label class="field-label" for="bio">Store Bio</label>
-                <textarea id="bio" maxlength="1000"
-                          class="textarea"
-                          placeholder="Tell customers about your business..."></textarea>
-                <div class="char-counter" id="counter_bio">0 / 1000</div>
+              <!-- Bio (Quill) -->
+              <div>
+                <label class="field-label" for="bioEditor">
+                  Tell customers about your store
+                  <span class="opt-tag">(optional)</span>
+                </label>
+                <div id="bioEditor" style="border-radius:var(--r-md);overflow:hidden;"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.35rem;">
+                  <p class="optional-hint" style="margin:0;">
+                    <span>✍️</span> Keep it warm and welcoming
+                  </p>
+                  <div class="char-count" id="cc_bio" style="margin:0;">0 / 1000</div>
+                </div>
               </div>
 
             </div>
           </section>
 
-          <!-- ─────────────────────────────── -->
-          <!-- STORE BRANDING                  -->
-          <!-- ─────────────────────────────── -->
-          <section class="card p-7 lg:p-9 animate-fade-up" style="animation-delay:0.08s;">
+          <!-- ────────────────────────────────
+               SECTION 2: BRANDING
+          ──────────────────────────────── -->
+          <section class="liyog-card anim-fade-up-2" style="padding:1.75rem;">
 
-            <div class="mb-7">
-              <div class="section-eyebrow">Step 2</div>
-              <h2 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin:0 0 0.35rem;">
-                Store Branding
+            <div style="margin-bottom:1.5rem;">
+              <div class="eyebrow">Step 2 of 2</div>
+              <h2 style="font-family:var(--font-display);font-size:1.45rem;font-weight:800;margin-bottom:0.3rem;">
+                Your Store Logo
               </h2>
-              <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">
-                Upload your business logo — securely processed via R2.
+              <p style="color:var(--text-secondary);font-size:0.875rem;margin:0;">
+                A logo makes your store look trustworthy and professional.
+                <span style="color:var(--text-muted);"> (optional — you can add it later)</span>
               </p>
             </div>
 
-            <div>
-              <div class="flex items-center justify-between gap-4 mb-3 flex-wrap">
-                <label class="field-label" style="margin:0;">
-                  Store Logo <span class="required" style="color:var(--red);">*</span>
-                </label>
-                <span style="font-size:0.8rem;color:var(--text-muted);">
-                  PNG · JPG · WEBP &nbsp;•&nbsp; Max 5 MB
-                </span>
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+              <span style="font-size:0.8rem;color:var(--text-muted);">
+                PNG · JPG · WEBP &nbsp;•&nbsp; Max 5 MB &nbsp;•&nbsp; Auto-compressed
+              </span>
+            </div>
+
+            <!-- Drop zone -->
+            <label id="logoDropZone" class="upload-zone" style="display:block;">
+              <input type="file" id="logoInput"
+                     accept="image/png,image/jpeg,image/webp"
+                     style="display:none;" />
+
+              <div id="dzContent">
+                <div style="font-size:2.8rem;line-height:1;margin-bottom:0.75rem;">🖼️</div>
+                <h3 style="font-weight:700;font-size:0.975rem;color:var(--text-primary);margin-bottom:0.35rem;">
+                  Tap to choose a logo, or drag it here
+                </h3>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">
+                  We'll automatically compress and optimise it for your store
+                </p>
               </div>
 
-              <!-- Drop zone -->
-              <label id="logoDropZone"
-                     class="upload-box border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center text-center cursor-pointer"
-                     style="border-color:var(--border);min-height:180px;">
-
-                <input type="file" id="logoInput"
-                       accept="image/png,image/jpeg,image/webp"
-                       style="display:none;" />
-
-                <div id="dropZoneContent">
-                  <div style="font-size:3rem;line-height:1;margin-bottom:0.75rem;">🖼️</div>
-                  <h3 style="font-weight:700;font-size:1rem;margin:0 0 0.4rem;color:var(--text);">
-                    Click or drag to upload logo
-                  </h3>
-                  <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">
-                    Secure multi-tenant upload · auto-compressed to WebP
-                  </p>
+              <!-- Upload progress (hidden by default) -->
+              <div id="uploadProg" style="display:none;width:100%;margin-top:1.25rem;">
+                <div style="height:4px;background:var(--border-color);border-radius:99px;overflow:hidden;">
+                  <div id="uploadProgBar"
+                       style="height:100%;width:0%;border-radius:99px;
+                              background:linear-gradient(90deg,var(--liyog-green),var(--liyog-green-light));
+                              transition:width 0.3s ease;"></div>
                 </div>
+                <p style="font-size:0.76rem;color:var(--text-muted);text-align:center;margin-top:0.4rem;">
+                  Uploading securely...
+                </p>
+              </div>
+            </label>
 
-                <!-- Upload progress -->
-                <div id="uploadProgress" class="hidden w-full mt-5">
-                  <div style="height:4px;background:#e4ede4;border-radius:99px;overflow:hidden;">
-                    <div id="uploadProgressBar" style="height:100%;background:linear-gradient(90deg,var(--green),var(--green-light));width:0%;border-radius:99px;transition:width 0.3s ease;"></div>
-                  </div>
-                  <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem;text-align:center;">
-                    Uploading...
-                  </p>
-                </div>
-
-              </label>
-
-              <div id="logoPreview" class="mt-5"></div>
-            </div>
+            <div id="logoPreview" style="margin-top:1.1rem;"></div>
 
           </section>
 
-          <!-- ─────────────────────────────── -->
-          <!-- ACTION BAR                      -->
-          <!-- ─────────────────────────────── -->
-          <div class="flex flex-col sm:flex-row gap-4 items-center justify-between animate-fade-up"
-               style="animation-delay:0.14s;">
+          <!-- ────────────────────────────────
+               ACTION BAR
+          ──────────────────────────────── -->
+          <div class="action-row anim-fade-up-3"
+               style="display:flex;gap:1rem;align-items:center;justify-content:flex-end;flex-wrap:wrap;">
 
-            <button type="button" id="skipBtn" class="btn-secondary w-full sm:w-auto">
-              Skip For Now
+            <button type="button" id="skipBtn2" class="btn-ghost">
+              Skip for now
             </button>
 
-            <button type="submit" id="completeBtn" class="btn-primary w-full sm:w-auto animate-pulse-ring"
-                    style="min-width:180px;">
-              Complete Setup ✓
+            <button type="submit" id="completeBtn" class="btn-green anim-pulse-green"
+                    style="min-width:190px;">
+              Launch My Store 🚀
             </button>
 
           </div>
@@ -761,994 +924,920 @@
         </form>
       </div>
 
-      <!-- ════════════════════════════════════ -->
-      <!-- SIDEBAR                              -->
-      <!-- ════════════════════════════════════ -->
-      <div class="flex flex-col gap-6">
+      <!-- ══════════════════════════════════════
+           SIDEBAR
+      ══════════════════════════════════════ -->
+      <aside id="sidebarCol" style="display:flex;flex-direction:column;gap:1.25rem;">
 
-        <!-- STORE CARD -->
-        <div class="card p-6 animate-fade-up" style="animation-delay:0.05s;">
-
-          <div class="flex items-start justify-between gap-3">
-            <div style="flex:1;min-width:0;">
-              <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);font-weight:600;margin:0 0 0.3rem;">Your Store</p>
-              <h3 id="storeName" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;margin:0 0 0.25rem;word-break:break-word;">
+        <!-- Store card -->
+        <div class="liyog-card anim-fade-up" style="padding:1.4rem;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:1.1rem;">
+            <div style="min-width:0;flex:1;">
+              <p style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.09em;
+                        color:var(--text-muted);font-weight:700;margin-bottom:0.25rem;">Your Store</p>
+              <h3 id="storeName"
+                  style="font-family:var(--font-display);font-weight:800;font-size:1.25rem;
+                         margin-bottom:0.2rem;word-break:break-word;">
                 Loading...
               </h3>
-              <p id="storeSlug" style="font-size:0.82rem;color:var(--text-muted);margin:0;font-family:monospace;">--</p>
+              <p id="storeSlug" style="font-size:0.78rem;color:var(--text-muted);font-family:monospace;">--</p>
             </div>
-            <div style="font-size:2.4rem;line-height:1;">🏪</div>
+            <span style="font-size:2.2rem;line-height:1;flex-shrink:0;">🏪</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 mt-5">
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:1rem;padding:0.85rem;">
-              <p style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);font-weight:600;margin:0 0 0.25rem;">Plan</p>
-              <h4 id="planBadge" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin:0;color:var(--text);">Trial</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;margin-bottom:1rem;">
+            <div style="background:var(--surface-soft);border:1px solid var(--border-color);
+                        border-radius:var(--r-md);padding:0.8rem;">
+              <p style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;
+                        color:var(--text-muted);font-weight:700;margin-bottom:0.2rem;">Plan</p>
+              <h4 id="planBadge" style="font-family:var(--font-display);font-weight:800;
+                                        font-size:1rem;margin:0;">Trial</h4>
             </div>
-            <div style="background:var(--surface);border:1px solid var(--border);border-radius:1rem;padding:0.85rem;">
-              <p style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);font-weight:600;margin:0 0 0.25rem;">Role</p>
-              <h4 id="roleBadge" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin:0;color:var(--text);text-transform:capitalize;">Owner</h4>
+            <div style="background:var(--surface-soft);border:1px solid var(--border-color);
+                        border-radius:var(--r-md);padding:0.8rem;">
+              <p style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;
+                        color:var(--text-muted);font-weight:700;margin-bottom:0.2rem;">Role</p>
+              <h4 id="roleBadge" style="font-family:var(--font-display);font-weight:800;
+                                        font-size:1rem;margin:0;text-transform:capitalize;">Owner</h4>
             </div>
           </div>
 
-          <div class="mt-4">
-            <div id="subscriptionStatus" class="badge badge-trial">
-              <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
-              Trial Active
-            </div>
+          <div id="subscriptionStatus" class="liyog-badge badge-trial">
+            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+            Trial Active
           </div>
         </div>
 
-        <!-- WHY COMPLETE -->
-        <div class="card p-6 animate-fade-up" style="animation-delay:0.10s;">
-
-          <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;margin:0 0 1.1rem;">
-            Why Complete Setup?
+        <!-- Why complete -->
+        <div class="liyog-card anim-fade-up-2" style="padding:1.4rem;">
+          <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.1rem;margin-bottom:1.1rem;">
+            Why add your details?
           </h3>
 
           <div>
-            <div class="info-item">
-              <div class="info-icon">🛍️</div>
+            <div class="info-row">
+              <span style="font-size:1.5rem;flex-shrink:0;margin-top:2px;">🛍️</span>
               <div>
-                <h4 style="font-weight:700;font-size:0.9rem;margin:0 0 0.2rem;">Professional Storefront</h4>
-                <p style="font-size:0.82rem;color:var(--text-muted);margin:0;line-height:1.5;">Customers trust complete stores more — it directly affects buying decisions.</p>
+                <h4 style="font-weight:700;font-size:0.875rem;margin-bottom:0.2rem;">Customers trust you more</h4>
+                <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.5;margin:0;">
+                  A complete profile makes buyers feel safe purchasing from you.
+                </p>
               </div>
             </div>
-            <div class="info-item">
-              <div class="info-icon">📈</div>
+            <div class="info-row">
+              <span style="font-size:1.5rem;flex-shrink:0;margin-top:2px;">📈</span>
               <div>
-                <h4 style="font-weight:700;font-size:0.9rem;margin:0 0 0.2rem;">Better Sales Conversion</h4>
-                <p style="font-size:0.82rem;color:var(--text-muted);margin:0;line-height:1.5;">Branding increases engagement and reduces cart abandonment.</p>
+                <h4 style="font-weight:700;font-size:0.875rem;margin-bottom:0.2rem;">Sell more, faster</h4>
+                <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.5;margin:0;">
+                  Stores with logos and descriptions convert up to 3× better.
+                </p>
               </div>
             </div>
-            <div class="info-item">
-              <div class="info-icon">💬</div>
+            <div class="info-row">
+              <span style="font-size:1.5rem;flex-shrink:0;margin-top:2px;">💬</span>
               <div>
-                <h4 style="font-weight:700;font-size:0.9rem;margin:0 0 0.2rem;">WhatsApp Ready</h4>
-                <p style="font-size:0.82rem;color:var(--text-muted);margin:0;line-height:1.5;">Customers can contact you instantly — no barriers to a sale.</p>
+                <h4 style="font-weight:700;font-size:0.875rem;margin-bottom:0.2rem;">WhatsApp orders, instantly</h4>
+                <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.5;margin:0;">
+                  Buyers can message you directly with one tap — no friction.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- SECURITY CARD -->
-        <div class="animate-fade-up" style="animation-delay:0.15s;background:linear-gradient(145deg,#071407,#0f200f);border-radius:1.5rem;padding:1.5rem;color:#fff;">
-
-          <div class="flex items-start justify-between gap-3 mb-4">
+        <!-- Security card -->
+        <div style="background:linear-gradient(145deg,#061206,#0e1f0e);
+                    border-radius:var(--r-xl);padding:1.4rem;color:#fff;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:1rem;">
             <div>
-              <p style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.10em;color:rgba(255,255,255,0.4);font-weight:700;margin:0 0 0.3rem;">Security</p>
-              <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin:0;color:#fff;">Protected</h3>
+              <p style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.10em;
+                        color:rgba(255,255,255,0.38);font-weight:700;margin-bottom:0.25rem;">Security</p>
+              <h3 style="font-family:var(--font-display);font-weight:800;font-size:1.3rem;margin:0;">
+                Always Protected
+              </h3>
             </div>
-            <div style="font-size:2.4rem;line-height:1;">🔒</div>
+            <span style="font-size:2.2rem;line-height:1;flex-shrink:0;">🔒</span>
           </div>
 
-          <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:1rem;padding:1rem;">
-            <p style="font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.65;margin:0;">
-              Runtime access is verified server-side before onboarding — uploads and dashboard access are gated by RLS and signed URLs.
+          <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);
+                      border-radius:var(--r-lg);padding:0.9rem;margin-bottom:0.9rem;">
+            <p style="font-size:0.81rem;color:rgba(255,255,255,0.52);line-height:1.65;margin:0;">
+              Every action is verified on our servers before it happens. Your store data is fully isolated and secure.
             </p>
           </div>
 
-          <div class="flex gap-2 mt-4 flex-wrap">
-            <span style="font-size:0.72rem;background:rgba(40,164,40,0.18);color:#5edb5e;padding:0.3rem 0.7rem;border-radius:99px;font-weight:600;">RLS Enforced</span>
-            <span style="font-size:0.72rem;background:rgba(40,164,40,0.18);color:#5edb5e;padding:0.3rem 0.7rem;border-radius:99px;font-weight:600;">Signed URLs</span>
-            <span style="font-size:0.72rem;background:rgba(40,164,40,0.18);color:#5edb5e;padding:0.3rem 0.7rem;border-radius:99px;font-weight:600;">Tenant Isolated</span>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+            <span style="font-size:0.7rem;background:rgba(40,164,40,0.18);color:#6ee66e;
+                         padding:0.3rem 0.75rem;border-radius:999px;font-weight:700;">✓ Data Encrypted</span>
+            <span style="font-size:0.7rem;background:rgba(40,164,40,0.18);color:#6ee66e;
+                         padding:0.3rem 0.75rem;border-radius:999px;font-weight:700;">✓ Store Isolated</span>
+            <span style="font-size:0.7rem;background:rgba(40,164,40,0.18);color:#6ee66e;
+                         padding:0.3rem 0.75rem;border-radius:999px;font-weight:700;">✓ Signed Uploads</span>
           </div>
         </div>
 
-      </div>
+      </aside>
+
     </div>
   </main>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- SCRIPT                                     -->
-  <!-- ══════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════
+       EXTERNAL SCRIPTS
+  ════════════════════════════════════════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+  <script src="../../global.js"></script>
+
   <script>
+  /* ═══════════════════════════════════════════════
+     CONFIG
+  ═══════════════════════════════════════════════ */
+  const SUPABASE_URL  = "https://ugffezktrojjhfbaxrrq.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
+  const EDGE_BASE     = "https://ugffezktrojjhfbaxrrq.supabase.co/functions/v1";
 
-    /*
-    =====================================
-    CONFIG
-    =====================================
-    */
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth: { persistSession: true, autoRefreshToken: true }
+  });
 
-    const SUPABASE_URL =
-      "https://ugffezktrojjhfbaxrrq.supabase.co";
+  /* ═══════════════════════════════════════════════
+     STATE
+  ═══════════════════════════════════════════════ */
+  let runtimeState    = null;
+  let currentProfile  = null;
+  let logoFile        = null;
+  let uploadedLogoUrl = null;
+  let quillEditor     = null;
 
-    const SUPABASE_ANON_KEY =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
+  /* ═══════════════════════════════════════════════
+     RESPONSIVE GRID — inject at runtime
+  ═══════════════════════════════════════════════ */
+  function applyResponsiveLayout() {
+    const w = window.innerWidth;
+    const wrapper = document.querySelector('main > div');
+    if (!wrapper) return;
 
-    const EDGE_FUNCTION_BASE =
-      "https://ugffezktrojjhfbaxrrq.supabase.co/functions/v1";
-
-    const supabaseClient =
-      supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
-        {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true
-          }
-        }
-      );
-
-    /*
-    =====================================
-    STATE
-    =====================================
-    */
-
-    let runtimeState      = null;
-    let currentProfile    = null;
-    let logoFile          = null;
-    let uploadedLogoUrl   = null;
-
-    /*
-    =====================================
-    HELPERS — ROUTING (PRODUCTION GRADE)
-    =====================================
-    */
-
-    function redirectTo(path, replace = true) {
-      if (!path) return;
-      const normalized = path
-        .replace(window.location.origin, '')
-        .replace(/\/{2,}/g, '/');
-      safeNavigate(normalized, replace);
+    if (w >= 1024) {
+      wrapper.style.gridTemplateColumns = '1fr 340px';
+    } else {
+      wrapper.style.gridTemplateColumns = '1fr';
     }
 
-    function normalizeRuntimePath(path = '') {
-      return path
-        .replace(window.location.origin, '')
-        .replace(/\/{2,}/g, '/')
-        .replace(/\/$/, '');
-    }
-
-    function isOnboardingRoute(path) {
-      const normalized = normalizeRuntimePath(path);
-      return normalized === '/dashboard/onboarding';
-    }
-
-    /*
-    =====================================
-    HELPERS — TEXT
-    =====================================
-    */
-
-    function sanitizeText(value = "") {
-      return value
-        .trim()
-        .replace(/\s+/g, " ");
-    }
-
-    function safeValue(value) {
-      return value || "";
-    }
-
-    /*
-    =====================================
-    TOAST
-    =====================================
-    */
-
-    function showToast(message, type = "success") {
-
-      const icons = {
-        success: "✓",
-        error:   "✕",
-        info:    "ℹ"
-      };
-
-      const colors = {
-        success: "background:#0d210d;border:1px solid rgba(40,164,40,0.35);",
-        error:   "background:#2a0808;border:1px solid rgba(255,59,48,0.35);",
-        info:    "background:#0d1a2a;border:1px solid rgba(24,119,242,0.35);"
-      };
-
-      const toast = document.createElement("div");
-
-      toast.className = "toast";
-      toast.style.cssText = `
-        display:flex;align-items:flex-start;gap:0.75rem;
-        padding:0.9rem 1.1rem;border-radius:1rem;
-        ${colors[type] || colors.success}
-        box-shadow:0 8px 24px rgba(0,0,0,0.25);
-        color:#fff;font-size:0.875rem;font-weight:500;
-        line-height:1.45;pointer-events:auto;
-      `;
-
-      toast.innerHTML = `
-        <span style="flex-shrink:0;font-weight:800;font-size:0.9rem;
-          color:${type === 'error' ? '#ff6b63' : '#5edb5e'};">
-          ${icons[type] || icons.success}
-        </span>
-        <span>${message}</span>
-      `;
-
-      const container = document.getElementById("toastContainer");
-      container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.animation = "none";
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(30px)";
-        toast.style.transition = "opacity 0.25s ease, transform 0.25s ease";
-        setTimeout(() => toast.remove(), 260);
-      }, 3800);
-    }
-
-    /*
-    =====================================
-    BUTTON STATES
-    =====================================
-    */
-
-    function setButtonLoading(button, text) {
-      button.disabled = true;
-      button.style.animation = "none";
-      button.innerHTML = `
-        <div class="spinner"></div>
-        <span>${text}</span>
-      `;
-    }
-
-    function resetButton(button, text) {
-      button.disabled = false;
-      button.innerHTML = text;
-    }
-
-    /*
-    =====================================
-    LOGO VALIDATION
-    =====================================
-    */
-
-    function validateLogo(file) {
-      if (!file) throw new Error("Store logo is required");
-
-      const allowed = ["image/png", "image/jpeg", "image/webp"];
-      if (!allowed.includes(file.type)) {
-        throw new Error("Only PNG, JPG and WEBP images are allowed");
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("Logo size must not exceed 5 MB");
-      }
-    }
-
-    /*
-    =====================================
-    COMPRESS IMAGE
-    — memory-leak free (revokeObjectURL)
-    =====================================
-    */
-
-    async function compressImage(file, { maxWidth = 800, quality = 0.8 } = {}) {
-
-      return new Promise((resolve, reject) => {
-
-        const img = new Image();
-
-        img.onerror = () => {
-          URL.revokeObjectURL(img.src);
-          reject(new Error("Unable to process image"));
-        };
-
-        img.onload = () => {
-
-          /* revoke ASAP after decode */
-          URL.revokeObjectURL(img.src);
-
-          const canvas = document.createElement("canvas");
-
-          let width  = img.width;
-          let height = img.height;
-
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width  = maxWidth;
-          }
-
-          canvas.width  = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error("Image compression failed"));
-                return;
-              }
-
-              const compressed = new File(
-                [blob],
-                file.name.replace(/\.[^/.]+$/, ".webp"),
-                { type: "image/webp" }
-              );
-
-              resolve(compressed);
-            },
-            "image/webp",
-            quality
-          );
-        };
-
-        /* create URL last, after handlers are attached */
-        img.src = URL.createObjectURL(file);
-      });
-    }
-
-    /*
-    =====================================
-    CHAR COUNTERS
-    =====================================
-    */
-
-    const charCounterFields = [
-      { id: "business_name", max: 80  },
-      { id: "business_type", max: 60  },
-      { id: "tagline",       max: 120 },
-      { id: "bio",           max: 1000 }
-    ];
-
-    function updateCharCounter(fieldId, max) {
-      const el  = document.getElementById(fieldId);
-      const ctr = document.getElementById("counter_" + fieldId);
-      if (!el || !ctr) return;
-
-      const len = el.value.length;
-      ctr.textContent = `${len} / ${max}`;
-      ctr.className = "char-counter";
-
-      if (len > max * 0.9) ctr.classList.add(len > max ? "over" : "warn");
-    }
-
-    charCounterFields.forEach(({ id, max }) => {
+    // two-column rows inside the form
+    ['row1','row2','row3'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener("input", () => updateCharCounter(id, max));
+      el.style.gridTemplateColumns = w >= 640 ? '1fr 1fr' : '1fr';
+    });
+  }
+  window.addEventListener('resize', applyResponsiveLayout);
+  applyResponsiveLayout();
+
+  /* ═══════════════════════════════════════════════
+     ROUTING HELPERS — production grade
+  ═══════════════════════════════════════════════ */
+  function redirectTo(path, replace = true) {
+    if (!path) return;
+    const normalized = path
+      .replace(window.location.origin, '')
+      .replace(/\/{2,}/g, '/');
+    safeNavigate(normalized, replace);
+  }
+
+  function normalizeRuntimePath(path = '') {
+    return path
+      .replace(window.location.origin, '')
+      .replace(/\/{2,}/g, '/')
+      .replace(/\/$/, '');
+  }
+
+  function isOnboardingRoute(path) {
+    return normalizeRuntimePath(path) === '/dashboard/onboarding';
+  }
+
+  /* ═══════════════════════════════════════════════
+     ANDROID BACK BUTTON
+  ═══════════════════════════════════════════════ */
+  history.pushState({ page: 'onboarding' }, '', window.location.href);
+
+  window.addEventListener('popstate', (e) => {
+    if (e.state?.page === 'onboarding') {
+      redirectTo('/auth/');
+    }
+  });
+
+  /* ═══════════════════════════════════════════════
+     NETWORK MONITOR
+  ═══════════════════════════════════════════════ */
+  const netBar = document.getElementById('networkBar');
+
+  function showNetworkBar(online) {
+    netBar.style.display = 'block';
+    netBar.className     = online ? 'online' : 'offline';
+    netBar.innerHTML     = online
+      ? '✅ You\'re back online — everything is working normally'
+      : '📶 No internet connection — please check your network';
+
+    if (online) {
+      setTimeout(() => { netBar.style.display = 'none'; }, 3000);
+    }
+  }
+
+  window.addEventListener('offline', () => showNetworkBar(false));
+  window.addEventListener('online',  () => showNetworkBar(true));
+
+  if (!navigator.onLine) showNetworkBar(false);
+
+  /* ═══════════════════════════════════════════════
+     TOAST
+  ═══════════════════════════════════════════════ */
+  function showToast(message, type = 'success') {
+    const icons = { success:'✓', error:'✕', info:'ℹ', warn:'⚠' };
+    const cls   = { success:'toast-success', error:'toast-error',
+                    info:'toast-info', warn:'toast-warn' };
+    const iconColors = { success:'#6ee66e', error:'#ff7b73',
+                         info:'#6fa8ff', warn:'#ffb347' };
+
+    const el = document.createElement('div');
+    el.className = `toast-item ${cls[type] || cls.success}`;
+    el.innerHTML = `
+      <span class="toast-icon" style="color:${iconColors[type]||iconColors.success};">
+        ${icons[type]||icons.success}
+      </span>
+      <span>${message}</span>
+    `;
+
+    document.getElementById('toastContainer').appendChild(el);
+
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+      el.style.opacity    = '0';
+      el.style.transform  = 'translateX(28px)';
+      setTimeout(() => el.remove(), 240);
+    }, 3800);
+  }
+
+  /* ═══════════════════════════════════════════════
+     BUTTON STATE
+  ═══════════════════════════════════════════════ */
+  function setBtnLoading(btn, text) {
+    btn.disabled   = true;
+    btn.style.animation = 'none';
+    btn.innerHTML  = `<div class="spinner"></div><span>${text}</span>`;
+  }
+
+  function resetBtn(btn, html) {
+    btn.disabled  = false;
+    btn.innerHTML = html;
+  }
+
+  /* ═══════════════════════════════════════════════
+     TEXT HELPERS
+  ═══════════════════════════════════════════════ */
+  function sanitizeText(v = '') {
+    return v.trim().replace(/\s+/g, ' ');
+  }
+
+  function safeVal(v) { return v || ''; }
+
+  /* ═══════════════════════════════════════════════
+     CHAR COUNTERS
+  ═══════════════════════════════════════════════ */
+  const charFields = [
+    { id: 'business_name', max: 80  },
+    { id: 'tagline',       max: 120 }
+  ];
+
+  function updateCounter(id, max, len) {
+    const el = document.getElementById('cc_' + id);
+    if (!el) return;
+    el.textContent = `${len} / ${max}`;
+    el.className   = 'char-count';
+    if (len > max * 0.9) el.classList.add(len > max ? 'over' : 'warn');
+  }
+
+  charFields.forEach(({ id, max }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => updateCounter(id, max, el.value.length));
+  });
+
+  /* ═══════════════════════════════════════════════
+     QUILL BIO EDITOR
+  ═══════════════════════════════════════════════ */
+  function initQuill() {
+    quillEditor = new Quill('#bioEditor', {
+      theme: 'snow',
+      placeholder: 'Tell customers what makes your store special...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['clean']
+        ]
+      }
     });
 
-    /*
-    =====================================
-    AUTH
-    =====================================
-    */
+    quillEditor.on('text-change', () => {
+      const text = quillEditor.getText().trim();
+      updateCounter('bio', 1000, text.length);
+      updateProgress();
+    });
+  }
 
-    async function requireAuth() {
-      const { data: { session } } =
-        await supabaseClient.auth.getSession();
+  function getQuillHTML() {
+    if (!quillEditor) return '';
+    const html = quillEditor.root.innerHTML;
+    // strip empty quill placeholder
+    if (html === '<p><br></p>') return '';
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['p','br','strong','em','u','ol','ul','li'],
+      ALLOWED_ATTR: []
+    });
+  }
 
-      if (!session) {
-        redirectTo("/auth/");
-        return null;
-      }
+  function setQuillHTML(html) {
+    if (!quillEditor || !html) return;
+    const clean = DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['p','br','strong','em','u','ol','ul','li'],
+      ALLOWED_ATTR: []
+    });
+    quillEditor.root.innerHTML = clean;
+    const text = quillEditor.getText().trim();
+    updateCounter('bio', 1000, text.length);
+  }
 
-      return session;
-    }
+  /* ═══════════════════════════════════════════════
+     LOGO VALIDATION
+  ═══════════════════════════════════════════════ */
+  function validateLogo(file) {
+    if (!file) throw new Error('Please choose a logo image');
+    const ok = ['image/png','image/jpeg','image/webp'];
+    if (!ok.includes(file.type)) throw new Error('Only PNG, JPG or WEBP images are allowed');
+    if (file.size > 5 * 1024 * 1024) throw new Error('Logo must be under 5 MB');
+  }
 
-    /*
-    =====================================
-    RUNTIME STATE
-    =====================================
-    */
+  /* ═══════════════════════════════════════════════
+     COMPRESS IMAGE — memory-leak free
+  ═══════════════════════════════════════════════ */
+  async function compressImage(file, { maxWidth = 800, quality = 0.82 } = {}) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
 
-    async function getRuntimeState() {
-      const { data, error } =
-        await supabaseClient.rpc("get_store_runtime_state");
+      img.onerror = () => {
+        URL.revokeObjectURL(img.src);
+        reject(new Error('Could not read that image — please try another'));
+      };
 
-      if (error) {
-        console.error(error);
-        throw new Error("Unable to verify store runtime state");
-      }
+      img.onload = () => {
+        URL.revokeObjectURL(img.src); // revoke immediately
 
-      if (!data || !data.length) {
-        throw new Error("Store runtime state not found");
-      }
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
 
-      return data[0];
-    }
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
 
-    /*
-    =====================================
-    LOAD PROFILE
-    =====================================
-    */
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('Image processing failed — please try again')); return; }
+          resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp' }));
+        }, 'image/webp', quality);
+      };
 
-    async function loadProfile() {
-      const { data, error } =
-        await supabaseClient.rpc("get_profile");
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
-      if (error) { console.error(error); return null; }
-      if (!data || !data.length) return null;
+  /* ═══════════════════════════════════════════════
+     AUTH
+  ═══════════════════════════════════════════════ */
+  async function requireAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { redirectTo('/auth/'); return null; }
+    return session;
+  }
 
-      return data[0];
-    }
+  /* ═══════════════════════════════════════════════
+     RUNTIME STATE
+  ═══════════════════════════════════════════════ */
+  async function getRuntimeState() {
+    const { data, error } = await sb.rpc('get_store_runtime_state');
+    if (error) { console.error(error); throw new Error('Could not verify your account — please refresh'); }
+    if (!data?.length) throw new Error('Account state not found');
+    return data[0];
+  }
 
-    /*
-    =====================================
-    LOAD CURRENCIES
-    =====================================
-    */
+  /* ═══════════════════════════════════════════════
+     LOAD PROFILE
+  ═══════════════════════════════════════════════ */
+  async function loadProfile() {
+    const { data, error } = await sb.rpc('get_profile');
+    if (error) { console.error(error); return null; }
+    return data?.length ? data[0] : null;
+  }
 
-    async function loadCurrencies() {
-      const select = document.getElementById("currency_symbol");
-
-      try {
-        const { data, error } = await supabaseClient.rpc("get_currencies");
-        if (error) throw error;
-
-        select.innerHTML = "";
-
-        data.forEach((c) => {
-          const opt = document.createElement("option");
-          opt.value = c.symbol;
-          opt.textContent = `${c.symbol} — ${c.name}`;
-          select.appendChild(opt);
-        });
-
-      } catch (err) {
-        console.error(err);
-        select.innerHTML = `<option value="₦">₦ — Nigerian Naira</option>`;
-      }
-    }
-
-    /*
-    =====================================
-    LOAD COUNTRIES
-    =====================================
-    */
-
-    async function loadCountries() {
-      const select = document.getElementById("store_country");
-
-      try {
-        const { data, error } = await supabaseClient.rpc("get_countries");
-        if (error) throw error;
-
-        select.innerHTML = `<option value="">Select country</option>`;
-
-        data.forEach((c) => {
-          const opt = document.createElement("option");
-          opt.value = c.name;
-          opt.textContent = `${c.flag || "🌍"} ${c.name}`;
-          select.appendChild(opt);
-        });
-
-      } catch (err) {
-        console.error(err);
-        select.innerHTML = `<option value="">Unable to load countries</option>`;
-      }
-    }
-
-    /*
-    =====================================
-    POPULATE PROFILE
-    =====================================
-    */
-
-    function populateProfile(profile) {
-      if (!profile) return;
-
-      currentProfile = profile;
-
-      document.getElementById("profileStatusBadge").classList.remove("hidden");
-
-      const fields = [
-        "business_name", "business_type", "whatsapp_number",
-        "store_country", "store_city", "tagline", "bio"
-      ];
-
-      fields.forEach((key) => {
-        const el = document.getElementById(key);
-        if (el) el.value = safeValue(profile[key]);
+  /* ═══════════════════════════════════════════════
+     LOAD BUSINESS TYPES
+  ═══════════════════════════════════════════════ */
+  async function loadBusinessTypes() {
+    const sel = document.getElementById('business_type');
+    try {
+      const { data, error } = await sb.from('business_types').select('name').order('name');
+      if (error) throw error;
+      sel.innerHTML = '<option value="">e.g. Fashion, Gadgets, Beauty...</option>';
+      (data || []).forEach(bt => {
+        const o = document.createElement('option');
+        o.value = bt.name; o.textContent = bt.name;
+        sel.appendChild(o);
       });
+    } catch { sel.innerHTML = '<option value="">Select your business type</option>'; }
+  }
 
-      document.getElementById("currency_symbol").value =
-        safeValue(profile.currency_symbol || "₦");
+  /* ═══════════════════════════════════════════════
+     LOAD CURRENCIES
+  ═══════════════════════════════════════════════ */
+  async function loadCurrencies() {
+    const sel = document.getElementById('currency_symbol');
+    try {
+      const { data, error } = await sb.rpc('get_currencies');
+      if (error) throw error;
+      sel.innerHTML = '<option value="">Pick your currency</option>';
+      (data || []).forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.symbol; o.textContent = `${c.symbol} — ${c.name}`;
+        sel.appendChild(o);
+      });
+    } catch { sel.innerHTML = '<option value="₦">₦ — Nigerian Naira</option>'; }
+  }
 
-      /* update char counters */
-      charCounterFields.forEach(({ id, max }) => updateCharCounter(id, max));
+  /* ═══════════════════════════════════════════════
+     LOAD COUNTRIES
+  ═══════════════════════════════════════════════ */
+  async function loadCountries() {
+    const sel = document.getElementById('store_country');
+    try {
+      const { data, error } = await sb.rpc('get_countries');
+      if (error) throw error;
+      sel.innerHTML = '<option value="">Select your country</option>';
+      (data || []).forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.name; o.textContent = `${c.flag||'🌍'} ${c.name}`;
+        sel.appendChild(o);
+      });
+    } catch { sel.innerHTML = '<option value="">Could not load countries</option>'; }
+  }
 
-      if (profile.logo_url) {
-        uploadedLogoUrl = profile.logo_url;
-        renderLogoPreview(profile.logo_url, true);
-      }
+  /* ═══════════════════════════════════════════════
+     POPULATE PROFILE
+  ═══════════════════════════════════════════════ */
+  function populateProfile(profile) {
+    if (!profile) return;
+    currentProfile = profile;
 
-      updateProgress();
+    document.getElementById('profileStatusBadge').style.display = 'inline-flex';
+
+    const textFields = ['business_name','business_type','whatsapp_number',
+                        'store_country','store_city','tagline','currency_symbol'];
+    textFields.forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.value = safeVal(profile[k]);
+    });
+
+    // char counters
+    charFields.forEach(({ id, max }) => {
+      const el = document.getElementById(id);
+      if (el) updateCounter(id, max, el.value.length);
+    });
+
+    // bio in Quill
+    if (profile.bio) setQuillHTML(profile.bio);
+
+    if (profile.logo_url) {
+      uploadedLogoUrl = profile.logo_url;
+      renderLogoPreview(profile.logo_url, true);
     }
 
-    /*
-    =====================================
-    APPLY RUNTIME UI
-    =====================================
-    */
+    updateProgress();
+  }
 
-    function applyRuntimeUI(state) {
-      document.getElementById("storeName").innerText  = state.store_name || "My Store";
-      document.getElementById("storeSlug").innerText  = state.slug ? `/${state.slug}` : "--";
-      document.getElementById("roleBadge").innerText  = state.role  || "member";
-      document.getElementById("planBadge").innerText  = state.plan  || "Trial";
+  /* ═══════════════════════════════════════════════
+     APPLY RUNTIME UI
+  ═══════════════════════════════════════════════ */
+  function applyRuntimeUI(state) {
+    document.getElementById('storeName').innerText  = state.store_name || 'My Store';
+    document.getElementById('storeSlug').innerText  = state.slug ? `/${state.slug}` : '--';
+    document.getElementById('roleBadge').innerText  = state.role  || 'member';
+    document.getElementById('planBadge').innerText  = state.plan  || 'Trial';
 
-      const statusEl = document.getElementById("subscriptionStatus");
-      const status   = state.subscription_status || "trial";
-      const label    = status.charAt(0).toUpperCase() + status.slice(1);
+    const el     = document.getElementById('subscriptionStatus');
+    const status = state.subscription_status || 'trial';
+    const label  = status.charAt(0).toUpperCase() + status.slice(1);
 
-      statusEl.innerHTML = `
-        <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
-        ${label}
-      `;
+    el.innerHTML = `
+      <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+      ${label}
+    `;
+    el.className = 'liyog-badge';
+    el.classList.add(
+      status === 'active' ? 'badge-active' :
+      status === 'trial'  ? 'badge-trial'  : 'badge-inactive'
+    );
+  }
 
-      statusEl.className = "badge";
-
-      if      (status === "active") statusEl.classList.add("badge-active");
-      else if (status === "trial")  statusEl.classList.add("badge-trial");
-      else                          statusEl.classList.add("badge-inactive");
-    }
-
-    /*
-    =====================================
-    RENDER LOGO PREVIEW
-    =====================================
-    */
-
-    function renderLogoPreview(src, existing = false) {
-      document.getElementById("logoPreview").innerHTML = `
-        <div class="flex items-center gap-4 flex-wrap animate-fade-up">
-          <img
-            src="${src}"
-            alt="Store Logo"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            class="preview-image"
-          />
-          <div>
-            <p style="font-weight:700;font-size:0.9rem;color:var(--text);margin:0 0 0.2rem;">
-              ${existing ? "Current Store Logo" : "Selected Logo"}
-            </p>
-            <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">
-              ${existing ? "Previously uploaded · ready to keep or replace" : "Compressed to WebP · ready for secure upload"}
-            </p>
-            <button type="button" onclick="clearLogo()"
-                    style="margin-top:0.6rem;font-size:0.78rem;color:var(--red);font-weight:600;background:none;border:none;cursor:pointer;padding:0;">
-              Remove
-            </button>
-          </div>
+  /* ═══════════════════════════════════════════════
+     RENDER LOGO PREVIEW
+  ═══════════════════════════════════════════════ */
+  function renderLogoPreview(src, existing = false) {
+    document.getElementById('logoPreview').innerHTML = `
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+                  background:var(--surface-soft);border:1px solid var(--border-color);
+                  border-radius:var(--r-lg);padding:1rem;">
+        <img src="${src}" alt="Store Logo" loading="lazy"
+             referrerpolicy="no-referrer" class="logo-thumb" />
+        <div style="flex:1;min-width:140px;">
+          <p style="font-weight:700;font-size:0.9rem;color:var(--text-primary);margin-bottom:0.2rem;">
+            ${existing ? 'Your current logo' : 'Logo selected ✓'}
+          </p>
+          <p style="font-size:0.79rem;color:var(--text-muted);margin-bottom:0.55rem;">
+            ${existing ? 'This will stay unless you upload a new one' : 'Compressed and ready to upload'}
+          </p>
+          <button type="button" onclick="clearLogo()"
+                  style="font-size:0.78rem;color:var(--liyog-red);font-weight:700;
+                         background:none;border:none;cursor:pointer;padding:0;">
+            Remove logo
+          </button>
         </div>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    /*
-    =====================================
-    CLEAR LOGO
-    =====================================
-    */
+  /* ═══════════════════════════════════════════════
+     CLEAR LOGO
+  ═══════════════════════════════════════════════ */
+  window.clearLogo = function () {
+    logoFile        = null;
+    uploadedLogoUrl = null;
+    document.getElementById('logoInput').value   = '';
+    document.getElementById('logoPreview').innerHTML = '';
+    document.getElementById('dzContent').style.display = '';
+    updateProgress();
+    showToast('Logo removed — you can upload a new one', 'info');
+  };
 
-    window.clearLogo = function () {
-      logoFile        = null;
-      uploadedLogoUrl = null;
+  /* ═══════════════════════════════════════════════
+     PROGRESS
+  ═══════════════════════════════════════════════ */
+  const tracked = ['business_name','whatsapp_number','store_country','business_type'];
 
-      document.getElementById("logoInput").value   = "";
-      document.getElementById("logoPreview").innerHTML = "";
-      document.getElementById("dropZoneContent").style.display = "";
+  tracked.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input',  updateProgress);
+    el.addEventListener('change', updateProgress);
+  });
+
+  function updateProgress() {
+    const total     = tracked.length + 1; // +1 for logo
+    let   completed = 0;
+
+    tracked.forEach(id => {
+      if (document.getElementById(id)?.value.trim()) completed++;
+    });
+    if (logoFile || uploadedLogoUrl) completed++;
+
+    const pct = Math.floor((completed / total) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressText').innerText  = pct + '%';
+
+    // step dots
+    const groups = [['business_name'],['whatsapp_number'],['store_country','business_type'],['business_name','whatsapp_number']];
+    groups.forEach((group, i) => {
+      const dot  = document.getElementById('sdot' + (i + 1));
+      if (!dot) return;
+      const done = group.every(id => document.getElementById(id)?.value.trim());
+      dot.classList.toggle('done',   done);
+      dot.classList.toggle('active', !done);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     DRAG & DROP
+  ═══════════════════════════════════════════════ */
+  const dz = document.getElementById('logoDropZone');
+
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.classList.add('drag-active');
+  });
+
+  ['dragleave','dragend'].forEach(ev =>
+    dz.addEventListener(ev, () => dz.classList.remove('drag-active'))
+  );
+
+  dz.addEventListener('drop', async e => {
+    e.preventDefault();
+    dz.classList.remove('drag-active');
+    const file = e.dataTransfer?.files?.[0];
+    if (file) await handleLogoFile(file);
+  });
+
+  document.getElementById('logoInput').addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    if (file) await handleLogoFile(file);
+  });
+
+  async function handleLogoFile(file) {
+    try {
+      validateLogo(file);
+      const compressed = await compressImage(file);
+      logoFile = compressed;
+
+      const reader  = new FileReader();
+      reader.onload = () => {
+        renderLogoPreview(reader.result, false);
+        document.getElementById('dzContent').style.display = 'none';
+      };
+      reader.readAsDataURL(compressed);
       updateProgress();
-      showToast("Logo removed — please upload a new one", "info");
+
+    } catch (err) {
+      document.getElementById('logoInput').value = '';
+      logoFile = null;
+      showToast(err.message, 'error');
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECURE UPLOAD
+  ═══════════════════════════════════════════════ */
+  async function uploadViaEdgeFunction(file, folder) {
+    validateLogo(file);
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Your session ended — please log in again');
+
+    const res = await fetch(`${EDGE_BASE}/generate-r2-upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        folder
+      })
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Could not prepare your upload — please try again');
+
+    const upload = await fetch(result.uploadUrl, {
+      method:  'PUT',
+      headers: { 'Content-Type': file.type },
+      body:    file
+    });
+
+    if (!upload.ok) throw new Error('Upload failed — please check your connection and try again');
+
+    return { publicUrl: result.publicUrl, fileKey: result.fileKey };
+  }
+
+  /* ═══════════════════════════════════════════════
+     COLLECT FORM DATA
+     — only business_name + whatsapp_number required
+  ═══════════════════════════════════════════════ */
+  function collectFormData() {
+    const get = id => sanitizeText(document.getElementById(id)?.value || '');
+
+    const payload = {
+      business_name:   get('business_name'),
+      business_type:   get('business_type'),
+      whatsapp_number: get('whatsapp_number'),
+      store_country:   get('store_country'),
+      store_city:      get('store_city'),
+      tagline:         get('tagline'),
+      bio:             getQuillHTML(),
+      currency_symbol: get('currency_symbol')
     };
 
-    /*
-    =====================================
-    PROGRESS
-    =====================================
-    */
+    // only these two are required
+    if (!payload.business_name)   throw new Error('Please enter your store name');
+    if (!payload.whatsapp_number) throw new Error('Please enter your WhatsApp number');
 
-    const trackedFields = [
-      "business_name", "business_type",
-      "whatsapp_number", "store_country"
-    ];
+    // length hardening
+    if (payload.business_name.length   > 80)   throw new Error('Store name is too long');
+    if (payload.business_type.length   > 60)   throw new Error('Business type is too long');
+    if (payload.tagline.length         > 120)  throw new Error('Tagline is too long');
+    if (payload.bio.length             > 5000) throw new Error('Store description is too long');
 
-    trackedFields.forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener("input",  updateProgress);
-      el.addEventListener("change", updateProgress);
-    });
+    return payload;
+  }
 
-    function updateProgress() {
-      const total     = trackedFields.length + 1;
-      let   completed = 0;
+  /* ═══════════════════════════════════════════════
+     SKIP HANDLER — calls skip_onboarding RPC
+  ═══════════════════════════════════════════════ */
+  async function handleSkip(btn) {
+    try {
+      setBtnLoading(btn, 'Taking you in...');
 
-      trackedFields.forEach((id) => {
-        if (document.getElementById(id)?.value.trim()) completed++;
-      });
+      // re-verify runtime state first
+      runtimeState = await getRuntimeState();
 
-      if (logoFile || uploadedLogoUrl) completed++;
+      if (!runtimeState || typeof runtimeState !== 'object') {
+        throw new Error('Account verification failed');
+      }
+      if (!runtimeState.store_id) {
+        throw new Error('Could not find your store');
+      }
 
-      const pct = Math.floor((completed / total) * 100);
+      // call skip_onboarding RPC — marks onboarding complete server-side
+      const { error: skipErr } = await sb.rpc('skip_onboarding');
 
-      document.getElementById("progressBar").style.width = pct + "%";
-      document.getElementById("progressText").innerText  = pct + "%";
+      if (skipErr) {
+        console.error(skipErr);
+        throw new Error(skipErr.message || 'Could not skip — please try again');
+      }
 
-      /* update step dots */
-      const dots = [
-        trackedFields.slice(0, 1),
-        trackedFields.slice(1, 2),
-        trackedFields.slice(2, 3),
-        trackedFields.slice(3)
-      ];
+      // re-fetch runtime state — backend should now say /dashboard/
+      runtimeState = await getRuntimeState();
 
-      dots.forEach((group, i) => {
-        const dot  = document.getElementById("dot" + (i + 1));
-        const done = group.every(
-          (id) => document.getElementById(id)?.value.trim()
-        );
-        if (dot) {
-          dot.classList.toggle("done",   done);
-          dot.classList.toggle("active", !done);
-        }
-      });
+      showToast('Welcome! You can finish your profile anytime from Settings 🎉');
+
+      setTimeout(() => redirectTo(runtimeState.redirect_to || '/dashboard/'), 800);
+
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Something went wrong', 'error');
+      resetBtn(btn, 'Skip for now →');
     }
+  }
 
-    /*
-    =====================================
-    DRAG & DROP
-    =====================================
-    */
+  // Both skip buttons
+  document.getElementById('skipBtn').addEventListener('click', function () {
+    handleSkip(this);
+  });
+  document.getElementById('skipBtn2').addEventListener('click', function () {
+    handleSkip(this);
+  });
 
-    const dropZone = document.getElementById("logoDropZone");
+  /* ═══════════════════════════════════════════════
+     COMPLETE SETUP — submit handler
+  ═══════════════════════════════════════════════ */
+  document.getElementById('onboardingForm').addEventListener('submit', async e => {
+    e.preventDefault();
 
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("drag-over");
-    });
+    const btn = document.getElementById('completeBtn');
 
-    ["dragleave", "dragend"].forEach((evt) => {
-      dropZone.addEventListener(evt, () => dropZone.classList.remove("drag-over"));
-    });
+    try {
+      setBtnLoading(btn, 'Saving your store...');
 
-    dropZone.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("drag-over");
+      // never trust old state
+      runtimeState = await getRuntimeState();
 
-      const file = e.dataTransfer?.files?.[0];
-      if (file) await handleLogoFile(file);
-    });
-
-    /*
-    =====================================
-    LOGO PICKER
-    =====================================
-    */
-
-    document.getElementById("logoInput").addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (file) await handleLogoFile(file);
-    });
-
-    async function handleLogoFile(file) {
-      try {
-        validateLogo(file);
-
-        const compressed = await compressImage(file);
-        logoFile = compressed;
-
-        const reader   = new FileReader();
-        reader.onload  = () => renderLogoPreview(reader.result, false);
-        reader.readAsDataURL(compressed);
-
-        document.getElementById("dropZoneContent").style.display = "none";
-        updateProgress();
-
-      } catch (err) {
-        document.getElementById("logoInput").value = "";
-        logoFile = null;
-        showToast(err.message, "error");
+      if (!runtimeState || typeof runtimeState !== 'object') {
+        throw new Error('Account verification failed — please refresh');
       }
+      if (!runtimeState.store_id) {
+        throw new Error('Could not find your store — please refresh');
+      }
+
+      // if backend says go elsewhere, respect it
+      if (!isOnboardingRoute(runtimeState.redirect_to)) {
+        redirectTo(runtimeState.redirect_to);
+        return;
+      }
+
+      const formData = collectFormData();
+
+      // logo upload (optional)
+      let finalLogoUrl = uploadedLogoUrl || null;
+
+      if (logoFile) {
+        showToast('Uploading your logo...', 'info');
+        const upload = await uploadViaEdgeFunction(logoFile, 'logos');
+        finalLogoUrl = upload.publicUrl;
+      }
+
+      // save profile
+      const { data: profileData, error: profileErr } =
+        await sb.rpc('upsert_profile', {
+          p_id:              currentProfile?.id || null,
+          p_business_name:   formData.business_name,
+          p_business_type:   formData.business_type,
+          p_whatsapp_number: formData.whatsapp_number,
+          p_store_country:   formData.store_country,
+          p_store_city:      formData.store_city,
+          p_tagline:         formData.tagline,
+          p_bio:             formData.bio,
+          p_currency_symbol: formData.currency_symbol,
+          p_logo_url:        finalLogoUrl
+        });
+
+      if (profileErr) {
+        console.error(profileErr);
+        throw new Error(profileErr.message || 'Could not save your profile — please try again');
+      }
+
+      if (profileData?.length) currentProfile = profileData[0];
+
+      // mark complete
+      const { error: completeErr } = await sb.rpc('complete_onboarding');
+
+      if (completeErr) {
+        console.error(completeErr);
+        throw new Error(completeErr.message || 'Could not finish setup — please try again');
+      }
+
+      // final verify
+      runtimeState = await getRuntimeState();
+
+      if (runtimeState.onboarding_completed !== true) {
+        throw new Error('Setup could not be confirmed — please try again');
+      }
+
+      showToast('Your store is live! Welcome to Liyog 🎉');
+      setTimeout(() => redirectTo('/dashboard/'), 1000);
+
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Something went wrong — please try again', 'error');
+
+    } finally {
+      resetBtn(btn, 'Launch My Store 🚀');
     }
+  });
 
-    /*
-    =====================================
-    SECURE EDGE UPLOAD
-    =====================================
-    */
-
-    async function uploadViaEdgeFunction(file, folder) {
-      validateLogo(file);
-
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) throw new Error("Session expired — please refresh");
-
-      /* Step 1: request signed URL */
-      const res = await fetch(`${EDGE_FUNCTION_BASE}/generate-r2-upload-url`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          folder
-        })
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Unable to generate upload URL");
-
-      /* Step 2: PUT to R2 */
-      const upload = await fetch(result.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      });
-
-      if (!upload.ok) throw new Error("Secure upload failed — please try again");
-
-      return {
-        publicUrl: result.publicUrl,
-        fileKey:   result.fileKey
-      };
+  /* ═══════════════════════════════════════════════
+     AUTH WATCHER
+  ═══════════════════════════════════════════════ */
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT' || !session) {
+      redirectTo('/auth/');
     }
+  });
 
-    /*
-    =====================================
-    COLLECT & VALIDATE FORM DATA
-    — includes input length hardening
-    =====================================
-    */
+  /* ═══════════════════════════════════════════════
+     BOOT GUARD
+  ═══════════════════════════════════════════════ */
+  async function bootGuard() {
+    try {
 
-    function collectFormData() {
-      const get = (id) => sanitizeText(document.getElementById(id)?.value || "");
+      await requireAuth();
 
-      const payload = {
-        business_name:   get("business_name"),
-        business_type:   get("business_type"),
-        whatsapp_number: get("whatsapp_number"),
-        store_country:   get("store_country"),
-        store_city:      get("store_city"),
-        tagline:         get("tagline"),
-        bio:             get("bio"),
-        currency_symbol: get("currency_symbol")
-      };
+      runtimeState = await getRuntimeState();
 
-      /* required fields */
-      if (!payload.business_name || !payload.business_type ||
-          !payload.whatsapp_number || !payload.store_country) {
-        throw new Error("Please complete all required fields");
+      // server authority check
+      if (!runtimeState || typeof runtimeState !== 'object') {
+        throw new Error('Invalid account state');
+      }
+      if (!runtimeState.store_id) {
+        throw new Error('Your store account could not be found');
       }
 
-      /* length hardening */
-      if (payload.business_name.length > 80)   throw new Error("Business name too long");
-      if (payload.business_type.length > 60)   throw new Error("Business type too long");
-      if (payload.tagline.length > 120)         throw new Error("Tagline too long");
-      if (payload.bio.length > 1000)            throw new Error("Bio too long");
+      // hard routing — backend decides where you go
+      if (!isOnboardingRoute(runtimeState.redirect_to)) {
+        redirectTo(runtimeState.redirect_to);
+        return;
+      }
 
-      return payload;
+      // already completed onboarding
+      if (runtimeState.onboarding_completed === true) {
+        redirectTo('/dashboard/');
+        return;
+      }
+
+      applyRuntimeUI(runtimeState);
+
+      // init Quill before populating
+      initQuill();
+
+      // load all reference data in parallel
+      await Promise.all([
+        loadBusinessTypes(),
+        loadCurrencies(),
+        loadCountries()
+      ]);
+
+      const profile = await loadProfile();
+      if (profile) populateProfile(profile);
+
+      // done — remove loader
+      const loader = document.getElementById('bootLoader');
+      if (loader) loader.remove();
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Could not load your store — please try again');
+      redirectTo('/auth/');
     }
+  }
 
-    /*
-    =====================================
-    SUBMIT — COMPLETE ONBOARDING
-    =====================================
-    */
-
-    document.getElementById("onboardingForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const btn = document.getElementById("completeBtn");
-
-      try {
-
-        setButtonLoading(btn, "Completing Setup...");
-
-        /*
-        =====================================
-        NEVER TRUST OLD STATE
-        =====================================
-        */
-        runtimeState = await getRuntimeState();
-
-        /*
-        =====================================
-        SERVER AUTHORITY ONLY
-        =====================================
-        */
-        if (!runtimeState || typeof runtimeState !== "object") {
-          throw new Error("Invalid runtime state");
-        }
-
-        if (!runtimeState.store_id) {
-          throw new Error("Missing secure store context");
-        }
-
-        /*
-        =====================================
-        HARD ROUTING
-        =====================================
-        */
-        if (!isOnboardingRoute(runtimeState.redirect_to)) {
-          redirectTo(runtimeState.redirect_to);
-          return;
-        }
-
-        /* collect + validate */
-        const formData = collectFormData();
-
-        /* logo upload */
-        let finalLogoUrl = uploadedLogoUrl || null;
-
-        if (logoFile) {
-          showToast("Uploading logo...", "info");
-          const upload = await uploadViaEdgeFunction(logoFile, "logos");
-          finalLogoUrl = upload.publicUrl;
-        }
-
-        if (!finalLogoUrl) {
-          throw new Error("Store logo is required");
-        }
-
-        /* upsert profile */
-        const { data: profileData, error: profileError } =
-          await supabaseClient.rpc("upsert_profile", {
-            p_id:               currentProfile?.id || null,
-            p_business_name:    formData.business_name,
-            p_business_type:    formData.business_type,
-            p_whatsapp_number:  formData.whatsapp_number,
-            p_store_country:    formData.store_country,
-            p_store_city:       formData.store_city,
-            p_tagline:          formData.tagline,
-            p_bio:              formData.bio,
-            p_currency_symbol:  formData.currency_symbol,
-            p_logo_url:         finalLogoUrl
-          });
-
-        if (profileError) {
-          console.error(profileError);
-          throw new Error(profileError.message || "Unable to save store profile");
-        }
-
-        if (profileData?.length) {
-          currentProfile = profileData[0];
-        }
-
-        /* complete onboarding */
-        const { error: completeError } =
-          await supabaseClient.rpc("complete_onboarding");
-
-        if (completeError) {
-          console.error(completeError);
-          throw new Error(completeError.message || "Unable to complete onboarding");
-        }
-
-        /* final verify */
-        runtimeState = await getRuntimeState();
-
-        if (runtimeState.onboarding_completed !== true) {
-          throw new Error("Onboarding verification failed — please try again");
-        }
-
-        showToast("Store setup completed successfully 🎉");
-
-        setTimeout(() => redirectTo("/dashboard/"), 900);
-
-      } catch (err) {
-        console.error(err);
-        showToast(err.message || "Something went wrong", "error");
-
-      } finally {
-        resetButton(btn, "Complete Setup ✓");
-      }
-    });
-
-    /*
-    =====================================
-    SKIP
-    =====================================
-    */
-
-    document.getElementById("skipBtn").addEventListener("click", async () => {
-      try {
-        runtimeState = await getRuntimeState();
-        redirectTo(runtimeState.redirect_to || "/dashboard/");
-      } catch (err) {
-        console.error(err);
-        showToast("Unable to continue", "error");
-      }
-    });
-
-    /*
-    =====================================
-    AUTH STATE WATCHER
-    =====================================
-    */
-
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        redirectTo("/auth/");
-      }
-    });
-
-    /*
-    =====================================
-    BOOT GUARD
-    =====================================
-    */
-
-    async function bootGuard() {
-      try {
-
-        await requireAuth();
-
-        runtimeState = await getRuntimeState();
-
-        /*
-        =====================================
-        SERVER AUTHORITY ONLY
-        =====================================
-        */
-        if (!runtimeState || typeof runtimeState !== "object") {
-          throw new Error("Invalid runtime state");
-        }
-
-        if (!runtimeState.store_id) {
-          throw new Error("Missing secure store context");
-        }
-
-        /* hard routing */
-        if (!isOnboardingRoute(runtimeState.redirect_to)) {
-          redirectTo(runtimeState.redirect_to);
-          return;
-        }
-
-        /* extra safety: already completed */
-        if (runtimeState.onboarding_completed === true) {
-          redirectTo("/dashboard/");
-          return;
-        }
-
-        applyRuntimeUI(runtimeState);
-
-        await Promise.all([
-          loadCurrencies(),
-          loadCountries()
-        ]);
-
-        const profile = await loadProfile();
-        if (profile) populateProfile(profile);
-
-        document.getElementById("bootLoader").remove();
-
-      } catch (err) {
-        console.error(err);
-        alert(err.message || "Unable to initialize onboarding");
-        redirectTo("/auth/");
-      }
-    }
-
-    bootGuard();
-
+  bootGuard();
   </script>
 </body>
 </html>
-
