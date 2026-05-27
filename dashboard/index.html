@@ -1663,7 +1663,11 @@
   color:rgba(255,255,255,0.6);
   font-size:12px; font-weight:700; text-align:center;
 }
-
+.st-media-filter-btn.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+}
 .st-expiry-note {
   font-size: 9px; font-weight: 700;
   color: var(--text-muted, #94a3b8);
@@ -2611,6 +2615,41 @@
     <button class="st-filter-tab"        data-filter="expired" onclick="filterStories('expired',this)">🔴 Expired</button>
     <button class="st-filter-tab"        data-filter="hidden"  onclick="filterStories('hidden',this)">👁 Hidden</button>
   </div>
+
+<!-- STORIES ADVANCED SEARCH & FILTER CONTROL DECK --> 
+<div class="st-filter-control-deck" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <div style="flex: 1; min-width: 260px;">
+      <input type="text" id="storySearchInput" placeholder="🔍 Search stories by title or caption..." 
+        style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none;"
+        oninput="handleStorySearchFilter()">
+    </div>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="st-media-filter-btn active" data-media="all" onclick="filterMediaType('all', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">📁 All Formats</button>
+      <button class="st-media-filter-btn" data-media="image" onclick="filterMediaType('image', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🖼️ Images</button>
+      <button class="st-media-filter-btn" data-media="video" onclick="filterMediaType('video', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎬 Videos</button>
+      <button class="st-media-filter-btn" data-media="audio" onclick="filterMediaType('audio', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎵 Audio</button>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px; align-items: center;">
+    
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <label style="font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
+        <input type="checkbox" id="storyAddedByMeCheckbox" onchange="toggleAddedByMeFilter(this)" style="width: 16px; height: 16px; accent-color: #0f172a; vertical-align: middle;">
+        🙋‍♂️ Show only stories added by me
+      </label>
+    </div>
+    <div id="premiumOwnerFilterContainer" style="display: none; align-items: center; gap: 8px; margin-left: auto;">
+      <label for="storyRoleSelectFilter" style="font-size: 13px; font-weight: 700; color: #475569;">👑 Premium Team Filter:</label>
+      <select id="storyRoleSelectFilter" onchange="handleRoleSelectFilter(this)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; background: #ffffff; color: #0f172a; outline: none;">
+        <option value="all">All Team Roles</option>
+      </select>
+    </div>
+  </div>
+</div>
 
   <!-- GRID -->
   <div class="st-stories-grid" id="storiesGrid">
@@ -4311,6 +4350,10 @@ await loadProducts();
 const STORY_R2_BASE     = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
 let allStories          = [];
 let currentFilter       = "all";
+let currentMediaTypeFilter = "all"; // Tracks "all", "image", "video", or "audio"
+let currentCreatedByFilter = "all";  // Options: "all" or "me"
+let currentRoleFilter = "all";       // Options: "all", or any active group string like "owner", "admin"
+let currentUserUidCache = null;      // Holds the current authenticated user's ID
 let storyEditingId      = null;   // UUID if editing, null if creating
 let storyDraftId        = null;   // Active draft state to avoid ghost mutations
 let storySelectedHours  = 24;
@@ -4620,34 +4663,88 @@ function _injectInfiniteScrollIndicator() {
   grid.appendChild(trigger);
 }
 
-// ── OPTIMIZED INTERFACE RENDER ENGINE ─────────────────────────────
-
-function renderStories() {
+// ── UPGRADED OPTIMIZED INTERFACE RENDER ENGINE WITH MULTI-VECTOR SEARCH ──
+  function renderStories() {
   const grid  = document.getElementById("storiesGrid");
-  const empty = document.getElementById("storiesEmpty");
   if (!grid) return;
 
-  // Preserve infinite trigger placeholder if dynamically generated
-  const triggerElement = document.getElementById("storyLoadMoreTrigger");
+  const searchInput = document.getElementById("storySearchInput");
+  const keyword = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
+  // 1. Capture authenticated user's ID token if not cached
+  if (!currentUserUidCache && allStories.length > 0) {
+    // If your app stores user session globally, grab it, otherwise we infer it from execution
+    supabaseClient.auth.getUser().then(({ data }) => {
+      if (data?.user) currentUserUidCache = data.user.id;
+    });
+  }
+
+  // 2. Dynamic Privilege & Role Injection Engine (No hardcoding)
+  if (allStories.length > 0) {
+    const primaryRow = allStories[0];
+    
+    // Check if current user is confirmed owner by the database safely
+    if (primaryRow.viewer_role === 'owner') {
+      const ownerPanel = document.getElementById("premiumOwnerFilterContainer");
+      const roleSelect = document.getElementById("storyRoleSelectFilter");
+      
+      if (ownerPanel && ownerPanel.style.display === "none") {
+        ownerPanel.style.display = "flex"; // Securely make visible
+        
+        // Find all unique roles present in current dataset dynamically
+        const uniqueRoles = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
+        
+        // Re-populate options dynamically without losing selector state
+        const currentSelection = roleSelect.value;
+        roleSelect.innerHTML = `<option value="all">All Team Roles</option>`;
+        uniqueRoles.forEach(role => {
+          const opt = document.createElement("option");
+          opt.value = role;
+          opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+          roleSelect.appendChild(opt);
+        });
+        roleSelect.value = currentSelection;
+      }
+    }
+  }
+
+  // 3. Apply Complete Multi-Vector Filtration Filters
   const filtered = allStories.filter(s => {
-    if (currentFilter === "all")     return true;
-    if (currentFilter === "active")  return s.status === "active";
-    if (currentFilter === "expired") return s.status === "expired";
-    if (currentFilter === "hidden")  return s.status === "hidden";
+    // Tab filtering (Active / Expired / Hidden)
+    if (currentFilter !== "all" && s.status !== currentFilter) return false;
+
+    // Media format type filtering
+    if (currentMediaTypeFilter !== "all" && s.type !== currentMediaTypeFilter) return false;
+
+    // Keyword Search filter
+    if (keyword !== "") {
+      const titleMatch = s.title ? s.title.toLowerCase().includes(keyword) : false;
+      const captionMatch = s.caption ? s.caption.toLowerCase().includes(keyword) : false;
+      if (!titleMatch && !captionMatch) return false;
+    }
+
+    // Isolate by exact Current User account
+    if (currentCreatedByFilter === "me" && currentUserUidCache && s.creator_id !== currentUserUidCache) {
+      return false;
+    }
+
+    // Premium dynamic role filter logic
+    if (currentRoleFilter !== "all" && s.creator_role !== currentRoleFilter) {
+      return false;
+    }
+
     return true;
   });
 
+  // Render logic layout 
   if (filtered.length === 0) {
-    grid.innerHTML = "";
-    if (empty) empty.style.display = "block";
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#64748b; font-weight:600;">No stories match your current search options.</div>`;
     return;
   }
-  if (empty) empty.style.display = "none";
 
   grid.innerHTML = filtered.map((s, idx) => buildStoryCard(s, idx, filtered)).join("");
-  
-  if (triggerElement) {
+  // Re-append page scroll triggers if active parameters are met
+  if (triggerElement && !keyword && currentMediaTypeFilter === "all") {
     grid.appendChild(triggerElement);
   }
 }
@@ -4686,19 +4783,16 @@ function buildStoryCard(s, idx, list) {
         ${timer ? `<div class="st-card-timer${urgent?" urgent":""}">${timer}</div>` : ""}
       </div>`;
   }
-
   const linkTag = s.link_type && s.link_type !== "none"
     ? `<span class="st-card-tag ${s.link_type}">${
         s.link_type==="product" ? `🛍️ ${s.product_name||"Store Item"}` :
         s.link_type==="whatsapp" ? "💬 WhatsApp Action" : "🔗 Direct URL Link"}</span>` : "";
-
   const restoreBtn = isExpired ? `<button class="st-card-btn restore" onclick="restoreStory('${s.id}')">🔄 Renew 24h</button>` : "";
   const editBtn   = `<button class="st-card-btn" onclick="openStoryModal('${s.id}')">✏️ Config</button>`;
   const hideBtn   = `<button class="st-card-btn" onclick="toggleStoryVisibility('${s.id}')">${isHidden?"👁 Unhide":"🙈 Hide From App"}</button>`;
   const deleteBtn = `<button class="st-card-btn danger" onclick="deleteStory('${s.id}')">🗑</button>`;
   const upBtn     = `<button class="st-reorder-btn" onclick="moveStory('${s.id}',-1)" ${idx===0?"disabled":""}>▲</button>`;
   const downBtn   = `<button class="st-reorder-btn" onclick="moveStory('${s.id}',1)" ${idx===list.length-1?"disabled":""}>▼</button>`;
-
   return `
   <div class="st-story-card ${isHidden?"hidden-card":""} ${isExpired?"expired-card":""}" id="storyCard_${s.id}">
     <div class="st-card-ribbon ${s.status}">${s.status==="active"?"🟢 Live View":s.status==="expired"?"🔴 Vaulted":"👁 Invisible"}</div>
@@ -4707,11 +4801,22 @@ function buildStoryCard(s, idx, list) {
     <div class="st-card-body">
       <div class="st-card-title">${s.title||"Untitled Campaign"}</div>
       ${s.caption?`<div class="st-card-caption">${s.caption}</div>`:""}
+     
       <div class="st-card-meta">
         <span class="st-card-tag ${s.type}">${s.type.toUpperCase()}</span>
         ${linkTag}
         ${s.aspect_ratio?`<span class="st-card-tag image">${s.aspect_ratio}</span>`:""}
       </div>
+
+      <div class="st-story-attribution-badge" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; margin-top: 2px; margin-bottom: 8px; border: 1px solid #e2e8f0; width: fit-content;">
+        <span style="font-size: 11px; font-weight: 500; color: #475569;">
+          👤 Added by: <strong style="color: #0f172a;">${s.creator_name || 'System'}</strong> 
+          <span style="font-size: 10px; font-weight: bold; color: #475569; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-left: 4px; text-transform: uppercase;">
+            ${s.creator_role ? s.creator_role : 'staff'}
+          </span>
+        </span>
+      </div>
+
       <div class="st-card-stats">
         <span>👁 Views: ${s.views_count||0}</span>
         <span>👆 Conversions: ${s.clicks_count||0}</span>
@@ -5069,35 +5174,96 @@ window.useProfileWhatsapp = async function() {
 };
 
 async function _loadProfileWA() {
-  if(_profileWaCache) return;
+  if (_profileWaCache && window._profileStoreId) return;
   try {
-    const {data} = await supabaseClient.from("profile").select("whatsapp_number").limit(1).single();
-    _profileWaCache = data?.whatsapp_number||"";
-  } catch(e){}
+    // Select both the store_id tracking hash and the whatsapp number
+    const { data } = await supabaseClient
+      .from("profile")
+      .select("whatsapp_number, store_id, business_name")
+      .limit(1)
+      .single();
+    
+    _profileWaCache = data?.whatsapp_number || "";
+    window._profileStoreId = data?.store_id || null;
+    window._profileBusinessName = data?.business_name || "";
+  } catch(e) {
+    console.error("Profile context loading exception:", e);
+  }
 }
 
 /**
- * Isolated User Fetch: Strictly grabs items bound to the current merchant 
- * identity via the explicit multi-tenant RLS engine policies.
+ * Hardened Multi-Tenant Product Selector with Real-time Filtering Engine.
+ * Explicitly pulls items bound to the authenticated user's store profile.
  */
 async function _loadProductsForPicker() {
-  const sel = document.getElementById("st_story_product"); if(!sel) return;
-  sel.innerHTML = `<option value="">Select an isolated merchant item…</option>`;
+  const sel = document.getElementById("st_story_product"); 
+  if (!sel) return;
+
+  // 1. Check if we need to inject the search box container markup
+  let searchInput = document.getElementById("st_story_product_search");
+  if (!searchInput) {
+    const searchWrap = document.createElement("div");
+    searchWrap.className = "st-product-search-wrapper";
+    searchWrap.style.cssText = "margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px;";
+    searchWrap.innerHTML = `
+      <label for="st_story_product_search" style="font-size:12px; font-weight:600; color:var(--text-muted, #64748b);">🔍 Quick Search Catalog:</label>
+      <input type="text" id="st_story_product_search" placeholder="Type product name to filter..." 
+        style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:14px; outline:none; background:#ffffff;">
+    `;
+    // Insert the search box right before the dropdown select field
+   sel.parentNode.insertBefore(searchWrap, sel);
+    searchInput = document.getElementById("st_story_product_search");
+  } else {
+    searchInput.value = ""; // Clear search terms whenever modal re-opens
+  }
+  sel.innerHTML = `<option value="">Select a verified store item…</option>`;
   try {
-    if(!_storyProductsCache) {
-      const { data, error } = await supabaseClient
+    // 2. Fetch directly from the backend if cache is empty
+    if (!_storyProductsCache) {
+      // We read the 'store_id' property directly from profile cache or session metadata
+      // to guarantee we aren't scanning non-owner indexes
+      const targetStoreId = window._profileStoreId || null;
+
+      let query = supabaseClient
         .from("products")
-        .select("id,name")
-        .eq("is_visible", true)
-        .order("name");
+        .select("id, name, store_id")
+        .eq("is_visible", true);
+
+      // Force JavaScript runtime isolation layer if available as secondary guard to database RLS
+      if (targetStoreId) {
+        query = query.eq("store_id", targetStoreId);
+      }
+      const { data, error } = await query.order("name");
       if (error) throw error;
       _storyProductsCache = data || [];
     }
-    _storyProductsCache.forEach(p=>{
-      const o = document.createElement("option"); o.value=p.id; o.textContent=p.name; sel.appendChild(o);
-    });
+    // Helper function to build options array based on query search terms
+    const renderOptions = (filterText = "") => {
+      // Clear existing items but preserve placeholder
+      sel.innerHTML = `<option value="">Select a verified store item…</option>`;
+     
+      const searchTerms = filterText.toLowerCase().trim();
+      const matched = _storyProductsCache.filter(p => p.name.toLowerCase().includes(searchTerms));
+      if (matched.length === 0) {
+        sel.innerHTML = `<option value="">No matching store products found...</option>`;
+        return;
+      }
+      matched.forEach(p => {
+        const o = document.createElement("option"); 
+        o.value = p.id; 
+        o.textContent = p.name; 
+        sel.appendChild(o);
+      });
+    };
+    // 3. Populate baseline items on load
+    renderOptions("");
+    // 4. Bind real-time input event filter listener
+    searchInput.oninput = (e) => {
+      renderOptions(e.target.value);
+    };
   } catch(e) { 
-    sel.innerHTML = `<option value="">Cross-tenant fetch error failed.</option>`; 
+    console.error("Product drop-down isolation breach error tracking:", e);
+    sel.innerHTML = `<option value="">Cross-tenant fetch validation failed.</option>`; 
   }
 }
 
@@ -5498,6 +5664,41 @@ styleToken.innerHTML = `
   }
 `;
 document.head.appendChild(styleToken);
+
+// Triggers real-time execution loop on text entry
+window.handleStorySearchFilter = function() {
+  renderStories();
+};
+
+// Controls active state switching for format pills
+window.filterMediaType = function(mediaType, btnElement) {
+  currentMediaTypeFilter = mediaType;
+  
+  // Clear other media pill states
+  document.querySelectorAll(".st-media-filter-btn").forEach(btn => btn.classList.remove("active"));
+  
+  if (btnElement) {
+    btnElement.classList.add("active");
+  }
+  
+  renderStories(); // Force re-render of current dataset
+};
+
+// GLOBAL MULTI-TENANT FILTER INTERFACE PIPELINES
+// Handles "Added by me" check boxes toggle changes
+window.toggleAddedByMeFilter = function(checkboxElement) {
+  currentCreatedByFilter = checkboxElement.checked ? "me" : "all";
+  renderStories();
+};
+
+// Handles premium user-role select change signals
+window.handleRoleSelectFilter = function(selectElement) {
+  currentRoleFilter = selectElement.value;
+  renderStories();
+};
+
+
+
 
 
 // ================================================================
@@ -6622,3 +6823,4 @@ window.reloadCategories = async function() {
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
 </body>
 </html>
+
