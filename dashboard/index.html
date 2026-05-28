@@ -6130,41 +6130,58 @@ function r2KeyFromUrl(url) {
 }
 
 /** Upload to R2 via presigned PUT 
- * Uses currentSessionToken from bootGuard to authenticate the request
+ * Matches your secure multi-tenant Edge Function parameters exactly
  */
 async function settingsUploadFile(file, folder) {
+  // Step 1: Get presigned PUT URL using session token and exact payload match
   const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${currentSessionToken}` // Authenticates your secure edge functions
     },
-    body: JSON.stringify({ fileName: file.name, fileType: file.type, folder }) // Clean payload signature
+    body: JSON.stringify({ 
+      fileName: file.name, 
+      fileType: file.type, 
+      folder: folder,
+      fileSize: file.size // <-- FIXED: Added to satisfy edge size-limit validation rules!
+    }) 
   });
+  
   const result = await res.json();
   if (!res.ok) throw new Error(result.error || "Failed to get upload URL");
+  
+  // Step 2: PUT file directly to R2
   const upload = await fetch(result.uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": file.type },
     body: file
   });
-  if (!upload.ok) throw new Error("Storage upload failed — ");
+  if (!upload.ok) throw new Error("Storage upload failed");
+  
+  // Step 3: Return public URL
   return result.publicUrl;
 }
 
-/** Delete from R2 immediately */
+/** Delete from R2 immediately 
+ * Cleaned up path formatting to avoid duplicate slash artifacts
+ */
 async function settingsDeleteFromR2(url) {
   if (!url) return true;
   try {
-    const fileKey = r2KeyFromUrl(url);
+    // Strip public base url prefix to cleanly isolate the direct R2 object storage key path
+    const basePrefix = R2_PUBLIC_BASE + "/";
+    const fileKey = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
+    
     if (!fileKey || fileKey === url) return true;
+    
     const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${currentSessionToken}`
       },
-      body: JSON.stringify({ fileKey }) // Clean payload signature
+      body: JSON.stringify({ fileKey })
     });
     return res.ok;
   } catch (e) {
@@ -6172,6 +6189,8 @@ async function settingsDeleteFromR2(url) {
     return false;
   }
 }
+
+
 
 /** Save profile logo_url column immediately to Supabase */
 async function _syncLogoToSupabase(url) {
