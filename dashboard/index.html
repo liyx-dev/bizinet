@@ -2809,7 +2809,9 @@
 
   </div>
 </div>
-
+<!-- ================================================================
+     PREVIEW MODAL (FIXED FOR SESSIONS & MULTI-TENANT SWITCHING)
+================================================================= -->
 <div class="st-preview-overlay" id="storyPreviewModal">
 
   <div class="st-preview-topbar">
@@ -2830,11 +2832,14 @@
         <div class="st-preview-prog-fill" id="previewProgFill"></div>
       </div>
       <div class="st-preview-info">
+        <!-- Target container for dynamic logo injection -->
         <div id="previewStoreLogo" style="display: flex; align-items: center; justify-content: center;">
           <div class="st-preview-avatar">🏪</div>
         </div>
         <div class="st-preview-meta">
-          <div class="st-preview-store-name" id="previewStoreName">Your Store</div>
+          <!-- ADDED data-current-store: Explicitly tracking store session to flush out JS async caches -->
+          <div class="st-preview-store-name" id="previewStoreName" data-current-store="" data-force-refresh="true">Your Store</div>
+          <!-- Target container for live uploader strings -->
           <div class="st-preview-uploader-name" id="previewUploaderName" style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; margin-top: 1px;"></div>
           <div class="st-preview-time" id="previewTime">Just now</div>
         </div>
@@ -2859,8 +2864,6 @@
   <div class="st-preview-counter" id="previewCounter"></div>
 
 </div>
-
-
 
 
   <!-- ================================================
