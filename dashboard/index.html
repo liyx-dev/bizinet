@@ -4330,33 +4330,32 @@ updateLive();
 await loadCategories();
 await loadProducts();
 
-
 // ============================================================
-// STORIES TAB — JAVASCRIPT v6  |  LIYOG ADMIN DASHBOARD
-// Clean · Friendly · Premium · Production-Ready
+// STORIES TAB — JAVASCRIPT v7  |  BiziNet ADMIN DASHBOARD
+// Zero Cache Pollution · RPC-First · Session-Isolated · Premium
 // ============================================================
 
 const STORY_R2_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
 
 // ── Core State
-let allStories            = [];
-let currentFilter         = "all";      // "all" | "active" | "hidden" | "expired"
-let currentMediaTypeFilter = "all";     // "all" | "image" | "video" | "audio"
-let currentCreatedByFilter = "all";     // "all" | "me"
-let currentRoleFilter      = "all";     // "all" | role string
+let allStories             = [];
+let currentFilter          = "all";   // "all" | "active" | "hidden" | "expired"
+let currentMediaTypeFilter = "all";   // "all" | "image" | "video" | "audio"
+let currentCreatedByFilter = "all";   // "all" | "me"
+let currentRoleFilter      = "all";   // "all" | role string
 let currentUserUidCache    = null;
 let storyEditingId         = null;
 let storyDraftId           = null;
-let storySelectedHours     = 24;        // Only 24h supported
+let storySelectedHours     = 24;
 let storyCtaType           = "none";
 let storyIsFeatured        = false;
 let storyCurrentMedia      = null;
 
-// ── Cache
-let _storyProductsCache = null;
-let _profileWaCache     = null;
-let _profileLogoCache   = null;       // Store logo URL
-let _profileStoreIdCache = null;      // Current store ID
+// ── Session-scoped cache (cleared on every fresh load — NO cross-account leakage)
+// These are intentionally NOT persisted to localStorage/sessionStorage
+let _storyProductsCache  = null;   // cleared on every modal open
+let _profileWaCache      = null;   // whatsapp number from profile
+let _profileStoreIdCache = null;   // current store id
 
 // ── Pagination
 let storyCurrentPage = 1;
@@ -4372,6 +4371,32 @@ let previewTouchStartX = 0;
 let previewTouchStartT = 0;
 
 // ============================================================
+// INJECT ALL KEYFRAME STYLES ONCE
+// ============================================================
+
+(function injectStoryStyles() {
+  if (document.getElementById("storyTabStyles")) return;
+  const s = document.createElement("style");
+  s.id = "storyTabStyles";
+  s.innerHTML = `
+    @keyframes stSpinnerSpin {
+      0%   { transform: translate(-50%,-50%) rotate(0deg); }
+      100% { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+    @keyframes stFadeIn  { from { opacity:0 } to { opacity:1 } }
+    @keyframes stScaleIn { from { transform:scale(.92);opacity:0 } to { transform:scale(1);opacity:1 } }
+    @keyframes stLoadMorePulse {
+      0%,100% { opacity:1; }
+      50%     { opacity:.5; }
+    }
+    @keyframes stSpinConic {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ============================================================
 // R2 STORAGE HELPERS
 // ============================================================
 
@@ -4385,7 +4410,10 @@ async function storyUploadToR2(file, folder) {
   const payload = { fileName: file.name, fileType: file.type, fileSize: file.size, folder };
   const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentSessionToken}` },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${currentSessionToken}`
+    },
     body: JSON.stringify(payload)
   });
   const result = await res.json();
@@ -4406,7 +4434,10 @@ async function storyDeleteFromR2(url) {
     if (!fileKey) return;
     await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentSessionToken}` },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${currentSessionToken}`
+      },
       body: JSON.stringify({ fileKey })
     });
   } catch (e) {
@@ -4415,22 +4446,29 @@ async function storyDeleteFromR2(url) {
 }
 
 // ============================================================
-// SUPABASE SYNC HELPERS
+// SUPABASE MEDIA SYNC HELPERS
 // ============================================================
 
 async function _syncMediaToSupabase(storyId, mediaUrl, mediaThumb, type, width, height, aspectRatio, fileSize, duration) {
   if (!storyId) return;
   const { error } = await supabaseClient.from("stories").update({
-    media_url: mediaUrl, media_thumb: mediaThumb || null, type,
-    media_width: width || null, media_height: height || null,
-    aspect_ratio: aspectRatio || null, file_size: fileSize || null, duration: duration || null
+    media_url:    mediaUrl,
+    media_thumb:  mediaThumb  || null,
+    type,
+    media_width:  width       || null,
+    media_height: height      || null,
+    aspect_ratio: aspectRatio || null,
+    file_size:    fileSize    || null,
+    duration:     duration    || null
   }).eq("id", storyId);
   if (error) throw error;
 }
 
 async function _clearMediaFromSupabase(storyId) {
   if (!storyId) return;
-  await supabaseClient.from("stories").update({ media_url: null, media_thumb: null }).eq("id", storyId);
+  await supabaseClient.from("stories")
+    .update({ media_url: null, media_thumb: null })
+    .eq("id", storyId);
 }
 
 // ============================================================
@@ -4457,7 +4495,7 @@ function computeAspectRatio(w, h) {
 async function compressStoryImage(file) {
   const dims = await getImageDimensions(file);
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img    = new Image();
     const reader = new FileReader();
     reader.onload  = e => { img.src = e.target.result; };
     reader.onerror = reject;
@@ -4470,10 +4508,11 @@ async function compressStoryImage(file) {
       canvas.height = Math.round(img.height * scale);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(blob => {
-        if (!blob) return reject(new Error("Image optimisation failed. Please try a different file."));
+        if (!blob) return reject(new Error("Image preparation failed. Please try a different file."));
         resolve({
-          file: new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }),
-          width: dims.width, height: dims.height
+          file:   new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }),
+          width:  dims.width,
+          height: dims.height
         });
       }, "image/webp", 0.78);
     };
@@ -4498,7 +4537,11 @@ async function generateVideoThumbnail(file) {
       URL.revokeObjectURL(url);
       canvas.toBlob(blob => {
         if (!blob) return resolve(null);
-        resolve({ file: new File([blob], "thumb.webp", { type: "image/webp" }), width: video.videoWidth, height: video.videoHeight });
+        resolve({
+          file:   new File([blob], "thumb.webp", { type: "image/webp" }),
+          width:  video.videoWidth,
+          height: video.videoHeight
+        });
       }, "image/webp", 0.75);
     };
     video.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
@@ -4511,12 +4554,12 @@ function getAudioDuration(file) {
     const url   = URL.createObjectURL(file);
     audio.src = url;
     audio.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Math.round(audio.duration)); };
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    audio.onerror          = () => { URL.revokeObjectURL(url); resolve(null); };
   });
 }
 
 // ============================================================
-// PROGRESS BAR UI
+// UPLOAD PROGRESS BAR
 // ============================================================
 
 function showProgress(pct, label) {
@@ -4560,30 +4603,32 @@ function timeAgo(ts) {
 }
 
 // ============================================================
-// PROFILE LOADER  (logo + store meta + WA)
+// SESSION-SAFE PROFILE META LOADER
+// Used only for WA autofill and store_id scoping for products.
+// Logo & business name now come DIRECTLY from each story's
+// store_logo field returned by get_all_stories — no cache needed.
 // ============================================================
 
 async function _loadProfileMeta() {
-  if (_profileLogoCache !== null && _profileStoreIdCache) return; // already loaded
+  // Only cache store_id and WA number — NOT logo or business name
+  // (those come live from the RPC per story row)
+  if (_profileStoreIdCache) return;
   try {
     const { data } = await supabaseClient
       .from("profile")
-      .select("whatsapp_number, store_id, business_name, logo_url")
+      .select("whatsapp_number, store_id")
       .limit(1)
       .single();
-    _profileWaCache       = data?.whatsapp_number   || "";
-    _profileStoreIdCache  = data?.store_id          || null;
-    window._profileStoreId       = _profileStoreIdCache;
-    window._profileBusinessName  = data?.business_name || "Our Store";
-    _profileLogoCache     = data?.logo_url          || null;
-    window._profileLogoUrl       = _profileLogoCache;
+    _profileWaCache      = data?.whatsapp_number || "";
+    _profileStoreIdCache = data?.store_id        || null;
+    window._profileStoreId = _profileStoreIdCache;
   } catch (e) {
-    console.error("Profile load error:", e);
+    console.error("Profile meta load error:", e);
   }
 }
 
 // ============================================================
-// LOAD & RENDER STORIES
+// LOAD STORIES  — RPC-first, session-isolated
 // ============================================================
 
 async function loadStories(appendMode = false) {
@@ -4595,21 +4640,22 @@ async function loadStories(appendMode = false) {
     storyCurrentPage = 1;
     if (btn)   btn.classList.add("spinning");
     if (empty) empty.style.display = "none";
-    if (grid)  grid.innerHTML = `
-      ${[1,2,3].map(() => `
-        <div class="st-story-card sk">
-          <div class="st-story-sk-media"></div>
-          <div class="st-story-sk-body">
-            <div class="settings-skel" style="height:12px;width:70%;"></div>
-            <div class="settings-skel" style="height:10px;width:50%;margin-top:6px;"></div>
-          </div>
-        </div>`).join("")}`;
+    if (grid)  grid.innerHTML = [1, 2, 3].map(() => `
+      <div class="st-story-card sk">
+        <div class="st-story-sk-media"></div>
+        <div class="st-story-sk-body">
+          <div class="settings-skel" style="height:12px;width:70%;"></div>
+          <div class="settings-skel" style="height:10px;width:50%;margin-top:6px;"></div>
+        </div>
+      </div>`).join("");
   }
 
-  // Ensure profile meta is loaded (for logo / store name)
+  // Ensure store_id is known (for product picker later)
   await _loadProfileMeta();
 
   try {
+    // get_all_stories returns store_logo and creator_name live
+    // — no local cache for those fields, zero cross-account leakage
     const { data, error } = await supabaseClient.rpc("get_all_stories");
     if (error) throw error;
 
@@ -4623,31 +4669,49 @@ async function loadStories(appendMode = false) {
       return { ...story, status: calcStatus };
     });
 
+    // Snapshot business name from first row (still used in preview header)
+    // This is session-safe: it comes from the DB row, not a stale variable
+    if (fetchedStories.length > 0 && fetchedStories[0].store_logo !== undefined) {
+      // store_logo is per-row — no caching needed
+      // Pull business name from profile once per session for preview header
+      if (!window._profileBusinessName) {
+        try {
+          const { data: prof } = await supabaseClient
+            .from("profile")
+            .select("business_name")
+            .limit(1)
+            .single();
+          window._profileBusinessName = prof?.business_name || "Our Store";
+        } catch (_) {}
+      }
+    }
+
     const startOffset = (storyCurrentPage - 1) * STORY_PAGE_SIZE;
     const endOffset   = startOffset + STORY_PAGE_SIZE;
     const pageSlice   = fetchedStories.slice(startOffset, endOffset);
     storyHasMore      = fetchedStories.length > endOffset;
 
-    if (appendMode) {
-      allStories = [...allStories, ...pageSlice];
-    } else {
-      allStories = pageSlice;
-    }
+    allStories = appendMode ? [...allStories, ...pageSlice] : pageSlice;
 
     renderStories();
     updateStats();
-    _injectInfiniteScrollIndicator();
+    _injectLoadMoreTrigger();
 
     if (!appendMode && fetchedStories.length === 0 && empty) {
       empty.style.display = "block";
     }
+
   } catch (err) {
     console.error("loadStories error:", err);
     if (grid && !appendMode) {
-      grid.innerHTML = `<p style="color:#FF3B30;font-weight:700;padding:20px;grid-column:1/-1;">
-        Couldn't load your stories. 
-        <button onclick="loadStories()" style="color:#28A428;background:none;border:none;font-weight:700;cursor:pointer;margin-left:8px;">Try Again</button>
-      </p>`;
+      grid.innerHTML = `
+        <p style="color:#FF3B30;font-weight:700;padding:20px;grid-column:1/-1;">
+          Couldn't load your stories.
+          <button onclick="loadStories()"
+            style="color:#28A428;background:none;border:none;font-weight:700;cursor:pointer;margin-left:8px;">
+            Try Again
+          </button>
+        </p>`;
     }
     toast("Oops! Couldn't load your stories. Please refresh.", "error");
   } finally {
@@ -4657,17 +4721,63 @@ async function loadStories(appendMode = false) {
 
 window.reloadStories = () => loadStories(false);
 
-function _injectInfiniteScrollIndicator() {
+// ============================================================
+// LOAD MORE TRIGGER — premium spinner with Liyog colors
+// ============================================================
+
+function _injectLoadMoreTrigger() {
   const existing = document.getElementById("storyLoadMoreTrigger");
   if (existing) existing.remove();
   if (!storyHasMore) return;
+
   const grid = document.getElementById("storiesGrid");
   if (!grid) return;
+
   const trigger = document.createElement("div");
   trigger.id = "storyLoadMoreTrigger";
-  trigger.style.cssText = "grid-column:1/-1;display:flex;justify-content:center;padding:20px;font-weight:600;color:var(--text-muted);cursor:pointer;";
-  trigger.innerHTML = `<span>Tap to load more stories 👇</span>`;
-  trigger.onclick = () => { storyCurrentPage++; loadStories(true); };
+  trigger.style.cssText = `
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 28px 20px 32px;
+    cursor: pointer;
+  `;
+
+  // Conic gradient spinner using Liyog Gold + Blue + Black
+  trigger.innerHTML = `
+    <div id="stLoadMoreSpinner" style="
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: conic-gradient(#FFD700 0%, #1877F2 40%, #111111 70%, #FFD700 100%);
+      animation: stSpinConic 0.9s linear infinite;
+      mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+    "></div>
+    <span style="
+      font-size: 13px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #FFD700, #1877F2, #111111);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: stLoadMorePulse 2s ease-in-out infinite;
+      letter-spacing: .3px;
+    ">Load older stories</span>
+  `;
+
+  trigger.onclick = () => {
+    // Swap to loading state while fetching
+    const spinner = trigger.querySelector("#stLoadMoreSpinner");
+    const label   = trigger.querySelector("span");
+    if (label) label.textContent = "Loading…";
+    storyCurrentPage++;
+    loadStories(true);
+  };
+
   grid.appendChild(trigger);
 }
 
@@ -4682,18 +4792,18 @@ function renderStories() {
   const searchInput = document.getElementById("storySearchInput");
   const keyword     = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-  // Cache current user ID
+  // Lazy-cache current user UID for "my stories" filter
   if (!currentUserUidCache && allStories.length > 0) {
     supabaseClient.auth.getUser().then(({ data }) => {
       if (data?.user) { currentUserUidCache = data.user.id; renderStories(); }
     });
   }
 
-  // Show owner-only role filter panel
+  // Owner-only role filter panel
   if (allStories.length > 0) {
-    const primaryRow   = allStories[0];
-    const ownerPanel   = document.getElementById("premiumOwnerFilterContainer");
-    const roleSelect   = document.getElementById("storyRoleSelectFilter");
+    const primaryRow = allStories[0];
+    const ownerPanel = document.getElementById("premiumOwnerFilterContainer");
+    const roleSelect = document.getElementById("storyRoleSelectFilter");
     if (primaryRow.viewer_role === "owner" && ownerPanel && ownerPanel.style.display === "none") {
       ownerPanel.style.display = "flex";
       const uniqueRoles      = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
@@ -4702,7 +4812,8 @@ function renderStories() {
         roleSelect.innerHTML = `<option value="all">All Team Roles</option>`;
         uniqueRoles.forEach(role => {
           const opt = document.createElement("option");
-          opt.value = role; opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+          opt.value       = role;
+          opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
           roleSelect.appendChild(opt);
         });
         roleSelect.value = currentSelection;
@@ -4710,7 +4821,7 @@ function renderStories() {
     }
   }
 
-  // Apply filters
+  // Apply all filters
   const filtered = allStories.filter(s => {
     if (currentFilter !== "all" && s.status !== currentFilter) return false;
     if (currentMediaTypeFilter !== "all" && s.type !== currentMediaTypeFilter) return false;
@@ -4725,14 +4836,17 @@ function renderStories() {
   });
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#64748b;font-weight:600;">No stories match your current filters.</div>`;
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:#64748b;font-weight:600;">
+        No stories match your current filters.
+      </div>`;
     return;
   }
 
   grid.innerHTML = filtered.map((s, idx) => buildStoryCard(s, idx, filtered)).join("");
 
   if (storyHasMore && !document.getElementById("storyLoadMoreTrigger") && !keyword && currentMediaTypeFilter === "all") {
-    _injectInfiniteScrollIndicator();
+    _injectLoadMoreTrigger();
   }
 }
 
@@ -4741,10 +4855,10 @@ function renderStories() {
 // ============================================================
 
 function buildStoryCard(s, idx, list) {
-  const timer    = getTimeRemaining(s.expires_at);
-  const urgent   = isUrgent(s.expires_at);
+  const timer     = getTimeRemaining(s.expires_at);
+  const urgent    = isUrgent(s.expires_at);
   const isExpired = s.status === "expired";
-  const isHidden  = s.status === "hidden";
+  const isHidden  = s.status  === "hidden";
   const thumbSrc  = s.media_thumb || s.media_url;
 
   // ── Media block
@@ -4753,7 +4867,9 @@ function buildStoryCard(s, idx, list) {
     mediaHtml = `
       <div class="st-card-media" onclick="openPreviewAt('${s.id}')">
         ${thumbSrc
-          ? `<img src="${thumbSrc}" alt="video cover" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          ? `<img src="${thumbSrc}" alt="video cover"
+               style="width:100%;height:100%;object-fit:cover;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
              <div class="st-card-video-fallback" style="display:none;"><span>🎬</span><small>Video</small></div>`
           : `<div class="st-card-video-fallback"><span>🎬</span><small>Video</small></div>`}
         <div class="st-card-play-badge">▶</div>
@@ -4764,12 +4880,15 @@ function buildStoryCard(s, idx, list) {
     mediaHtml = `
       <div class="st-card-audio" onclick="openPreviewAt('${s.id}')">
         <span class="st-card-audio-icon">🎵</span>
-        <span class="st-card-audio-label">${s.duration ? Math.floor(s.duration / 60) + "m " + s.duration % 60 + "s" : "Audio Story"}</span>
+        <span class="st-card-audio-label">${s.duration
+          ? Math.floor(s.duration / 60) + "m " + (s.duration % 60) + "s"
+          : "Audio Story"}</span>
       </div>`;
   } else {
     mediaHtml = `
       <div class="st-card-media" onclick="openPreviewAt('${s.id}')">
-        <img src="${s.media_url}" alt="${s.title || 'Story'}" loading="lazy" style="width:100%;height:100%;object-fit:cover;"
+        <img src="${s.media_url}" alt="${s.title || 'Story'}" loading="lazy"
+          style="width:100%;height:100%;object-fit:cover;"
           onerror="this.style.display='none';this.parentElement.querySelector('.st-card-img-fallback').style.display='flex';">
         <div class="st-card-img-fallback" style="display:none;"><span>🖼</span><small>Image unavailable</small></div>
         <div class="st-card-preview-btn"><span>👁 Preview</span></div>
@@ -4779,68 +4898,121 @@ function buildStoryCard(s, idx, list) {
 
   // ── Link tag
   const linkTag = s.link_type && s.link_type !== "none"
-    ? `<span class="st-card-tag ${s.link_type}">${
-        s.link_type === "product"   ? `🛍 ${s.product_name || "Product"}` :
-        s.link_type === "whatsapp"  ? "💬 WhatsApp"                        : "🔗 Link"
-      }</span>` : "";
+    ? `<span class="st-card-tag ${s.link_type}" style="
+        background:${s.link_type === "product" ? "linear-gradient(135deg,#fff9e6,#fff3cc);color:#92400e;border:1px solid #FFD700;"
+          : s.link_type === "whatsapp" ? "linear-gradient(135deg,#f0fdf4,#dcfce7);color:#166534;border:1px solid #86efac;"
+          : "linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e40af;border:1px solid #93c5fd;"}
+        font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;">
+        ${s.link_type === "product"  ? `🛍 ${s.product_name || "Product"}`
+        : s.link_type === "whatsapp" ? "💬 WhatsApp"
+        : "🔗 Link"}
+      </span>` : "";
 
-  // ── Action buttons — friendly labels + Liyog colors
-  const restoreBtn = isExpired
-    ? `<button class="st-card-btn restore" onclick="restoreStory('${s.id}')" style="background:linear-gradient(135deg,#FFD700,#FF7A00);color:#111;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔄 Renew 24h</button>` : "";
+  // ── Role badge color
+  const roleBg = s.creator_role === "owner"       ? "linear-gradient(135deg,#FFD700,#FF7A00)"
+               : s.creator_role === "super_admin"  ? "linear-gradient(135deg,#FF7A00,#FF3B30)"
+               : s.creator_role === "admin"        ? "linear-gradient(135deg,#1877F2,#0d5bbf)"
+               :                                    "linear-gradient(135deg,#28A428,#34BF49)";
 
-  const editBtn   = `<button class="st-card-btn" onclick="openStoryModal('${s.id}')" style="background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✏️ Edit</button>`;
-
-  const hideLabel = isHidden ? "👁 Show" : "🙈 Hide";
-  const hideStyle = isHidden
-    ? "background:linear-gradient(135deg,#28A428,#34BF49);color:#fff;"
-    : "background:linear-gradient(135deg,#475569,#334155);color:#fff;";
-  const hideBtn   = `<button class="st-card-btn" onclick="toggleStoryVisibility('${s.id}')" style="${hideStyle}border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">${hideLabel}</button>`;
-
-  const deleteBtn = `<button class="st-card-btn danger" onclick="deleteStory('${s.id}')" style="background:linear-gradient(135deg,#FF3B30,#C1271A);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🗑</button>`;
-
-  const upBtn   = `<button class="st-reorder-btn" onclick="moveStory('${s.id}',-1)" ${idx === 0 ? "disabled" : ""} style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;transition:.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">▲</button>`;
-  const downBtn = `<button class="st-reorder-btn" onclick="moveStory('${s.id}',1)"  ${idx === list.length - 1 ? "disabled" : ""} style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;transition:.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">▼</button>`;
-
-  // ── Status ribbon colors
+  // ── Status ribbon
   const ribbonStyle = s.status === "active"
     ? "background:linear-gradient(90deg,#28A428,#34BF49);color:#fff;"
     : s.status === "expired"
     ? "background:linear-gradient(90deg,#FF3B30,#C1271A);color:#fff;"
     : "background:linear-gradient(90deg,#475569,#334155);color:#fff;";
-
   const ribbonLabel = s.status === "active" ? "🟢 Live" : s.status === "expired" ? "🔴 Expired" : "👁 Hidden";
 
+  // ── Action buttons
+  const editBtn = `
+    <button onclick="openStoryModal('${s.id}')"
+      style="background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">✏️ Edit</button>`;
+
+  const restoreBtn = isExpired ? `
+    <button onclick="restoreStory('${s.id}')"
+      style="background:linear-gradient(135deg,#FFD700,#FF7A00);color:#111;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">🔄 Renew</button>` : "";
+
+  const hideLabel = isHidden ? "👁 Show" : "🙈 Hide";
+  const hideStyle = isHidden
+    ? "background:linear-gradient(135deg,#28A428,#34BF49);color:#fff;"
+    : "background:linear-gradient(135deg,#475569,#334155);color:#fff;";
+  const hideBtn = `
+    <button onclick="toggleStoryVisibility('${s.id}')"
+      style="${hideStyle}border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">${hideLabel}</button>`;
+
+  const deleteBtn = `
+    <button onclick="deleteStory('${s.id}')"
+      style="background:linear-gradient(135deg,#FF3B30,#C1271A);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">🗑</button>`;
+
+  const upBtn = `
+    <button onclick="moveStory('${s.id}',-1)" ${idx === 0 ? "disabled" : ""}
+      style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
+      onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">▲</button>`;
+
+  const downBtn = `
+    <button onclick="moveStory('${s.id}',1)" ${idx === list.length - 1 ? "disabled" : ""}
+      style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
+      onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">▼</button>`;
+
   return `
-    <div class="st-story-card ${isHidden ? "hidden-card" : ""} ${isExpired ? "expired-card" : ""}" id="storyCard_${s.id}">
-      <div class="st-card-ribbon ${s.status}" style="${ribbonStyle}font-size:11px;font-weight:700;padding:3px 10px;border-radius:0 0 8px 0;position:absolute;top:0;left:0;z-index:3;">${ribbonLabel}</div>
-      ${s.is_featured ? `<div class="st-card-ribbon featured" style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;font-size:11px;font-weight:700;padding:3px 10px;border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">⭐ Featured</div>` : ""}
+    <div class="st-story-card ${isHidden ? "hidden-card" : ""} ${isExpired ? "expired-card" : ""}"
+      id="storyCard_${s.id}" style="position:relative;">
+
+      <!-- Status ribbon -->
+      <div style="${ribbonStyle}font-size:11px;font-weight:700;padding:3px 10px;border-radius:0 0 8px 0;position:absolute;top:0;left:0;z-index:3;">
+        ${ribbonLabel}
+      </div>
+
+      <!-- Featured badge -->
+      ${s.is_featured ? `
+        <div style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;font-size:11px;font-weight:700;padding:3px 10px;border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">
+          ⭐ Featured
+        </div>` : ""}
+
       ${mediaHtml}
+
       <div class="st-card-body">
         <div class="st-card-title">${s.title || "Untitled Story"}</div>
         ${s.caption ? `<div class="st-card-caption">${s.caption}</div>` : ""}
-        <div class="st-card-meta">
-          <span class="st-card-tag ${s.type}" style="background:${s.type==='image'?'#e0f2fe':s.type==='video'?'#fce7f3':'#f0fdf4'};color:${s.type==='image'?'#0369a1':s.type==='video'?'#be185d':'#166534'};font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">${s.type.toUpperCase()}</span>
+
+        <!-- Tags row -->
+        <div class="st-card-meta" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+          <span style="background:${s.type==='image'?'#e0f2fe':s.type==='video'?'#fce7f3':'#f0fdf4'};
+            color:${s.type==='image'?'#0369a1':s.type==='video'?'#be185d':'#166534'};
+            font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;">
+            ${s.type.toUpperCase()}
+          </span>
           ${linkTag}
-          ${s.aspect_ratio ? `<span class="st-card-tag image" style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${s.aspect_ratio}</span>` : ""}
+          ${s.aspect_ratio ? `<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${s.aspect_ratio}</span>` : ""}
         </div>
 
-        <div class="st-story-attribution-badge" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-radius:20px;margin-top:4px;margin-bottom:8px;border:1px solid #e2e8f0;width:fit-content;">
+        <!-- Attribution -->
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;
+          background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+          border-radius:20px;margin-bottom:10px;border:1px solid #e2e8f0;width:fit-content;">
           <span style="font-size:11px;font-weight:600;color:#475569;">
             👤 <strong style="color:#111;">${s.creator_name || "Team Member"}</strong>
-            <span style="font-size:10px;font-weight:700;color:#fff;background:${s.creator_role==='owner'?'linear-gradient(135deg,#FFD700,#FF7A00)':s.creator_role==='admin'?'linear-gradient(135deg,#1877F2,#0d5bbf)':'linear-gradient(135deg,#28A428,#34BF49)'};padding:2px 7px;border-radius:20px;margin-left:4px;text-transform:uppercase;">
+            <span style="font-size:10px;font-weight:700;color:#fff;
+              background:${roleBg};padding:2px 7px;border-radius:20px;margin-left:4px;text-transform:uppercase;">
               ${s.creator_role || "staff"}
             </span>
           </span>
         </div>
 
-        <div class="st-card-stats" style="display:flex;gap:10px;font-size:12px;color:#64748b;font-weight:600;flex-wrap:wrap;margin-bottom:10px;">
+        <!-- Stats -->
+        <div style="display:flex;gap:10px;font-size:12px;color:#64748b;font-weight:600;flex-wrap:wrap;margin-bottom:10px;">
           <span>👁 ${s.views_count || 0} views</span>
           <span>👆 ${s.clicks_count || 0} taps</span>
         </div>
 
-        <div class="st-card-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          ${editBtn}${restoreBtn || hideBtn}
-          <div class="st-reorder-btns" style="display:flex;gap:4px;">${upBtn}${downBtn}</div>
+        <!-- Actions -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${editBtn}
+          ${restoreBtn || hideBtn}
+          <div style="display:flex;gap:4px;">${upBtn}${downBtn}</div>
           ${deleteBtn}
         </div>
       </div>
@@ -4851,9 +5023,9 @@ function updateStats() {
   const activeCount  = allStories.filter(s => s.status === "active").length;
   const expiredCount = allStories.filter(s => s.status === "expired").length;
   const hiddenCount  = allStories.filter(s => s.status === "hidden").length;
-  const activeEl  = document.getElementById("statActive");
-  const expiredEl = document.getElementById("statExpired");
-  const hiddenEl  = document.getElementById("statHidden");
+  const activeEl     = document.getElementById("statActive");
+  const expiredEl    = document.getElementById("statExpired");
+  const hiddenEl     = document.getElementById("statHidden");
   if (activeEl)  activeEl.textContent  = activeCount;
   if (expiredEl) expiredEl.textContent = expiredCount;
   if (hiddenEl)  hiddenEl.textContent  = hiddenCount;
@@ -4871,12 +5043,15 @@ window.filterStories = function (filter, btn) {
 // ============================================================
 
 window.openStoryModal = async function (editId = null) {
-  storyEditingId    = editId || null;
-  storyDraftId      = null;
-  storyCurrentMedia = null;
-  storyIsFeatured   = false;
-  storyCtaType      = "none";
+  storyEditingId     = editId || null;
+  storyDraftId       = null;
+  storyCurrentMedia  = null;
+  storyIsFeatured    = false;
+  storyCtaType       = "none";
   storySelectedHours = 24;
+
+  // Always clear product cache on modal open so fresh RPC runs
+  _storyProductsCache = null;
 
   ["st_story_title", "st_story_caption", "st_story_wa", "st_story_url", "st_story_cta_text"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -4893,12 +5068,12 @@ window.openStoryModal = async function (editId = null) {
   const reloadBtn = document.getElementById("storyEditReloadBtn");
   if (reloadBtn) reloadBtn.style.display = editId ? "flex" : "none";
 
-  await _loadProductsForPicker();
+  // Load products fresh via RPC and ensure store_id is known
   await _loadProfileMeta();
+  await _loadProductsForPicker();
 
   const modalTitle   = document.getElementById("storyModalTitle");
   const modalSaveTxt = document.getElementById("storyModalSaveTxt");
-
   if (editId) {
     if (modalTitle)   modalTitle.textContent   = "✏️ Edit Story";
     if (modalSaveTxt) modalSaveTxt.textContent = "Save Changes ✓";
@@ -4930,7 +5105,14 @@ function _prefillEditModal(editId) {
   if (cc) cc.textContent = `${(s.caption || "").length} / 300`;
 
   if (s.media_url) {
-    storyCurrentMedia = { url: s.media_url, thumbUrl: s.media_thumb, type: s.type, width: s.media_width, height: s.media_height, aspectRatio: s.aspect_ratio };
+    storyCurrentMedia = {
+      url:         s.media_url,
+      thumbUrl:    s.media_thumb,
+      type:        s.type,
+      width:       s.media_width,
+      height:      s.media_height,
+      aspectRatio: s.aspect_ratio
+    };
     _showMediaPreview(s.media_url, s.type, s.media_thumb, s.media_width, s.media_height);
   }
 
@@ -4951,12 +5133,13 @@ function _prefillEditModal(editId) {
     }
     const ctaEl = document.getElementById("st_story_cta_text");
     if (ctaEl) ctaEl.value = s.cta_text || "";
-  }, 150);
+  }, 200);
 
   _setFeaturedToggle(s.is_featured);
 }
 
 window.closeStoryModal = function () {
+  // Clean up orphan draft on cancel
   if (!storyEditingId && storyDraftId) {
     supabaseClient.from("stories").delete().eq("id", storyDraftId).then(() => {});
     if (storyCurrentMedia?.url)      storyDeleteFromR2(storyCurrentMedia.url);
@@ -5010,24 +5193,35 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
   if (ph) ph.style.display = "none";
 
   const wrap = document.createElement("div");
-  wrap.className = "st-media-preview-wrap";
+  wrap.className    = "st-media-preview-wrap";
   wrap.style.position = "relative";
 
   const spinner = document.createElement("div");
   spinner.className = "st-media-network-loader";
-  spinner.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border:4px solid rgba(255,255,255,0.2);border-top-color:#28A428;border-radius:50%;animation:stSpinnerSpin 0.8s linear infinite;z-index:10;";
+  spinner.style.cssText = `
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:32px;height:32px;
+    border:4px solid rgba(255,255,255,.2);
+    border-top-color:#28A428;
+    border-radius:50%;
+    animation:stSpinnerSpin 0.8s linear infinite;
+    z-index:10;`;
   wrap.appendChild(spinner);
 
-  const ratio  = (origWidth && origHeight) ? origWidth / origHeight : null;
-  const maxH   = 240;
-  const dispW  = ratio ? Math.round(maxH * ratio) : null;
-  const sizeStyle = dispW ? `width:${Math.min(dispW, 480)}px;max-width:100%;height:${maxH}px;` : `width:100%;height:220px;`;
+  const ratio     = (origWidth && origHeight) ? origWidth / origHeight : null;
+  const maxH      = 240;
+  const dispW     = ratio ? Math.round(maxH * ratio) : null;
+  const sizeStyle = dispW
+    ? `width:${Math.min(dispW, 480)}px;max-width:100%;height:${maxH}px;`
+    : `width:100%;height:220px;`;
 
   const changeBtn = `
-    <button class="st-media-preview-change" type="button"
-      onclick="event.stopPropagation();_triggerMediaChange()"
-      style="margin-top:8px;background:linear-gradient(135deg,#475569,#334155);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
-      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+    <button type="button" onclick="event.stopPropagation();_triggerMediaChange()"
+      style="margin-top:8px;background:linear-gradient(135deg,#475569,#334155);color:#fff;
+        border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;
+        cursor:pointer;transition:.2s;"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
       🔄 Replace File
     </button>`;
 
@@ -5111,12 +5305,12 @@ async function _handleStoryMediaChange(e) {
   const isAudio = file.type.startsWith("audio/");
 
   if (isVideo && file.size > 100 * 1024 * 1024) {
-    return toast("Video is too large. Please keep it under 100MB.", "error");
+    return toast("Video is too large. Please keep it under 100MB. 🎬", "error");
   }
 
   const targetId = storyEditingId || storyDraftId;
 
-  // Clean up old media first
+  // Clean up any existing media first
   if (storyCurrentMedia?.url) {
     showProgress(5, "Clearing old file…");
     await storyDeleteFromR2(storyCurrentMedia.url);
@@ -5128,7 +5322,10 @@ async function _handleStoryMediaChange(e) {
     _resetMediaZone();
   }
 
-  showProgress(15, isImage ? "Optimising your image…" : isVideo ? "Preparing your video…" : "Preparing your audio…");
+  showProgress(15,
+    isImage ? "Optimising your image…"    :
+    isVideo ? "Preparing your video…"     : "Preparing your audio…"
+  );
 
   try {
     let mediaUrl, thumbUrl = null;
@@ -5141,14 +5338,18 @@ async function _handleStoryMediaChange(e) {
       mediaUrl = await storyUploadToR2(compressed, "stories");
       thumbUrl = mediaUrl;
       width = w; height = h; fileSize = compressed.size;
+
     } else if (isVideo) {
       const thumbResult = await generateVideoThumbnail(file);
       width  = thumbResult?.width  || 0;
       height = thumbResult?.height || 0;
-      if (thumbResult?.file) { thumbUrl = await storyUploadToR2(thumbResult.file, "stories"); }
+      if (thumbResult?.file) {
+        thumbUrl = await storyUploadToR2(thumbResult.file, "stories");
+      }
       showProgress(60, "Uploading your video…");
       mediaUrl = await storyUploadToR2(file, "stories");
       fileSize = file.size;
+
     } else if (isAudio) {
       duration = await getAudioDuration(file);
       showProgress(50, "Uploading your audio…");
@@ -5165,22 +5366,22 @@ async function _handleStoryMediaChange(e) {
     } else {
       if (!storyDraftId) {
         const { data: drafted, error: draftErr } = await supabaseClient.rpc("create_story", {
-          p_media_url:    mediaUrl,
-          p_media_thumb:  thumbUrl || null,
-          p_type:         mediaType,
+          p_media_url:     mediaUrl,
+          p_media_thumb:   thumbUrl      || null,
+          p_type:          mediaType,
           p_expires_hours: storySelectedHours,
-          p_file_size:    fileSize || null,
-          p_duration:     duration || null,
-          p_media_width:  width    || null,
-          p_media_height: height   || null,
-          p_aspect_ratio: aspectRatio || null
+          p_file_size:     fileSize      || null,
+          p_duration:      duration      || null,
+          p_media_width:   width         || null,
+          p_media_height:  height        || null,
+          p_aspect_ratio:  aspectRatio   || null
         });
         if (draftErr) throw draftErr;
         storyDraftId = drafted?.[0]?.id || null;
       } else {
         await _syncMediaToSupabase(storyDraftId, mediaUrl, thumbUrl, mediaType, width, height, aspectRatio, fileSize, duration);
       }
-      toast("File ready! Now fill in the details 👇", "success");
+      toast("File ready! Now fill in the details below 👇", "success");
     }
 
     showProgress(100, "Done ✓");
@@ -5198,19 +5399,25 @@ async function _handleStoryMediaChange(e) {
 }
 
 // ============================================================
-// CTA / EXPIRY / FEATURED CONTROLS
+// CTA TYPE SELECTOR
 // ============================================================
 
 window.selectCtaType = (type) => _resetCtaType(type);
 
 function _resetCtaType(type) {
   storyCtaType = type;
-  document.querySelectorAll(".st-cta-type-btn").forEach(b => b.classList.toggle("active", b.dataset.type === type));
+  document.querySelectorAll(".st-cta-type-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.type === type)
+  );
   ["ctaProductPanel", "ctaWhatsappPanel", "ctaExternalPanel"].forEach(id => {
-    const el = document.getElementById(id); if (el) el.style.display = "none";
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
   });
   const map = { product: "ctaProductPanel", whatsapp: "ctaWhatsappPanel", external: "ctaExternalPanel" };
-  if (map[type]) { const el = document.getElementById(map[type]); if (el) el.style.display = "flex"; }
+  if (map[type]) {
+    const el = document.getElementById(map[type]);
+    if (el) el.style.display = "flex";
+  }
   const textRow = document.getElementById("ctaTextRow");
   if (textRow) textRow.style.display = type !== "none" ? "block" : "none";
 }
@@ -5227,27 +5434,27 @@ window.useProfileWhatsapp = async function () {
 };
 
 // ============================================================
-// PRODUCT PICKER — store-scoped, fully fixed
+// PRODUCT PICKER — uses get_all_products_v2 RPC
+// Zero cache pollution: fresh fetch every modal open
 // ============================================================
 
 async function _loadProductsForPicker() {
   const sel = document.getElementById("st_story_product");
   if (!sel) return;
 
-  // Ensure profile meta loaded so we have the store_id
-  await _loadProfileMeta();
-  const targetStoreId = _profileStoreIdCache || window._profileStoreId || null;
-
-  // Build / reset search input
+  // Build or reset search input
   let searchInput = document.getElementById("st_story_product_search");
   if (!searchInput) {
     const searchWrap = document.createElement("div");
     searchWrap.className = "st-product-search-wrapper";
     searchWrap.style.cssText = "margin-bottom:8px;display:flex;flex-direction:column;gap:4px;";
     searchWrap.innerHTML = `
-      <label for="st_story_product_search" style="font-size:12px;font-weight:600;color:#64748b;">🔍 Search products:</label>
-      <input type="text" id="st_story_product_search" placeholder="Type to filter products…"
-        style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;background:#fff;transition:.2s;"
+      <label for="st_story_product_search"
+        style="font-size:12px;font-weight:600;color:#64748b;">🔍 Search your products:</label>
+      <input type="text" id="st_story_product_search"
+        placeholder="Type to filter…"
+        style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+          font-size:14px;outline:none;background:#fff;transition:.2s;"
         onfocus="this.style.borderColor='#28A428';this.style.boxShadow='0 0 0 3px rgba(40,164,40,.12)'"
         onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">`;
     sel.parentNode.insertBefore(searchWrap, sel);
@@ -5256,51 +5463,45 @@ async function _loadProductsForPicker() {
     searchInput.value = "";
   }
 
-  sel.innerHTML = `<option value="">Choose a product…</option>`;
+  sel.innerHTML = `<option value="">Loading your products…</option>`;
 
   try {
-    // Always re-fetch when no cache OR when opening modal fresh
-    if (!_storyProductsCache) {
-      let query = supabaseClient
-        .from("products")
-        .select("id, name, store_id, image_urls")
-        .eq("is_visible", true);
+    // ALWAYS call get_all_products_v2 — uses JWT context, no store_id filter needed
+    // Returns only products from the currently authenticated user's store
+    const { data, error } = await supabaseClient.rpc("get_all_products_v2");
+    if (error) throw error;
 
-      // CRITICAL: filter strictly to current user's store only
-      if (targetStoreId) {
-        query = query.eq("store_id", targetStoreId);
-      }
-
-      const { data, error } = await query.order("name");
-      if (error) throw error;
-      _storyProductsCache = data || [];
-    }
+    _storyProductsCache = data || [];
 
     const renderOptions = (filterText = "") => {
       sel.innerHTML = `<option value="">Choose a product…</option>`;
       const term    = filterText.toLowerCase().trim();
       const matched = _storyProductsCache.filter(p => p.name.toLowerCase().includes(term));
-
       if (matched.length === 0) {
-        sel.innerHTML = `<option value="">No products found for this search</option>`;
+        sel.innerHTML = `<option value="">No products found</option>`;
         return;
       }
       matched.forEach(p => {
         const o = document.createElement("option");
-        o.value       = p.id;
-        o.textContent = p.name;
+        o.value = p.id;
+        // Show price if available for extra clarity
+        o.textContent = p.price ? `${p.name} — ${p.price}` : p.name;
         sel.appendChild(o);
       });
     };
 
     renderOptions("");
-    searchInput.oninput = e => renderOptions(e.target.value);
+    if (searchInput) searchInput.oninput = e => renderOptions(e.target.value);
 
   } catch (e) {
     console.error("Product picker error:", e);
     sel.innerHTML = `<option value="">Couldn't load products. Try reopening.</option>`;
   }
 }
+
+// ============================================================
+// EXPIRY + FEATURED CONTROLS  (24h only)
+// ============================================================
 
 window.selectExpiry = (hours) => _setExpiryBtn(hours);
 
@@ -5327,11 +5528,11 @@ document.getElementById("st_story_caption")?.addEventListener("input", function 
   const el  = document.getElementById("captionCount");
   if (!el) return;
   el.textContent = `${len} / 300`;
-  el.className   = "st-char-count" + (len > 280 ? " warn" : "") + (len >= 300 ? " over" : "");
+  el.className = "st-char-count" + (len > 280 ? " warn" : "") + (len >= 300 ? " over" : "");
 });
 
 // ============================================================
-// SAVE STORY — fully fixed product_id insertion
+// SAVE STORY — product_id fully wired
 // ============================================================
 
 window.saveStory = async function () {
@@ -5346,19 +5547,19 @@ window.saveStory = async function () {
   if (txt) txt.textContent = "Publishing…";
 
   try {
-    const title     = document.getElementById("st_story_title")?.value.trim()    || null;
-    const caption   = document.getElementById("st_story_caption")?.value.trim()  || null;
-    const ctaText   = document.getElementById("st_story_cta_text")?.value.trim() || null;
-    const waNum     = document.getElementById("st_story_wa")?.value.trim()       || null;
-    const extUrl    = document.getElementById("st_story_url")?.value.trim()      || null;
+    const title   = document.getElementById("st_story_title")?.value.trim()    || null;
+    const caption = document.getElementById("st_story_caption")?.value.trim()  || null;
+    const ctaText = document.getElementById("st_story_cta_text")?.value.trim() || null;
+    const waNum   = document.getElementById("st_story_wa")?.value.trim()       || null;
+    const extUrl  = document.getElementById("st_story_url")?.value.trim()      || null;
 
-    // ── Product ID — the critical fix
+    // Product ID — strictly from the product dropdown when link_type is product
     const productSel = document.getElementById("st_story_product");
     const productId  = (storyCtaType === "product" && productSel?.value) ? productSel.value : null;
 
-    let linkTarget  = null;
-    let ctaUrl      = null;
-    let waNumber    = null;
+    let linkTarget = null;
+    let ctaUrl     = null;
+    let waNumber   = null;
 
     if (storyCtaType === "product")  { linkTarget = productId; }
     if (storyCtaType === "whatsapp") { waNumber   = waNum; }
@@ -5367,33 +5568,35 @@ window.saveStory = async function () {
     let error;
 
     if (storyEditingId) {
+      // Update via RPC
       const { error: e } = await supabaseClient.rpc("update_story", {
-        p_id:               storyEditingId,
-        p_title:            title,
-        p_caption:          caption,
-        p_product_id:       productId,              // ← explicitly passed
-        p_link_type:        storyCtaType,
-        p_link_target:      linkTarget,
-        p_cta_text:         ctaText,
-        p_cta_url:          ctaUrl,
-        p_whatsapp_number:  waNumber,
-        p_is_hidden:        false,
-        p_is_featured:      storyIsFeatured
+        p_id:              storyEditingId,
+        p_title:           title,
+        p_caption:         caption,
+        p_product_id:      productId,
+        p_link_type:       storyCtaType,
+        p_link_target:     linkTarget,
+        p_cta_text:        ctaText,
+        p_cta_url:         ctaUrl,
+        p_whatsapp_number: waNumber,
+        p_is_hidden:       false,
+        p_is_featured:     storyIsFeatured
       });
       error = e;
     } else if (storyDraftId) {
+      // Finalise draft with direct update (triggers handle store_id & created_by)
       const { error: e } = await supabaseClient.from("stories").update({
         title,
         caption,
-        product_id:       productId,               // ← directly inserted
-        link_type:        storyCtaType,
-        link_target:      linkTarget,
-        cta_text:         ctaText,
-        cta_url:          ctaUrl,
-        whatsapp_number:  waNumber,
-        is_featured:      storyIsFeatured,
-        expires_at:       new Date(Date.now() + storySelectedHours * 3600 * 1000).toISOString(),
-        auto_delete_at:   new Date(Date.now() + (storySelectedHours + 24) * 3600 * 1000).toISOString()
+        product_id:      productId,
+        link_type:       storyCtaType,
+        link_target:     linkTarget,
+        cta_text:        ctaText,
+        cta_url:         ctaUrl,
+        whatsapp_number: waNumber,
+        is_featured:     storyIsFeatured,
+        expires_at:      new Date(Date.now() + storySelectedHours * 3600 * 1000).toISOString(),
+        auto_delete_at:  new Date(Date.now() + (storySelectedHours + 24) * 3600 * 1000).toISOString()
       }).eq("id", storyDraftId);
       error = e;
       if (!e) storyDraftId = null;
@@ -5404,7 +5607,7 @@ window.saveStory = async function () {
     storyCurrentMedia = null;
     toast(
       storyEditingId
-        ? "Story updated! Your audience will see it instantly ✓"
+        ? "Story updated! Your audience sees it now ✓"
         : "Story is live! Your audience can see it now 🚀",
       "success"
     );
@@ -5436,8 +5639,9 @@ window.deleteStory = async function (id) {
       }
     }
     allStories = allStories.filter(s => s.id !== id);
-    renderStories(); updateStats();
-    toast("Story deleted successfully ✓", "success");
+    renderStories();
+    updateStats();
+    toast("Story deleted ✓", "success");
   } catch (err) {
     toast("Couldn't delete this story. Try again.", "error");
   }
@@ -5451,10 +5655,18 @@ window.toggleStoryVisibility = async function (id) {
     const story = allStories.find(s => s.id === id);
     if (story) {
       story.is_hidden = isNowHidden;
-      story.status    = isNowHidden ? "hidden" : (new Date(story.expires_at) < new Date() ? "expired" : "active");
+      story.status    = isNowHidden
+        ? "hidden"
+        : (new Date(story.expires_at) < new Date() ? "expired" : "active");
     }
-    renderStories(); updateStats();
-    toast(isNowHidden ? "Story hidden from your audience." : "Story is visible to your audience ✓", "success");
+    renderStories();
+    updateStats();
+    toast(
+      isNowHidden
+        ? "Story hidden from your audience."
+        : "Story is visible to your audience ✓",
+      "success"
+    );
   } catch (err) {
     toast("Couldn't update visibility. Try again.", "error");
   }
@@ -5471,50 +5683,70 @@ window.restoreStory = async function (id) {
   }
 };
 
+// ── REORDER — saves sort_order to database
 window.moveStory = async function (id, direction) {
-  const filtered = currentFilter === "all" ? allStories : allStories.filter(s => s.status === currentFilter);
+  const filtered = currentFilter === "all"
+    ? allStories
+    : allStories.filter(s => s.status === currentFilter);
+
   const idx    = filtered.findIndex(s => s.id === id);
   const newIdx = idx + direction;
   if (idx < 0 || newIdx < 0 || newIdx >= filtered.length) return;
+
   const idxA = allStories.findIndex(s => s.id === filtered[idx].id);
   const idxB = allStories.findIndex(s => s.id === filtered[newIdx].id);
   [allStories[idxA], allStories[idxB]] = [allStories[idxB], allStories[idxA]];
+
+  // Optimistic UI update
   renderStories();
+
+  // Persist new order to database via RPC
   try {
-    await supabaseClient.rpc("reorder_stories", { p_ids: allStories.map(s => s.id) });
+    const orderedIds = allStories.map(s => s.id);
+    const { error } = await supabaseClient.rpc("reorder_stories", { p_ids: orderedIds });
+    if (error) throw error;
+    // Update local sort_order values to match DB
+    allStories.forEach((s, i) => { s.sort_order = i; });
   } catch (e) {
-    console.error("Reorder error:", e);
+    console.error("Reorder save error:", e);
+    toast("Order displayed but couldn't save to database. Try again.", "error");
   }
 };
 
 // ============================================================
-// PRODUCT PREVIEW POPUP  (for storefront link preview)
+// PRODUCT PREVIEW POPUP
 // ============================================================
 
 window.showProductPreview = async function (productId, productName) {
   if (!productId) return;
 
-  // Create or reuse popup
   let popup = document.getElementById("storyProductPreviewPopup");
   if (!popup) {
     popup = document.createElement("div");
     popup.id = "storyProductPreviewPopup";
     popup.style.cssText = `
-      position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-      background:rgba(0,0,0,.55);backdrop-filter:blur(6px);animation:fadeIn .2s ease;
-    `;
+      position:fixed;inset:0;z-index:99999;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+      animation:stFadeIn .2s ease;`;
     popup.onclick = e => { if (e.target === popup) popup.remove(); };
     document.body.appendChild(popup);
   }
 
   popup.innerHTML = `
-    <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.18);animation:scaleIn .25s ease;">
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;
+      text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.18);animation:stScaleIn .25s ease;">
       <div id="storyProdPopupContent">
-        <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#28A428,#34BF49);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;">🛍</div>
-        <p style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:4px;">Loading product…</p>
+        <div style="width:56px;height:56px;border-radius:50%;
+          background:linear-gradient(135deg,#28A428,#34BF49);
+          display:flex;align-items:center;justify-content:center;
+          font-size:22px;margin:0 auto 14px;">🛍</div>
+        <p style="font-weight:700;font-size:15px;color:#1e293b;">Loading product…</p>
       </div>
       <button onclick="document.getElementById('storyProductPreviewPopup').remove()"
-        style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);color:#475569;border:none;border-radius:10px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;">
+        style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
+          color:#475569;border:none;border-radius:10px;padding:8px 20px;
+          font-size:13px;font-weight:700;cursor:pointer;">
         Close
       </button>
     </div>`;
@@ -5528,52 +5760,55 @@ window.showProductPreview = async function (productId, productName) {
 
     if (error || !data) throw new Error("Product not found");
 
-    const imgSrc = data.image_urls?.[0] || null;
+    const imgSrc  = data.image_urls?.[0] || null;
     const content = document.getElementById("storyProdPopupContent");
     if (content) {
       content.innerHTML = `
         ${imgSrc
-          ? `<img src="${imgSrc}" alt="${data.name}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:14px;">`
-          : `<div style="width:100%;height:120px;border-radius:12px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:14px;">🛍</div>`}
+          ? `<img src="${imgSrc}" alt="${data.name}"
+               style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:14px;">`
+          : `<div style="width:100%;height:100px;border-radius:12px;
+               background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
+               display:flex;align-items:center;justify-content:center;
+               font-size:36px;margin-bottom:14px;">🛍</div>`}
         <p style="font-weight:800;font-size:16px;color:#111;margin-bottom:4px;">${data.name}</p>
-        ${data.price ? `<p style="font-weight:700;font-size:18px;color:#28A428;margin-bottom:8px;">${data.price}</p>` : ""}
-        ${data.description ? `<p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">${data.description.substring(0, 100)}${data.description.length > 100 ? "…" : ""}</p>` : ""}
-        <div style="background:linear-gradient(135deg,#fff9e6,#fff3cc);border:1px solid #FFD700;border-radius:10px;padding:10px 14px;margin-top:8px;">
+        ${data.price
+          ? `<p style="font-weight:700;font-size:18px;color:#28A428;margin-bottom:8px;">${data.price}</p>`
+          : ""}
+        ${data.description
+          ? `<p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">
+               ${data.description.substring(0, 100)}${data.description.length > 100 ? "…" : ""}
+             </p>`
+          : ""}
+        <div style="background:linear-gradient(135deg,#fff9e6,#fff3cc);
+          border:1px solid #FFD700;border-radius:10px;padding:10px 14px;margin-top:8px;">
           <p style="font-size:12px;color:#92400e;font-weight:600;margin:0;">
-            🛒 On the storefront, tapping this story will open <strong>${data.name}</strong>'s product page directly.
+            🛒 On the storefront, tapping this story will open
+            <strong>${data.name}</strong>'s product page directly.
           </p>
         </div>`;
     }
   } catch (e) {
     const content = document.getElementById("storyProdPopupContent");
-    if (content) {
-      content.innerHTML = `
-        <div style="font-size:40px;margin-bottom:10px;">😕</div>
-        <p style="color:#FF3B30;font-weight:700;">Couldn't load product details.</p>`;
-    }
+    if (content) content.innerHTML = `
+      <div style="font-size:36px;margin-bottom:10px;">😕</div>
+      <p style="color:#FF3B30;font-weight:700;">Couldn't load product details.</p>`;
   }
 };
 
-// Inject popup animation styles once
-(function injectPopupStyles() {
-  if (document.getElementById("storyPopupStyles")) return;
-  const s = document.createElement("style");
-  s.id = "storyPopupStyles";
-  s.innerHTML = `
-    @keyframes fadeIn  { from { opacity:0 }              to { opacity:1 } }
-    @keyframes scaleIn { from { transform:scale(.92);opacity:0 } to { transform:scale(1);opacity:1 } }
-  `;
-  document.head.appendChild(s);
-})();
-
 // ============================================================
 // WHATSAPP-STYLE PREVIEW VIEWER
+// Logo + business name come from each story's own RPC fields.
+// Creator name comes from story's creator_name field.
 // ============================================================
 
 window.openPreviewAt = function (id) {
-  const filtered = currentFilter === "all" ? allStories : allStories.filter(s => s.status === currentFilter);
+  const filtered = currentFilter === "all"
+    ? allStories
+    : allStories.filter(s => s.status === currentFilter);
   previewStoryList = filtered;
   previewIndex     = Math.max(0, filtered.findIndex(s => s.id === id));
+
   const previewModal = document.getElementById("storyPreviewModal");
   if (previewModal) {
     previewModal.classList.add("open");
@@ -5596,35 +5831,50 @@ function _renderPreviewSlide() {
   const counter = document.getElementById("previewCounter");
   if (counter) counter.textContent = `${previewIndex + 1} / ${previewStoryList.length}`;
 
-  // ── Store logo + name in preview header
+  // ── Store logo — bound directly to this story's store_logo field
+  // No global cache used: each story carries its own fresh logo from the DB
   const storeLogoEl = document.getElementById("previewStoreLogo");
-  const storeNameEl = document.getElementById("previewStoreName");
   if (storeLogoEl) {
-    const logo = window._profileLogoUrl || null;
-    if (logo) {
-      storeLogoEl.innerHTML = `<img src="${logo}" alt="Store" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.5);">`;
-    } else {
-      storeLogoEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#28A428,#34BF49);display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid rgba(255,255,255,0.5);">🏪</div>`;
-    }
+    const logo = s.store_logo || null;
+    storeLogoEl.innerHTML = logo
+      ? `<img src="${logo}" alt="Store" style="
+           width:36px;height:36px;border-radius:50%;object-fit:cover;
+           border:2px solid rgba(255,255,255,.55);">`
+      : `<div style="width:36px;height:36px;border-radius:50%;
+           background:linear-gradient(135deg,#28A428,#34BF49);
+           display:flex;align-items:center;justify-content:center;
+           font-size:16px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
   }
+
+  // ── Business name (from session — low-change data, safe to use window variable)
+  const storeNameEl = document.getElementById("previewStoreName");
   if (storeNameEl) storeNameEl.textContent = window._profileBusinessName || "Our Store";
 
-  // Uploader name
+  // ── Uploader name — bound to this specific story's creator_name from store_members
+  // Team Member A's stories show A, Team Member B's stories show B — per row
   const uploaderEl = document.getElementById("previewUploaderName");
   if (uploaderEl) uploaderEl.textContent = s.creator_name ? `by ${s.creator_name}` : "";
 
   const timeEl = document.getElementById("previewTime");
   if (timeEl) timeEl.textContent = timeAgo(s.created_at);
 
+  // ── Media wrap
   const wrap = document.getElementById("previewMediaWrap");
   if (!wrap) return;
-
   wrap.querySelectorAll("video,audio").forEach(el => { el.pause(); el.src = ""; });
   wrap.innerHTML = "";
 
   const inlineLoader = document.createElement("div");
   inlineLoader.className = "st-preview-network-spinner";
-  inlineLoader.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:4px solid rgba(255,255,255,.1);border-top-color:#ffffff;border-radius:50%;animation:stSpinnerSpin 0.8s linear infinite;z-index:5;";
+  inlineLoader.style.cssText = `
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:40px;height:40px;
+    border:4px solid rgba(255,255,255,.1);
+    border-top-color:#ffffff;
+    border-radius:50%;
+    animation:stSpinnerSpin 0.8s linear infinite;
+    z-index:5;`;
   wrap.appendChild(inlineLoader);
 
   let slideDuration = 5;
@@ -5632,17 +5882,29 @@ function _renderPreviewSlide() {
   if (s.type === "video") {
     const vid = document.createElement("video");
     vid.src = s.media_url; vid.autoplay = true; vid.playsInline = true; vid.muted = false;
-    vid.style.cssText = "max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;";
-    vid.oncontextmenu  = () => false;
-    vid.oncanplay      = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
-    vid.onloadedmetadata = () => { slideDuration = vid.duration || 10; _startProgressBar(slideDuration); };
-    vid.onended        = () => previewNav(1);
+    vid.style.cssText = `
+      max-width:100%;max-height:100%;width:auto;height:auto;
+      object-fit:contain;position:absolute;
+      top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
+    vid.oncontextmenu   = () => false;
+    vid.oncanplay       = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
+    vid.onloadedmetadata = () => {
+      slideDuration = vid.duration || 10;
+      _startProgressBar(slideDuration);
+    };
+    vid.onended = () => previewNav(1);
     wrap.appendChild(vid);
+
   } else if (s.type === "audio") {
     slideDuration = s.duration || 15;
     const ph = document.createElement("div");
-    ph.style.cssText = "position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(135deg,#0f172a,#1e293b);z-index:1;";
-    ph.innerHTML = `<span style="font-size:64px;">🎵</span><p style="color:rgba(255,255,255,0.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
+    ph.style.cssText = `
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:16px;
+      background:linear-gradient(135deg,#0f172a,#1e293b);z-index:1;`;
+    ph.innerHTML = `
+      <span style="font-size:64px;">🎵</span>
+      <p style="color:rgba(255,255,255,.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
     wrap.appendChild(ph);
     const aud = document.createElement("audio");
     aud.src = s.media_url; aud.autoplay = true;
@@ -5651,10 +5913,14 @@ function _renderPreviewSlide() {
     wrap.appendChild(aud);
     _startProgressBar(slideDuration);
     previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
+
   } else {
     const img = document.createElement("img");
     img.src = s.media_url; img.alt = s.title || "Story";
-    img.style.cssText = "max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;";
+    img.style.cssText = `
+      max-width:100%;max-height:100%;width:auto;height:auto;
+      object-fit:contain;position:absolute;
+      top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
     img.oncontextmenu = () => false;
     img.draggable     = false;
     img.onload = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
@@ -5663,31 +5929,44 @@ function _renderPreviewSlide() {
     previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
   }
 
-  // Title / caption / CTA
+  // ── Title / caption
   const titleEl   = document.getElementById("previewTitle");
   const captionEl = document.getElementById("previewCaption");
-  const ctaEl     = document.getElementById("previewCta");
   if (titleEl)   titleEl.textContent   = s.title   || "";
   if (captionEl) captionEl.textContent = s.caption || "";
 
+  // ── CTA button — styled by link type
+  const ctaEl = document.getElementById("previewCta");
   if (ctaEl) {
     if (s.cta_text && s.link_type && s.link_type !== "none") {
-      ctaEl.textContent = s.cta_text;
-      ctaEl.style.display = "block";
+      ctaEl.textContent     = s.cta_text;
+      ctaEl.style.display   = "block";
 
-      // Style CTA button with Liyog colors
       if (s.link_type === "product") {
-        ctaEl.style.cssText = "display:block;background:linear-gradient(135deg,#FFD700,#FF7A00);color:#111;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;";
+        ctaEl.style.cssText = `
+          display:block;background:linear-gradient(135deg,#FFD700,#FF7A00);
+          color:#111;border:none;border-radius:12px;padding:10px 24px;
+          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
         ctaEl.onclick = () => showProductPreview(s.product_id, s.product_name);
+
       } else if (s.link_type === "whatsapp") {
-        ctaEl.style.cssText = "display:block;background:linear-gradient(135deg,#28A428,#34BF49);color:#fff;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;";
+        ctaEl.style.cssText = `
+          display:block;background:linear-gradient(135deg,#28A428,#34BF49);
+          color:#fff;border:none;border-radius:12px;padding:10px 24px;
+          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
         ctaEl.onclick = () => {
           if (s.whatsapp_number) {
-            window.open(`https://wa.me/${s.whatsapp_number}?text=${encodeURIComponent("Hi, I saw your story: " + (s.title || ""))}`, "_blank");
+            window.open(
+              `https://wa.me/${s.whatsapp_number}?text=${encodeURIComponent("Hi, I saw your story: " + (s.title || ""))}`,
+              "_blank"
+            );
           }
         };
       } else {
-        ctaEl.style.cssText = "display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;";
+        ctaEl.style.cssText = `
+          display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);
+          color:#fff;border:none;border-radius:12px;padding:10px 24px;
+          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
         ctaEl.onclick = () => { if (s.link_target) window.open(s.link_target, "_blank"); };
       }
     } else {
@@ -5696,7 +5975,10 @@ function _renderPreviewSlide() {
   }
 
   const holdHint = document.getElementById("previewHoldHint");
-  if (holdHint) { holdHint.style.opacity = "1"; setTimeout(() => holdHint.style.opacity = "0", 2000); }
+  if (holdHint) {
+    holdHint.style.opacity = "1";
+    setTimeout(() => holdHint.style.opacity = "0", 2000);
+  }
 }
 
 function _startProgressBar(durationSecs) {
@@ -5754,12 +6036,14 @@ window.closePreview = function () {
       previewHolding = true;
       clearTimeout(previewTimer);
       _pauseProgressBar();
-      document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
+      document.getElementById("previewMediaWrap")
+        ?.querySelectorAll("video,audio").forEach(el => el.pause());
     });
 
     screen.addEventListener("mouseup", () => {
       previewHolding = false;
-      document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+      document.getElementById("previewMediaWrap")
+        ?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
       const s = previewStoryList[previewIndex];
       if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
     });
@@ -5767,7 +6051,8 @@ window.closePreview = function () {
     screen.addEventListener("mouseleave", () => {
       if (previewHolding) {
         previewHolding = false;
-        document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+        document.getElementById("previewMediaWrap")
+          ?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
       }
     });
   };
@@ -5783,7 +6068,8 @@ function onPreviewTouchStart(e) {
   previewHolding     = true;
   clearTimeout(previewTimer);
   _pauseProgressBar();
-  document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
+  document.getElementById("previewMediaWrap")
+    ?.querySelectorAll("video,audio").forEach(el => el.pause());
 }
 window.onPreviewTouchStart = onPreviewTouchStart;
 
@@ -5848,7 +6134,6 @@ window.handleRoleSelectFilter = function (selectElement) {
   `;
   document.head.appendChild(s);
 })();
-
 
 // ================================================================
 //  SHARED HELPER — tiny toast alias (uses the one already in scope)
@@ -6189,8 +6474,6 @@ async function settingsDeleteFromR2(url) {
     return false;
   }
 }
-
-
 
 /** Save profile logo_url column immediately to Supabase */
 async function _syncLogoToSupabase(url) {
@@ -6942,11 +7225,11 @@ window.reloadCategories = async function() {
 };
 
 
+    
 });
 </script>
 
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
 </body>
 </html>
-
 
