@@ -2571,9 +2571,9 @@
 <!-- ================================================
      STORIES TAB
 ================================================= -->
-<div id="storiesTab" class="admin-section">
 
-  <!-- HEADER -->
+  <div id="storiesTab" class="admin-section">
+
   <div class="st-stories-header">
     <div>
       <h2 class="section-title">🔥 Promo Stories</h2>
@@ -2589,7 +2589,6 @@
     </div>
   </div>
 
-  <!-- STATS -->
   <div class="st-stories-stats">
     <div class="st-stat-pill">
       <span class="st-stat-dot active"></span>
@@ -2603,60 +2602,54 @@
       <span class="st-stat-dot hidden-dot"></span>
       <span id="statHidden">0</span> Hidden
     </div>
-    <button class="st-cleanup-btn" onclick="runAutoCleanup()">🗑 Auto-clean</button>
   </div>
 
-  <!-- FILTER TABS -->
   <div class="st-filter-tabs">
-    <button class="st-filter-tab active" data-filter="all"     onclick="filterStories('all',this)">All</button>
-    <button class="st-filter-tab"        data-filter="active"  onclick="filterStories('active',this)">🟢 Active</button>
-    <button class="st-filter-tab"        data-filter="expired" onclick="filterStories('expired',this)">🔴 Expired</button>
-    <button class="st-filter-tab"        data-filter="hidden"  onclick="filterStories('hidden',this)">👁 Hidden</button>
+    <button class="st-filter-tab active" data-filter="all" onclick="filterStories('all',this)">All</button>
+    <button class="st-filter-tab" data-filter="active" onclick="filterStories('active',this)">🟢 Active</button>
+    <button class="st-filter-tab" data-filter="expired" onclick="filterStories('expired',this)">🔴 Expired</button>
+    <button class="st-filter-tab" data-filter="hidden" onclick="filterStories('hidden',this)">👁 Hidden</button>
   </div>
 
-<!-- STORIES ADVANCED SEARCH & FILTER CONTROL DECK --> 
-<div class="st-filter-control-deck" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
-  
-  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-    <div style="flex: 1; min-width: 260px;">
-      <input type="text" id="storySearchInput" placeholder="🔍 Search stories by title or caption..." 
-        style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none;"
-        oninput="handleStorySearchFilter()">
-    </div>
-
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-      <button class="st-media-filter-btn active" data-media="all" onclick="filterMediaType('all', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">📁 All Formats</button>
-      <button class="st-media-filter-btn" data-media="image" onclick="filterMediaType('image', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🖼️ Images</button>
-      <button class="st-media-filter-btn" data-media="video" onclick="filterMediaType('video', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎬 Videos</button>
-      <button class="st-media-filter-btn" data-media="audio" onclick="filterMediaType('audio', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎵 Audio</button>
-    </div>
-  </div>
-
-  <div style="display: flex; flex-wrap: wrap; gap: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px; align-items: center;">
+  <div class="st-filter-control-deck" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
     
-    <div style="display: flex; align-items: center; gap: 6px;">
-      <label style="font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
-        <input type="checkbox" id="storyAddedByMeCheckbox" onchange="toggleAddedByMeFilter(this)" style="width: 16px; height: 16px; accent-color: #0f172a; vertical-align: middle;">
-        🙋‍♂️ Show only stories added by me
-      </label>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <div style="flex: 1; min-width: 260px;">
+        <input type="text" id="storySearchInput" placeholder="🔍 Search stories by title or caption..." 
+          style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none;"
+          oninput="handleStorySearchFilter()">
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="st-media-filter-btn active" data-media="all" onclick="filterMediaType('all', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">📁 All Formats</button>
+        <button class="st-media-filter-btn" data-media="image" onclick="filterMediaType('image', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🖼️ Images</button>
+        <button class="st-media-filter-btn" data-media="video" onclick="filterMediaType('video', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎬 Videos</button>
+        <button class="st-media-filter-btn" data-media="audio" onclick="filterMediaType('audio', this)" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">🎵 Audio</button>
+      </div>
     </div>
-    <div id="premiumOwnerFilterContainer" style="display: none; align-items: center; gap: 8px; margin-left: auto;">
-      <label for="storyRoleSelectFilter" style="font-size: 13px; font-weight: 700; color: #475569;">👑 Premium Team Filter:</label>
-      <select id="storyRoleSelectFilter" onchange="handleRoleSelectFilter(this)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; background: #ffffff; color: #0f172a; outline: none;">
-        <option value="all">All Team Roles</option>
-      </select>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <label style="font-size: 13px; font-weight: 600; color: #334155; cursor: pointer;">
+          <input type="checkbox" id="storyAddedByMeCheckbox" onchange="toggleAddedByMeFilter(this)" style="width: 16px; height: 16px; accent-color: #0f172a; vertical-align: middle;">
+          🙋‍♂️ Show only stories added by me
+        </label>
+      </div>
+      <div id="premiumOwnerFilterContainer" style="display: none; align-items: center; gap: 8px; margin-left: auto;">
+        <label for="storyRoleSelectFilter" style="font-size: 13px; font-weight: 700; color: #475569;">👑 Premium Team Filter:</label>
+        <select id="storyRoleSelectFilter" onchange="handleRoleSelectFilter(this)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; background: #ffffff; color: #0f172a; outline: none;">
+          <option value="all">All Team Roles</option>
+        </select>
+      </div>
     </div>
   </div>
-</div>
 
-  <!-- GRID -->
   <div class="st-stories-grid" id="storiesGrid">
     <div class="st-story-card sk"><div class="st-story-sk-media"></div><div class="st-story-sk-body"><div class="settings-skel" style="height:12px;width:70%;"></div><div class="settings-skel" style="height:10px;width:50%;margin-top:6px;"></div></div></div>
     <div class="st-story-card sk"><div class="st-story-sk-media"></div><div class="st-story-sk-body"><div class="settings-skel" style="height:12px;width:60%;"></div><div class="settings-skel" style="height:10px;width:40%;margin-top:6px;"></div></div></div>
     <div class="st-story-card sk"><div class="st-story-sk-media"></div><div class="st-story-sk-body"><div class="settings-skel" style="height:12px;width:80%;"></div><div class="settings-skel" style="height:10px;width:55%;margin-top:6px;"></div></div></div>
   </div>
 
-  <!-- EMPTY -->
   <div class="st-stories-empty" id="storiesEmpty" style="display:none;">
     <div class="st-empty-icon">🎬</div>
     <h3>No stories yet</h3>
@@ -2668,10 +2661,6 @@
 
 </div>
 
-
-<!-- ================================================================
-     CREATE / EDIT MODAL
-================================================================= -->
 <div class="st-modal-overlay" id="storyModal">
   <div class="st-modal-box">
 
@@ -2691,19 +2680,16 @@
 
     <div class="st-modal-body">
 
-      <!-- STEP 1: MEDIA -->
       <div class="st-modal-section">
         <div class="st-section-label">
           <span class="st-section-num">01</span>
           <span>Media — Image, Video or Audio</span>
         </div>
 
-        <!-- Hidden file input — triggered only by JS -->
         <input type="file" id="storyMediaInput"
           accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/mp3,audio/wav,audio/ogg"
           style="display:none;" aria-label="Upload story media">
 
-        <!-- Upload zone placeholder — shown when no media -->
         <div class="st-media-upload-zone" id="storyMediaZone">
           <div id="storyMediaPlaceholder" class="st-media-placeholder"
             onclick="document.getElementById('storyMediaInput').click()">
@@ -2711,11 +2697,9 @@
             <p class="st-media-hint">Tap here to upload</p>
             <p class="st-media-sub">Image (auto-compressed) · Video max 100MB · Audio</p>
           </div>
-          <!-- Preview injected here by JS -->
           <div id="storyMediaPreview" style="display:none;width:100%;"></div>
         </div>
 
-        <!-- Progress bar -->
         <div class="st-upload-progress" id="storyUploadProgress" style="display:none;">
           <div class="st-progress-bar">
             <div class="st-progress-fill" id="storyProgressFill"></div>
@@ -2724,7 +2708,6 @@
         </div>
       </div>
 
-      <!-- STEP 2: TEXT -->
       <div class="st-modal-section">
         <div class="st-section-label">
           <span class="st-section-num">02</span>
@@ -2733,43 +2716,42 @@
         <input type="text" id="st_story_title" class="input-premium"
           placeholder="🔥 Flash Sale — 50% OFF Today Only!"
           maxlength="80" autocomplete="off"
-          style="font-weight:700;font-size:15px;">
+          style="font-weight:700;font-size:15px;" aria-label="Story Title">
         <textarea id="st_story_caption" class="input-premium"
           placeholder="Limited stock! Tap below to order now..."
           maxlength="300"
-          style="min-height:70px;resize:vertical;margin-top:10px;font-size:13px;"></textarea>
+          style="min-height:70px;resize:vertical;margin-top:10px;font-size:13px;" aria-label="Story Caption"></textarea>
         <div style="display:flex;justify-content:flex-end;">
           <span class="st-char-count" id="captionCount">0 / 300</span>
         </div>
       </div>
 
-      <!-- STEP 3: CTA -->
       <div class="st-modal-section">
         <div class="st-section-label">
           <span class="st-section-num">03</span>
           <span>Call-to-Action</span>
         </div>
         <div class="st-cta-type-row">
-          <button class="st-cta-type-btn active" data-type="none"     onclick="selectCtaType('none',this)"><span>🚫</span>None</button>
-          <button class="st-cta-type-btn"         data-type="product"  onclick="selectCtaType('product',this)"><span>🛍️</span>Product</button>
-          <button class="st-cta-type-btn"         data-type="whatsapp" onclick="selectCtaType('whatsapp',this)"><span>💬</span>WhatsApp</button>
-          <button class="st-cta-type-btn"         data-type="external" onclick="selectCtaType('external',this)"><span>🔗</span>Link</button>
+          <button class="st-cta-type-btn active" data-type="none" onclick="selectCtaType('none',this)"><span>🚫</span>None</button>
+          <button class="st-cta-type-btn" data-type="product" onclick="selectCtaType('product',this)"><span>🛍️</span>Product</button>
+          <button class="st-cta-type-btn" data-type="whatsapp" onclick="selectCtaType('whatsapp',this)"><span>💬</span>WhatsApp</button>
+          <button class="st-cta-type-btn" data-type="external" onclick="selectCtaType('external',this)"><span>🔗</span>Link</button>
         </div>
-        <div id="ctaProductPanel"  class="st-cta-panel" style="display:none;">
-          <select id="st_story_product" class="input-premium"><option value="">Loading products…</option></select>
+        <div id="ctaProductPanel" class="st-cta-panel" style="display:none;">
+          <select id="st_story_product" class="input-premium" aria-label="Select Product"><option value="">Loading products…</option></select>
         </div>
         <div id="ctaWhatsappPanel" class="st-cta-panel" style="display:none;">
           <div class="st-wa-row">
             <span class="st-wa-icon">💬</span>
-            <input type="tel" id="st_story_wa" class="input-premium" placeholder="e.g. 447911123456" maxlength="20">
+            <input type="tel" id="st_story_wa" class="input-premium" placeholder="e.g. 447911123456" maxlength="20" aria-label="WhatsApp Number">
           </div>
           <button class="st-use-profile-wa" onclick="useProfileWhatsapp()">↩ Use store WhatsApp number</button>
         </div>
         <div id="ctaExternalPanel" class="st-cta-panel" style="display:none;">
-          <input type="url" id="st_story_url" class="input-premium" placeholder="https://yourlink.com/offer">
+          <input type="url" id="st_story_url" class="input-premium" placeholder="https://yourlink.com/offer" aria-label="External URL">
         </div>
         <div id="ctaTextRow" style="margin-top:12px;display:none;">
-          <label class="form-label">Button Text</label>
+          <label class="form-label" for="st_story_cta_text">Button Text</label>
           <div class="st-cta-presets">
             <button class="st-cta-preset" onclick="setCTAText('Shop Now')">Shop Now</button>
             <button class="st-cta-preset" onclick="setCTAText('Order via WhatsApp')">Order via WhatsApp</button>
@@ -2782,22 +2764,16 @@
         </div>
       </div>
 
-      <!-- STEP 4: EXPIRY — 24h and 48h only -->
       <div class="st-modal-section">
         <div class="st-section-label">
           <span class="st-section-num">04</span>
           <span>Duration</span>
         </div>
-        <div class="st-expiry-grid">
+        <div class="st-expiry-grid" style="display: grid; grid-template-columns: 1fr; gap: 0;">
           <button class="st-expiry-btn active" data-hours="24" onclick="selectExpiry(24,this)">
             <span class="st-expiry-val">24h</span>
             <span class="st-expiry-lbl">1 Day</span>
-            <span class="st-expiry-note">Standard</span>
-          </button>
-          <button class="st-expiry-btn" data-hours="48" onclick="selectExpiry(48,this)">
-            <span class="st-expiry-val">48h</span>
-            <span class="st-expiry-lbl">2 Days</span>
-            <span class="st-expiry-note">Extended</span>
+            <span class="st-expiry-note">Standard Visibility Lifecycle</span>
           </button>
         </div>
         <p class="st-hint" style="margin-top:8px;">
@@ -2805,29 +2781,26 @@
         </p>
       </div>
 
-      <!-- STEP 5: OPTIONS -->
       <div class="st-modal-section">
         <div class="st-section-label">
           <span class="st-section-num">05</span>
           <span>Options</span>
         </div>
-        <label class="st-toggle-row" onclick="toggleFeatured()">
+        <div class="st-toggle-row" onclick="toggleFeatured()" style="cursor: pointer;">
           <span class="st-toggle-label">
             <span>⭐</span>
             <span>
               <strong>Feature this story</strong>
-              <small>Pinned to top of story bar</small>
+              <small style="display: block; color: #64748b;">Pinned to top of story bar</small>
             </span>
           </span>
           <div class="st-toggle" id="featuredToggle">
             <div class="st-toggle-knob"></div>
           </div>
-        </label>
+        </div>
       </div>
 
-    </div><!-- /body -->
-
-    <div class="st-modal-footer">
+    </div><div class="st-modal-footer">
       <button class="st-modal-cancel-btn" onclick="closeStoryModal()">Cancel</button>
       <button class="btn-primary st-modal-save-btn" id="storyModalSaveBtn" onclick="saveStory()">
         <span id="storyModalSaveTxt">Publish Story 🚀</span>
@@ -2837,10 +2810,6 @@
   </div>
 </div>
 
-
-<!-- ================================================================
-     PREVIEW MODAL
-================================================================= -->
 <div class="st-preview-overlay" id="storyPreviewModal">
 
   <div class="st-preview-topbar">
@@ -2861,18 +2830,21 @@
         <div class="st-preview-prog-fill" id="previewProgFill"></div>
       </div>
       <div class="st-preview-info">
-        <div class="st-preview-avatar">🏪</div>
+        <div id="previewStoreLogo" style="display: flex; align-items: center; justify-content: center;">
+          <div class="st-preview-avatar">🏪</div>
+        </div>
         <div class="st-preview-meta">
           <div class="st-preview-store-name" id="previewStoreName">Your Store</div>
+          <div class="st-preview-uploader-name" id="previewUploaderName" style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; margin-top: 1px;"></div>
           <div class="st-preview-time" id="previewTime">Just now</div>
         </div>
       </div>
       <div class="st-preview-media-wrap" id="previewMediaWrap"></div>
       <div class="st-preview-gradient"></div>
       <div class="st-preview-content">
-        <div class="st-preview-title"   id="previewTitle"></div>
+        <div class="st-preview-title" id="previewTitle"></div>
         <div class="st-preview-caption" id="previewCaption"></div>
-        <button class="st-preview-cta"  id="previewCta" style="display:none;"></button>
+        <button class="st-preview-cta" id="previewCta" style="display:none;"></button>
       </div>
       <div class="st-preview-hold-hint" id="previewHoldHint">Hold to pause</div>
     </div>
@@ -2887,6 +2859,8 @@
   <div class="st-preview-counter" id="previewCounter"></div>
 
 </div>
+
+
 
 
   <!-- ================================================
