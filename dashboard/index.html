@@ -15,9 +15,19 @@
         id="mainStylesheet"
         onerror="document.getElementById('offlineBanner').style.display='flex'">
 
+<!-- DOMPurify for HTML sanitization -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<!-- Quill editor -->
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
-  
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+
+<script src="../global.js"></script>
+
+
   
   <style>
     /* =============================================
@@ -1558,16 +1568,6 @@
 </div>
 <!-- /admin-wrapper -->
 
-<!-- DOMPurify for HTML sanitization -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<!-- Quill editor -->
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-
-
-<script src="../global.js"></script>
 
 <script src="js/config.js"></script>
 
@@ -1618,10 +1618,18 @@ document.addEventListener("DOMContentLoaded", applyTableLayout);
     }
   `;
   document.head.appendChild(s);
+})();
 
+
+
+
+}); //The Dom closure
 </script>
 
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
 </body>
 </html>
+
+
+
 
