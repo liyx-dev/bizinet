@@ -13,7 +13,67 @@ let quill;
 document.addEventListener("DOMContentLoaded", async () => {
 
   // No boot guard here — bootguard.js already ran it before this file loaded
+// 1. DYNAMIC SESSION & RUNTIME GUARD
+let runtimeState = null;
+let dashboardFlags = null;
+let currentSessionToken = null;
 
+async function executeBootGuard() {
+  try {
+    // Check Auth
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session) return safeNavigate('auth');
+    
+    currentSessionToken = session.access_token;
+
+    // Check Runtime Truth
+    const { data: runtimeData, error: runtimeError } = await supabaseClient.rpc('get_store_runtime_state');
+    if (runtimeError || !runtimeData || runtimeData.length === 0) return safeNavigate('auth');
+    
+    runtimeState = runtimeData[0];
+
+    // Enforce Backend Redirection
+    if (runtimeState.redirect_to !== '/dashboard/') {
+      return safeNavigate(runtimeState.redirect_to);
+    }
+
+    // Fetch Lightweight Flags for UI
+    const { data: flagData } = await supabaseClient.rpc('get_dashboard_flags');
+    if (flagData && flagData.length > 0) {
+      dashboardFlags = flagData[0];
+      applyDashboardFlags(dashboardFlags);
+    }
+
+  } catch (err) {
+    console.error("Boot failure", err);
+    safeNavigate('auth');
+  }
+}
+
+function applyDashboardFlags(flags) {
+  const planBadge = document.getElementById('planBadgeUI');
+  const trialBadge = document.getElementById('trialCountdownUI');
+  // 1. Update the Plan Name (Visible for everyone)
+  if (planBadge) {
+    planBadge.style.display = 'inline-flex';
+    // This displays whatever plan is returned (e.g., "STARTER", "BUSINESS", "PREMIUM")
+    planBadge.textContent = `Plan: ${flags.plan.toUpperCase()}`;  
+    // Optional: Change badge color based on plan for a professional look
+    if(flags.plan === 'premium') planBadge.style.background = 'var(--liyog-gold)';
+  }  
+  // 2. Only show the trial countdown if the store is currently in a trial
+  if (flags.is_trial && trialBadge) {
+    trialBadge.style.display = 'inline-flex';
+    trialBadge.textContent = `${flags.days_remaining} Days Left`;
+  } else {
+    // If not in a trial, hide the countdown badge completely
+    if (trialBadge) trialBadge.style.display = 'none';
+  }
+}
+
+// Call immediately
+await executeBootGuard();
+  
  els = {
     formTitle: document.getElementById("formTitle"),
     cancelEditBtn: document.getElementById("cancelEditBtn"),
