@@ -3,9 +3,12 @@
 //  dashboard/js/tabscript.js
 // ================================================
 
-// Config, client and runtime already loaded by config.js + bootguard.js
-const supabaseClient = window.APP_CLIENT;
-const renderUrl      = window.APP_CONFIG.renderUrl;
+// Read config injected by config.js
+const supabaseUrl = window.APP_CONFIG.supabaseUrl;
+const supabaseKey = window.APP_CONFIG.supabaseKey;
+const renderUrl   = window.APP_CONFIG.renderUrl;
+
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let els  = {};
 let quill;
