@@ -4,22 +4,73 @@
 // ================================================
 
 
-  const supabaseClient = window.APP_CLIENT;
-const renderUrl      = window.APP_CONFIG.renderUrl;
+  // Read config injected by config.js
+const supabaseUrl = window.APP_CONFIG.supabaseUrl;
+const supabaseKey = window.APP_CONFIG.supabaseKey;
+const renderUrl   = window.APP_CONFIG.renderUrl;
+
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let els  = {};
 let quill;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  
+  // =============================================
+// DYNAMIC SESSION & RUNTIME GUARD
+// =============================================
 
-  // Wait for runtime.js to finish boot guard before anything runs
-  await window.APP_RUNTIME_READY;
+let runtimeState = null;
+let currentSessionToken = null;
 
-  // These are now available anywhere in this file and any future script:
-  // window.APP_RUNTIME.runtimeState
-  // window.APP_RUNTIME.dashboardFlags
-  // window.APP_RUNTIME.currentSessionToken
+async function executeBootGuard() {
+  try {
 
+    // Check Auth
+    const {
+      data: { session },
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
+
+    if (sessionError || !session) {
+      return safeNavigate('auth');
+    }
+
+    // Store current access token
+    currentSessionToken = session.access_token;
+
+    // Check Runtime Truth
+    const {
+      data: runtimeData,
+      error: runtimeError
+    } = await supabaseClient.rpc('get_store_runtime_state');
+
+    if (
+      runtimeError ||
+      !runtimeData ||
+      runtimeData.length === 0
+    ) {
+      return safeNavigate('auth');
+    }
+
+    // Store runtime state globally within this page
+    runtimeState = runtimeData[0];
+
+    // Enforce backend redirect logic
+    if (runtimeState.redirect_to !== '/dashboard/') {
+      return safeNavigate(runtimeState.redirect_to);
+    }
+
+  } catch (err) {
+
+    console.error('Boot failure', err);
+    safeNavigate('auth');
+
+  }
+}
+
+// Run immediately
+await executeBootGuard();
   
  els = {
     formTitle: document.getElementById("formTitle"),
