@@ -1,3 +1,26 @@
+// ===================================
+    // RESPONSIVE TABLE SHOW/HIDE LOGIC
+// =========================================
+  // Show table on md+ screens, cards on mobile
+function applyTableLayout() {
+  const desktopWrap = document.querySelector('.table-wrap');
+  const mobileWrap = document.getElementById('productsMobileContainer');
+
+  if (!desktopWrap || !mobileWrap) return;
+
+  const isDesktop = window.innerWidth >= 768;
+
+  desktopWrap.style.display = isDesktop ? "block" : "none";
+
+  mobileWrap.style.display = isDesktop ? "none" : "flex";
+}
+
+window.addEventListener("resize", applyTableLayout);
+
+window.addEventListener("orientationchange", applyTableLayout);
+
+document.addEventListener("DOMContentLoaded", applyTableLayout);
+
 // ================================================
 //  BiziNet · Main Application Script
 //  dashboard/js/tabscript.js
