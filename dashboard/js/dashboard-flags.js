@@ -25,7 +25,7 @@ function applyDashboardFlags(flags) {
     else if (flags.plan === 'business')
       planBadge.style.background = 'var(--liyog-blue)';
     else
-      planBadge.style.background = 'var(--liyog-green)';
+      planBadge.style.background = 'var(--liyog-red)';
   }
 
   // ── Trial countdown (only when on trial) ──
