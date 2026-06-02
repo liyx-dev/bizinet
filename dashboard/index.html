@@ -4530,33 +4530,7 @@
 </div> 
 </div>
 <!-- /admin-wrapper -->
-
-<!-- ================================================
-     RESPONSIVE TABLE SHOW/HIDE LOGIC
-================================================= -->
-<script>
-  // Show table on md+ screens, cards on mobile
-function applyTableLayout() {
-  const desktopWrap = document.querySelector('.table-wrap');
-  const mobileWrap = document.getElementById('productsMobileContainer');
-
-  if (!desktopWrap || !mobileWrap) return;
-
-  const isDesktop = window.innerWidth >= 768;
-
-  desktopWrap.style.display = isDesktop ? "block" : "none";
-
-  mobileWrap.style.display = isDesktop ? "none" : "flex";
-}
-
-window.addEventListener("resize", applyTableLayout);
-
-window.addEventListener("orientationchange", applyTableLayout);
-
-document.addEventListener("DOMContentLoaded", applyTableLayout);
-
-</script>
-  
+ 
 
 <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tabscript.js"></script>
