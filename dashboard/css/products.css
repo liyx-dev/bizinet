@@ -708,5 +708,10 @@
     max-width:220px;
   }
 }
-
+   .admin-section,
+.settings-card,
+.upload-card,
+.form-card{
+  overflow:visible !important;
+}
 
