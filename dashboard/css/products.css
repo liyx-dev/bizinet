@@ -646,6 +646,28 @@
     .mt-3   { margin-top: 12px; }
     .mt-4   { margin-top: 16px; }
 
+    /* =============================================
+       PLACEHOLDER TAB SECTIONS
+    ============================================= */
+    .tab-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      text-align: center;
+      gap: 12px;
+    }
+    .tab-placeholder-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, rgba(40,164,40,0.1), rgba(24,119,242,0.08));
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      border: 1.5px solid rgba(40,164,40,0.15);
+      margin-bottom: 4px;
+    }
+
 
 /* PRODUCT QUILL FIX */
 .product-quill-wrap{
