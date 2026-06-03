@@ -430,4 +430,10 @@ color:#FF3B30;
       margin-top: 3px;
     }
 
-        
+   .admin-section,
+.settings-card,
+.upload-card,
+.form-card{
+  overflow:visible !important;
+}
+
