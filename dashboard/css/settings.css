@@ -1,5 +1,5 @@
 /* ================================================================
-   SETTINGS TAB — FINAL CSS
+   SETTINGS + CATEGORIES TAB — FINAL CSS
    Replace your entire settings CSS block with this
 ================================================================ */
 
@@ -404,3 +404,4 @@
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
