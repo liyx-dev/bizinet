@@ -1098,52 +1098,44 @@ color:#FF3B30;
       border: 1.5px solid rgba(40,164,40,0.15);
       margin-bottom: 4px;
     }
+
 /* PRODUCT QUILL FIX */
-.product-quill-wrap {
-  width: 100%;
-  position: relative;
-  overflow: visible !important;
+.product-quill-wrap{
+  width:100%;
+  position:relative;
+  overflow:visible !important;
 }
 
-/* Toolbar layout */
-.product-quill-wrap .ql-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-start;
-  padding: 6px 8px;
-  box-sizing: border-box;
-  overflow-x: auto;
+.product-quill-wrap .ql-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
 }
 
-/* Ensure dropdowns appear above other elements */
-.product-quill-wrap .ql-picker-options {
-  z-index: 99999 !important;
+.product-quill-wrap .ql-picker-options{
+  z-index:99999 !important;
 }
 
-/* Color and background pickers aligned left */
 .product-quill-wrap .ql-color-picker .ql-picker-options,
-.product-quill-wrap .ql-background .ql-picker-options {
-  left: 0 !important;
-  right: auto !important;
-  transform: none !important;
-  max-width: 240px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-radius: 8px;
+.product-quill-wrap .ql-background .ql-picker-options{
+  left:0 !important;
+  right:auto !important;
+  transform:none !important;
+  max-width:260px;
 }
 
 /* Mobile safety */
-@media (max-width: 768px) {
-  .product-quill-wrap .ql-toolbar {
-    padding-right: 8px;
-    justify-content: flex-start;
+@media (max-width:768px){
+
+  .product-quill-wrap .ql-toolbar{
+    padding-right:8px;
   }
 
-  .product-quill-wrap .ql-picker-options {
-    position: absolute !important;
-    left: 0 !important;
-    right: auto !important;
-    max-width: 200px;
+  .product-quill-wrap .ql-picker-options{
+    position:absolute !important;
+    left:0 !important;
+    right:auto !important;
+    max-width:220px;
   }
 }
 
