@@ -136,12 +136,12 @@ quill = new Quill('#editor', {
   modules: {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline", "strike"],
-        [{ color: [] }, { background: [] }],
-        [{ align: [] }],
-        [{ list: "ordered" }, { list: "bullet" }],
-        ["link"],
-        ["clean"]
+      [{ color: [] }, { background: [] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ align: [] }],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"]
     ]
   }
 });
