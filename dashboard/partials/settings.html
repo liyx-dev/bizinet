@@ -1,0 +1,328 @@
+<!-- ================================================
+     SETTINGS TAB
+================================================= -->
+<div id="settingsTab" class="admin-section">
+
+  <!-- HEADER ROW -->
+  <div style="margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h2 class="section-title">⚙️ Store Settings</h2>
+      <p class="section-subtitle">Configure your global store profile — used across UK, CA, ZA &amp; Nigeria</p>
+    </div>
+    <button class="st-reload-btn" onclick="window.loadSettings()" title="Reload settings">
+      <span id="reloadIcon">🔃</span> Reload
+    </button>
+  </div>
+
+  <!-- SKELETON -->
+  <div id="settingsSkeleton" class="settings-grid" style="margin-bottom:0;">
+    <div class="settings-card"><div class="settings-card-body" style="gap:10px;">
+      <div class="settings-skel" style="height:16px;width:60%;"></div>
+      <div class="settings-skel" style="height:44px;width:100%;"></div>
+      <div class="settings-skel" style="height:44px;width:100%;"></div>
+      <div class="settings-skel" style="height:44px;width:100%;"></div>
+    </div></div>
+    <div class="settings-card"><div class="settings-card-body" style="gap:10px;">
+      <div class="settings-skel" style="height:16px;width:40%;"></div>
+      <div class="settings-skel" style="height:120px;width:100%;border-radius:14px;"></div>
+    </div></div>
+    <div class="settings-card"><div class="settings-card-body" style="gap:10px;">
+      <div class="settings-skel" style="height:16px;width:50%;"></div>
+      <div class="settings-skel" style="height:44px;width:100%;"></div>
+      <div class="settings-skel" style="height:44px;width:100%;"></div>
+    </div></div>
+    <div class="settings-card"><div class="settings-card-body" style="gap:10px;">
+      <div class="settings-skel" style="height:16px;width:45%;"></div>
+      <div class="settings-skel" style="height:80px;width:100%;"></div>
+    </div></div>
+  </div>
+
+  <!-- REAL FORM -->
+  <div id="settingsForm" style="display:none;">
+    <div class="settings-grid">
+
+      <!-- 1. BUSINESS IDENTITY -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(40,164,40,.12),rgba(52,191,73,.08));">🏪</div>
+          <div>
+            <div class="settings-card-title">Business Identity</div>
+            <div class="settings-card-sub">Name, tagline &amp; contact</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div>
+            <label class="form-label">Store / Business Name</label>
+            <input type="text" id="st_business_name" class="input-premium st-text-field" placeholder="e.g. Liyog Premium Store" maxlength="100" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">Tagline</label>
+            <input type="text" id="st_tagline" class="input-premium st-text-field" placeholder="e.g. Quality you can trust" maxlength="120" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">WhatsApp Number</label>
+            <input type="tel" id="st_whatsapp" class="input-premium st-text-field" placeholder="e.g. 447911123456" maxlength="20" autocomplete="off">
+            <p class="st-hint">Include country code — no + or spaces (UK: 44, CA: 1, ZA: 27, NG: 234)</p>
+          </div>
+          <div>
+            <label class="form-label">Phone Number <span class="st-optional">optional</span></label>
+            <input type="tel" id="st_phone" class="input-premium st-text-field" placeholder="e.g. +234 812 345 6789" maxlength="25" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">Business Type <span class="st-optional">optional</span></label>
+            <select id="st_business_type" class="input-premium">
+              <option value="">Select type...</option>
+              <option value="Sole Trader">Sole Trader</option>
+              <option value="LLC">LLC / Limited</option>
+              <option value="Partnership">Partnership</option>
+              <option value="Corporation">Corporation</option>
+              <option value="Non-profit">Non-profit</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Year Established <span class="st-optional">optional</span></label>
+            <input type="text" id="st_year_est" class="input-premium st-text-field" placeholder="e.g. 2019" maxlength="4" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. LOGO -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(24,119,242,.1),rgba(24,119,242,.06));">🖼️</div>
+          <div>
+            <div class="settings-card-title">Store Logo</div>
+            <div class="settings-card-sub">Appears on storefront &amp; receipts</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="st-upload-zone" id="logoZone">
+            <img id="logoPreviewImg" src="" alt="logo" style="display:none;width:100%;height:100%;object-fit:contain;padding:8px;border-radius:12px;">
+            <div id="logoPlaceholder" class="st-upload-placeholder">
+              <span style="font-size:36px;">🏪</span>
+              <p class="logo-upload-hint">Tap to upload logo</p>
+              <p class="logo-upload-sub">PNG, JPG, WEBP · 400×400 recommended</p>
+            </div>
+            <!-- File input sits over entire zone for reliable tap on mobile -->
+            <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/webp,image/gif"
+              style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2;"
+              aria-label="Upload logo">
+          </div>
+          <!-- logoActions: uses inline-flex via JS — no style="display:none" conflict -->
+          <div id="logoActions" style="display:none;">
+            <button class="st-remove-btn" id="removeLogoBtn" onclick="removeLogo()">✕ Remove Logo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. STORE BIO (QUILL) -->
+      <div class="settings-card st-full">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(40,164,40,.12),rgba(52,191,73,.08));">📝</div>
+          <div>
+            <div class="settings-card-title">Store Bio / Description</div>
+            <div class="settings-card-sub">Rich text — supports formatting, links &amp; lists</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="st-quill-wrapper">
+            <div id="st_bio_editor"></div>
+          </div>
+          <p class="st-hint">Use formatting to make your bio stand out on your store page.</p>
+        </div>
+      </div>
+
+      <!-- 4. LOCATION -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(255,122,0,.1),rgba(255,122,0,.06));">📍</div>
+          <div>
+            <div class="settings-card-title">Store Location</div>
+            <div class="settings-card-sub">Visible to customers on your profile</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div>
+            <label class="form-label">Street Address <span class="st-optional">optional</span></label>
+            <input type="text" id="st_address" class="input-premium st-text-field" placeholder="e.g. 12 Market Street" maxlength="150" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">City</label>
+            <input type="text" id="st_city" class="input-premium st-text-field" placeholder="e.g. Lagos / London" maxlength="80" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">Country</label>
+            <!-- Options populated from DB by loadCountryOptions() -->
+            <select id="st_country" class="input-premium">
+              <option value="">Loading countries...</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Return Policy <span class="st-optional">optional</span></label>
+            <textarea id="st_return_policy" class="input-premium st-text-field" style="min-height:70px;resize:vertical;" placeholder="e.g. 7-day returns on all items..." maxlength="500"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. WHATSAPP MESSAGE -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(40,164,40,.12),rgba(52,191,73,.08));">💬</div>
+          <div>
+            <div class="settings-card-title">WhatsApp Message</div>
+            <div class="settings-card-sub">Default order message sent by customers</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div>
+            <label class="form-label">Default Message Template</label>
+            <textarea id="st_wa_message" class="input-premium st-text-field" style="min-height:80px;resize:vertical;" placeholder="Hi, I want to buy [Product Name]" maxlength="500"></textarea>
+            <p class="st-hint">Use <strong>[Product Name]</strong> and <strong>[Price]</strong> as placeholders.</p>
+          </div>
+          <div>
+            <label class="form-label">Response Time Text</label>
+            <input type="text" id="st_response_time" class="input-premium st-text-field" placeholder="e.g. Usually replies within 1 hour" maxlength="80" autocomplete="off">
+          </div>
+          <div>
+            <label class="form-label">Delivery Info</label>
+            <textarea id="st_delivery_info" class="input-premium st-text-field" style="min-height:80px;resize:vertical;" placeholder="e.g. Free delivery on orders over £50. 2–5 business days." maxlength="500"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. SOCIAL LINKS -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(24,119,242,.1),rgba(24,119,242,.06));">🔗</div>
+          <div>
+            <div class="settings-card-title">Social Links</div>
+            <div class="settings-card-sub">All optional — shown on your store profile</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:#1877F2;">f</span>
+            <input type="url" id="st_facebook" class="input-premium st-url-field" placeholder="https://facebook.com/yourpage">
+          </div>
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">📷</span>
+            <input type="url" id="st_instagram" class="input-premium st-url-field" placeholder="https://instagram.com/yourhandle">
+          </div>
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:#000;">𝕏</span>
+            <input type="url" id="st_twitter" class="input-premium st-url-field" placeholder="https://x.com/yourhandle">
+          </div>
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:#ff0050;">♪</span>
+            <input type="url" id="st_tiktok" class="input-premium st-url-field" placeholder="https://tiktok.com/@yourhandle">
+          </div>
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:#FF0000;">▶</span>
+            <input type="url" id="st_youtube" class="input-premium st-url-field" placeholder="https://youtube.com/@yourchannel">
+          </div>
+          <div class="st-social-row">
+            <span class="st-social-icon" style="background:#28A428;">🌐</span>
+            <input type="url" id="st_website" class="input-premium st-url-field" placeholder="https://yourwebsite.com">
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. CURRENCY — chips loaded from DB by loadCurrencyOptions() -->
+      <div class="settings-card st-full">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(255,215,0,.18),rgba(255,215,0,.08));">💱</div>
+          <div>
+            <div class="settings-card-title">Currency Symbol</div>
+            <div class="settings-card-sub">Select your primary storefront currency — fetched from database</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <!-- Chips injected by JS from currencies table -->
+          <div class="currency-options" id="currencyOptions">
+            <span class="st-hint">Loading currencies...</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            Selected: <strong id="selectedCurrencyLabel">None</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- 8. TRUST BADGES -->
+      <div class="settings-card st-full">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(40,164,40,.12),rgba(52,191,73,.08));">🛡️</div>
+          <div>
+            <div class="settings-card-title">Trust Badges</div>
+            <div class="settings-card-sub">Short trust signals shown near the buy button</div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="badge-list" id="badgeList"></div>
+          <div class="badge-add-row">
+            <input type="text" id="newBadgeInput" class="input-premium st-text-field" placeholder="e.g. Secure Checkout, 30-Day Returns" style="flex:1;" maxlength="60">
+            <button class="btn-primary" onclick="addBadge()" style="padding:10px 18px;flex-shrink:0;">+ Add</button>
+          </div>
+          <p class="st-hint">Press + to add. Click × on a badge to remove it. Max 8.</p>
+        </div>
+      </div>
+
+      <!-- 9. STORE PHOTOS -->
+      <div class="settings-card st-full">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(24,119,242,.1),rgba(24,119,242,.06));">📸</div>
+          <div>
+            <div class="settings-card-title">Store Photos</div>
+            <div class="settings-card-sub">Up to 5 photos — store interior, team, owner <span class="st-optional">optional</span></div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="st-photos-grid" id="storePhotosGrid"></div>
+          <div id="storePhotosAddBtn" class="st-add-media-btn"
+            onclick="document.getElementById('storePhotosInput').click()">
+            <span style="font-size:24px;">📷</span>
+            <span>Add Store Photo</span>
+            <span class="st-hint" style="margin:0;" id="storePhotosCount">0 / 5</span>
+          </div>
+          <input type="file" id="storePhotosInput"
+            accept="image/png,image/jpeg,image/webp"
+            style="display:none;" aria-label="Add store photo">
+        </div>
+      </div>
+
+      <!-- 10. BUSINESS DOCUMENTS -->
+      <div class="settings-card st-full">
+        <div class="settings-card-header">
+          <div class="settings-card-icon" style="background:linear-gradient(135deg,rgba(255,122,0,.1),rgba(255,122,0,.06));">📄</div>
+          <div>
+            <div class="settings-card-title">Business Documents</div>
+            <div class="settings-card-sub">Certificates, licences, registration — up to 3 <span class="st-optional">optional</span></div>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div class="st-docs-grid" id="docsGrid"></div>
+          <div id="docsAddBtn" class="st-add-media-btn"
+            onclick="document.getElementById('docsInput').click()">
+            <span style="font-size:24px;">📎</span>
+            <span>Add Document</span>
+            <span class="st-hint" style="margin:0;" id="docsCount">0 / 3</span>
+          </div>
+          <input type="file" id="docsInput"
+            accept="image/png,image/jpeg,image/webp,application/pdf"
+            style="display:none;" aria-label="Add document">
+          <p class="st-hint">Accepted: JPG, PNG, WEBP, PDF · Images compressed automatically.</p>
+        </div>
+      </div>
+
+    </div><!-- /settings-grid -->
+
+    <!-- SAVE BAR -->
+    <div class="settings-save-bar">
+      <span class="settings-saved-tag" id="settingsSavedTag">✓ Saved successfully</span>
+      <button class="btn-primary" id="saveSettingsBtn" onclick="saveSettings()" style="padding:13px 32px;font-size:15px;">
+        Save All Settings
+      </button>
+    </div>
+
+  </div><!-- /#settingsForm -->
+</div><!-- /#settingsTab -->
