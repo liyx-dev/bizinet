@@ -1,0 +1,427 @@
+<!-- ================================================
+     STORIES TAB
+================================================= -->
+
+
+<!-- ══════════════════════════════════════════
+  MAIN TAB SECTION
+══════════════════════════════════════════ -->
+<div id="storiesTab" class="admin-section">
+
+  <!-- Header -->
+  <div class="st-stories-header">
+    <div class="st-stories-header-text">
+      <h2 class="section-title st-page-title">🔥 Promo Stories</h2>
+      <p class="section-subtitle st-page-subtitle">WhatsApp-style sales stories — built to convert</p>
+    </div>
+    <div class="st-stories-header-actions">
+      <button class="st-stories-reload-btn" id="storiesReloadBtn"
+        onclick="reloadStories()" title="Refresh stories">
+        <span id="storiesReloadIcon">🔃</span>
+      </button>
+      <button class="st-stories-add-btn" onclick="openStoryModal()">
+        <span class="st-add-icon">＋</span> New Story
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats pills -->
+  <div class="st-stories-stats">
+    <div class="st-stat-pill">
+      <span class="st-stat-dot active"></span>
+      <span id="statActive">0</span>&nbsp;Active
+    </div>
+    <div class="st-stat-pill">
+      <span class="st-stat-dot expired"></span>
+      <span id="statExpired">0</span>&nbsp;Expired
+    </div>
+    <div class="st-stat-pill">
+      <span class="st-stat-dot hidden-dot"></span>
+      <span id="statHidden">0</span>&nbsp;Hidden
+    </div>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="st-filter-tabs">
+    <button class="st-filter-tab active" data-filter="all"
+      onclick="filterStories('all',this)">All</button>
+    <button class="st-filter-tab" data-filter="active"
+      onclick="filterStories('active',this)">🟢 Active</button>
+    <button class="st-filter-tab" data-filter="expired"
+      onclick="filterStories('expired',this)">🔴 Expired</button>
+    <button class="st-filter-tab" data-filter="hidden"
+      onclick="filterStories('hidden',this)">👁 Hidden</button>
+  </div>
+
+  <!-- Search + media filter + team filter deck -->
+  <div class="st-filter-control-deck">
+
+    <!-- Search input -->
+    <div class="st-search-wrap">
+      <input type="text" id="storySearchInput"
+        class="st-search-input"
+        placeholder="🔍  Search stories by title or caption…"
+        oninput="handleStorySearchFilter()">
+    </div>
+
+    <!-- Media type chips -->
+    <div class="st-media-filter-row">
+      <span class="st-filter-label">Format:</span>
+      <button class="st-media-filter-btn active" data-media="all"
+        onclick="filterMediaType('all',this)">📁 All</button>
+      <button class="st-media-filter-btn" data-media="image"
+        onclick="filterMediaType('image',this)">🖼️ Images</button>
+      <button class="st-media-filter-btn" data-media="video"
+        onclick="filterMediaType('video',this)">🎬 Videos</button>
+      <button class="st-media-filter-btn" data-media="audio"
+        onclick="filterMediaType('audio',this)">🎵 Audio</button>
+    </div>
+
+    <!-- My stories + team role row -->
+    <div class="st-filter-bottom-row">
+      <label class="st-me-filter-label">
+        <input type="checkbox" id="storyAddedByMeCheckbox"
+          class="st-me-checkbox"
+          onchange="toggleAddedByMeFilter(this)">
+        🙋 My stories only
+      </label>
+      <!-- Owner-only — shown/hidden by JS -->
+      <div id="premiumOwnerFilterContainer" class="st-owner-filter" style="display:none;">
+        <label for="storyRoleSelectFilter" class="st-role-label">👑 Filter by role:</label>
+        <select id="storyRoleSelectFilter" class="st-role-select"
+          onchange="handleRoleSelectFilter(this)">
+          <option value="all">All Team Roles</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Stories grid -->
+  <div class="st-stories-grid" id="storiesGrid">
+    <!-- Skeleton loaders — replaced by JS on load -->
+    <div class="st-story-card sk">
+      <div class="st-story-sk-media"></div>
+      <div class="st-story-sk-body">
+        <div class="settings-skel" style="height:12px;width:70%;"></div>
+        <div class="settings-skel" style="height:10px;width:50%;margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="st-story-card sk">
+      <div class="st-story-sk-media"></div>
+      <div class="st-story-sk-body">
+        <div class="settings-skel" style="height:12px;width:60%;"></div>
+        <div class="settings-skel" style="height:10px;width:40%;margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="st-story-card sk">
+      <div class="st-story-sk-media"></div>
+      <div class="st-story-sk-body">
+        <div class="settings-skel" style="height:12px;width:80%;"></div>
+        <div class="settings-skel" style="height:10px;width:55%;margin-top:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="st-stories-empty" id="storiesEmpty" style="display:none;">
+    <div class="st-empty-icon">🎬</div>
+    <h3>No stories yet</h3>
+    <p>Create your first promo story to start driving sales</p>
+    <button class="st-empty-create-btn" onclick="openStoryModal()">
+      ＋ Create First Story
+    </button>
+  </div>
+
+</div><!-- end #storiesTab -->
+
+
+<!-- ══════════════════════════════════════════
+  CREATE / EDIT STORY MODAL
+══════════════════════════════════════════ -->
+<div class="st-modal-overlay" id="storyModal">
+  <div class="st-modal-box">
+
+    <!-- Modal header -->
+    <div class="st-modal-header">
+      <div>
+        <div class="st-modal-title" id="storyModalTitle">✨ Create New Story</div>
+        <div class="st-modal-sub">Upload media · Write your hook · Drive sales</div>
+      </div>
+      <div class="st-modal-header-btns">
+        <button class="st-modal-reload-btn" id="storyEditReloadBtn"
+          onclick="reloadStoryEdit()" title="Refresh this story"
+          style="display:none;">
+          <span>🔃</span>
+        </button>
+        <button class="st-modal-close" onclick="closeStoryModal()">✕</button>
+      </div>
+    </div>
+
+    <!-- Modal scrollable body -->
+    <div class="st-modal-body">
+
+      <!-- 01 · Media -->
+      <div class="st-modal-section">
+        <div class="st-section-label">
+          <span class="st-section-num st-num-green">01</span>
+          <span>Media — Image, Video or Audio</span>
+        </div>
+
+        <input type="file" id="storyMediaInput"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/mp3,audio/wav,audio/ogg"
+          style="display:none;" aria-label="Upload story media">
+
+        <div class="st-media-upload-zone" id="storyMediaZone">
+          <div id="storyMediaPlaceholder" class="st-media-placeholder">
+            <div class="st-media-icons">🖼️ &nbsp; 🎬 &nbsp; 🎵</div>
+            <p class="st-media-hint">Tap here to upload</p>
+            <p class="st-media-sub">Image (auto-optimised) · Video max 100MB · Audio</p>
+          </div>
+        </div>
+
+        <!-- Upload progress -->
+        <div class="st-upload-progress" id="storyUploadProgress" style="display:none;">
+          <div class="st-progress-bar">
+            <div class="st-progress-fill" id="storyProgressFill"></div>
+          </div>
+          <span class="st-progress-label" id="storyProgressLabel">Getting things ready…</span>
+        </div>
+      </div>
+
+      <!-- 02 · Hook text -->
+      <div class="st-modal-section">
+        <div class="st-section-label">
+          <span class="st-section-num st-num-blue">02</span>
+          <span>Hook — Text that converts</span>
+        </div>
+        <input type="text" id="st_story_title" class="input-premium st-title-input"
+          placeholder="🔥 Flash Sale — 50% OFF Today Only!"
+          maxlength="80" autocomplete="off" aria-label="Story Title">
+        <textarea id="st_story_caption" class="input-premium st-caption-input"
+          placeholder="Limited stock! Tap below to order now..."
+          maxlength="300" aria-label="Story Caption"></textarea>
+        <div class="st-char-wrap">
+          <span class="st-char-count" id="captionCount">0 / 300</span>
+        </div>
+      </div>
+
+      <!-- 03 · CTA -->
+      <div class="st-modal-section">
+        <div class="st-section-label">
+          <span class="st-section-num st-num-gold">03</span>
+          <span>Call-to-Action</span>
+        </div>
+
+        <div class="st-cta-type-row">
+          <button class="st-cta-type-btn active" data-type="none"
+            onclick="selectCtaType('none',this)">
+            <span>🚫</span> None
+          </button>
+          <button class="st-cta-type-btn" data-type="product"
+            onclick="selectCtaType('product',this)">
+            <span>🛍️</span> Product
+          </button>
+          <button class="st-cta-type-btn" data-type="whatsapp"
+            onclick="selectCtaType('whatsapp',this)">
+            <span>💬</span> WhatsApp
+          </button>
+          <button class="st-cta-type-btn" data-type="external"
+            onclick="selectCtaType('external',this)">
+            <span>🔗</span> Link
+          </button>
+        </div>
+
+        <!-- Product panel -->
+        <div id="ctaProductPanel" class="st-cta-panel" style="display:none;">
+          <select id="st_story_product" class="input-premium" aria-label="Select Product">
+            <option value="">Loading products…</option>
+          </select>
+        </div>
+
+        <!-- WhatsApp panel -->
+        <div id="ctaWhatsappPanel" class="st-cta-panel" style="display:none;">
+          <div class="st-wa-row">
+            <span class="st-wa-icon">💬</span>
+            <input type="tel" id="st_story_wa" class="input-premium"
+              placeholder="e.g. 447911123456" maxlength="20"
+              aria-label="WhatsApp Number">
+          </div>
+          <button class="st-use-profile-wa" onclick="useProfileWhatsapp()">
+            ↩ Use my store WhatsApp number
+          </button>
+        </div>
+
+        <!-- External URL panel -->
+        <div id="ctaExternalPanel" class="st-cta-panel" style="display:none;">
+          <input type="url" id="st_story_url" class="input-premium"
+            placeholder="https://yourlink.com/offer" aria-label="External URL">
+        </div>
+
+        <!-- CTA button text -->
+        <div id="ctaTextRow" class="st-cta-text-row" style="display:none;">
+          <label class="st-cta-text-label">Button Text</label>
+          <div class="st-cta-presets">
+            <button class="st-cta-preset" onclick="setCTAText('Shop Now')">Shop Now</button>
+            <button class="st-cta-preset" onclick="setCTAText('Order via WhatsApp')">Order via WhatsApp</button>
+            <button class="st-cta-preset" onclick="setCTAText('Get Deal')">Get Deal</button>
+            <button class="st-cta-preset" onclick="setCTAText('Claim Offer')">Claim Offer</button>
+            <button class="st-cta-preset" onclick="setCTAText('Learn More')">Learn More</button>
+          </div>
+          <input type="text" id="st_story_cta_text" class="input-premium"
+            placeholder="e.g. Shop Now" maxlength="40">
+        </div>
+      </div>
+
+      <!-- 04 · Duration -->
+      <div class="st-modal-section">
+        <div class="st-section-label">
+          <span class="st-section-num st-num-slate">04</span>
+          <span>Duration</span>
+        </div>
+
+        <!-- Visual 24h card (user-facing) -->
+        <div class="st-duration-card">
+          <div class="st-duration-left">
+            <div class="st-duration-val">24h</div>
+            <div class="st-duration-sub">1 Day</div>
+          </div>
+          <div class="st-duration-right">
+            <div class="st-duration-label">Standard visibility</div>
+            <div class="st-duration-check">✓ Active</div>
+          </div>
+        </div>
+
+        <!-- Hidden button kept for JS _setExpiryBtn() compatibility -->
+        <button class="st-expiry-btn active" data-hours="24"
+          onclick="selectExpiry(24,this)"
+          aria-hidden="true" style="display:none;"></button>
+
+        <p class="st-hint">
+          After expiry, your story stays 24h in grace — renew it or it auto-deletes.
+        </p>
+      </div>
+
+      <!-- 05 · Options -->
+      <div class="st-modal-section">
+        <div class="st-section-label">
+          <span class="st-section-num st-num-gold">05</span>
+          <span>Options</span>
+        </div>
+
+        <div class="st-toggle-row" onclick="toggleFeatured()">
+          <div class="st-toggle-label">
+            <span>⭐</span>
+            <span>
+              <strong>Feature this story</strong>
+              <small>Pinned to top of your story bar</small>
+            </span>
+          </div>
+          <div class="st-toggle" id="featuredToggle">
+            <div class="st-toggle-knob"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end .st-modal-body -->
+
+    <!-- Modal footer -->
+    <div class="st-modal-footer">
+      <button class="st-modal-cancel-btn" onclick="closeStoryModal()">Cancel</button>
+      <button class="st-modal-save-btn" id="storyModalSaveBtn" onclick="saveStory()">
+        <span id="storyModalSaveTxt">Publish Story 🚀</span>
+      </button>
+    </div>
+
+  </div><!-- end .st-modal-box -->
+</div><!-- end #storyModal -->
+
+
+<!-- ══════════════════════════════════════════
+  WHATSAPP-STYLE PREVIEW MODAL
+  ID contract (must never rename these):
+    #previewStoreLogo     ← s.store_logo (profile JOIN, live per row)
+    #previewStoreName     ← fetched fresh per preview open
+    #previewUploaderName  ← s.creator_name (store_members JOIN, per row)
+    #previewTime          ← timeAgo(s.created_at)
+    #previewProgressTrack ← progress dots injected by JS
+    #previewProgFill      ← animated progress bar fill
+    #previewMediaWrap     ← video/audio/img injected by JS
+    #previewTitle         ← s.title
+    #previewCaption       ← s.caption
+    #previewCta           ← CTA button, styled by JS per link_type
+    #previewHoldHint      ← "Hold to pause" tooltip
+    #previewCounter       ← "1 / 5" counter
+    #previewScreen        ← touch/hold event target
+══════════════════════════════════════════ -->
+<div class="st-preview-overlay" id="storyPreviewModal">
+
+  <!-- Top bar: close + dots + counter -->
+  <div class="st-preview-topbar">
+    <button class="st-preview-topbar-close" onclick="closePreview()">✕</button>
+    <div class="st-preview-progress-track" id="previewProgressTrack"></div>
+    <div class="st-preview-counter" id="previewCounter"></div>
+  </div>
+
+  <!-- Phone frame -->
+  <div class="st-preview-phone">
+
+    <!-- Left tap zone — previous story -->
+    <div class="st-preview-tap-zone left"
+      ontouchstart="onPreviewTouchStart(event)"
+      ontouchend="onPreviewTouchEnd(event,'prev')"
+      onmousedown="previewNav(-1)"></div>
+
+    <!-- Story screen -->
+    <div class="st-preview-screen" id="previewScreen">
+
+      <!-- Thin progress bar at very top of screen -->
+      <div class="st-preview-progress-bar">
+        <div class="st-preview-prog-fill" id="previewProgFill"></div>
+      </div>
+
+      <!-- Header info: logo + store name + uploader + time -->
+      <div class="st-preview-info">
+
+        <!-- Store logo — JS writes s.store_logo into this element -->
+        <div id="previewStoreLogo" class="st-preview-logo-wrap">
+          <div class="st-preview-avatar">🏪</div>
+        </div>
+
+        <div class="st-preview-meta">
+          <!-- Business name — fetched fresh by JS per preview open, never stale -->
+          <div class="st-preview-store-name" id="previewStoreName"></div>
+          <!-- Uploader — JS writes "by Sarah" from s.creator_name per row -->
+          <div class="st-preview-uploader-name" id="previewUploaderName"></div>
+          <!-- Time ago -->
+          <div class="st-preview-time" id="previewTime"></div>
+        </div>
+      </div>
+
+      <!-- Media injected by JS -->
+      <div class="st-preview-media-wrap" id="previewMediaWrap"></div>
+
+      <!-- Bottom gradient -->
+      <div class="st-preview-gradient"></div>
+
+      <!-- Title, caption, CTA -->
+      <div class="st-preview-content">
+        <div class="st-preview-title" id="previewTitle"></div>
+        <div class="st-preview-caption" id="previewCaption"></div>
+        <button class="st-preview-cta" id="previewCta" style="display:none;"></button>
+      </div>
+
+      <!-- Hold-to-pause hint -->
+      <div class="st-preview-hold-hint" id="previewHoldHint">Hold to pause</div>
+
+    </div><!-- end #previewScreen -->
+
+    <!-- Right tap zone — next story -->
+    <div class="st-preview-tap-zone right"
+      ontouchstart="onPreviewTouchStart(event)"
+      ontouchend="onPreviewTouchEnd(event,'next')"
+      onmousedown="previewNav(1)"></div>
+
+  </div><!-- end .st-preview-phone -->
+
+</div><!-- end #storyPreviewModal -->
