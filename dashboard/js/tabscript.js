@@ -35,7 +35,7 @@ const renderUrl   = window.APP_CONFIG.renderUrl;
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let els  = {};
-let quill;
+let quill = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
   
