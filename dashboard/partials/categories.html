@@ -1,0 +1,111 @@
+<!-- ============================================================
+  CATEGORIES TAB — HTML v2  |  LIYOG ADMIN DASHBOARD
+  Uses global root tokens only. Clean class names. No inline styles
+  except what JS must write dynamically.
+  All IDs match categories_tab_v2.js exactly.
+============================================================ -->
+
+<div id="categoriesTab" class="admin-section">
+
+  <!-- ── Header card ── -->
+  <div class="cat-header-card">
+    <div class="cat-header-text">
+      <h2>🗂️ Category Manager</h2>
+      <p>Create, arrange and manage your product categories</p>
+    </div>
+    <div class="cat-header-right">
+      <span class="cat-count-badge" id="catCountBadge">0 categories</span>
+      <button class="cat-reload-btn" id="catReloadBtn"
+        onclick="loadCategoriesTab()" title="Refresh categories">
+        <span id="catReloadIcon">🔃</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar: search + add button ── -->
+  <div class="cat-toolbar">
+    <div class="cat-search-wrap">
+      <span class="cat-search-icon">🔍</span>
+      <input
+        type="text"
+        id="catSearchInput"
+        class="cat-search-input"
+        placeholder="Search categories…"
+        oninput="filterCatGrid(this.value)">
+    </div>
+    <button class="cat-add-btn" onclick="window.openCatModal(null)">
+      <span class="cat-add-btn-icon">＋</span> New Category
+    </button>
+  </div>
+
+  <!-- ── Compact Category grid ── -->
+  <div class="cat-grid" id="catGrid">
+    <!-- Skeleton loaders — automatically replaced by JS initialization -->
+    <div class="cat-pill" style="pointer-events:none;">
+      <div class="cat-skel-icon"></div>
+      <div class="cat-skel-text" style="width:70%;"></div>
+    </div>
+    <div class="cat-pill" style="pointer-events:none;">
+      <div class="cat-skel-icon"></div>
+      <div class="cat-skel-text" style="width:55%;"></div>
+    </div>
+    <div class="cat-pill" style="pointer-events:none;">
+      <div class="cat-skel-icon"></div>
+      <div class="cat-skel-text" style="width:80%;"></div>
+    </div>
+  </div>
+
+  <!-- ── Create / Edit category modal ── -->
+  <div class="cat-modal-overlay" id="catModal">
+    <div class="cat-modal-box">
+
+      <!-- Modal header -->
+      <div class="cat-modal-header">
+        <div class="cat-modal-title">
+          <span id="catModalIcon">➕</span>
+          <span id="catModalTitle">New Category</span>
+        </div>
+        <button class="cat-modal-close" onclick="window.closeCatModal()">✕</button>
+      </div>
+
+      <!-- Icon preview display box -->
+      <div class="cat-icon-preview" id="catIconPreview">
+        <span id="catIconEmoji">🏷️</span>
+      </div>
+      <p class="cat-icon-hint">Selected category icon emblem</p>
+
+      <!-- Category name input (Accepts user typed device emojis perfectly) -->
+      <div style="margin-bottom:14px;">
+        <label class="cat-field-label" for="catNameInput">Category Name *</label>
+        <input
+          type="text"
+          id="catNameInput"
+          class="input-premium"
+          placeholder="e.g. 👟 Shoes, Phones, Fashion"
+          autocomplete="off">
+      </div>
+
+      <!-- Emoji quick-pick strip fallback -->
+      <div class="cat-emoji-strip">
+        <span class="cat-emoji-strip-label">Quick:</span>
+        <div id="emojiPicker" style="display:flex;gap:5px;flex-wrap:wrap;flex:1;"></div>
+      </div>
+
+      <!-- Audit trail (edit mode only) -->
+      <div class="cat-audit-box" id="catAuditTrailBox">
+        <div>👤 Creator: <span class="cat-audit-val" id="catAuditCreator"></span></div>
+        <div>🔄 Last updated by: <span class="cat-audit-val" id="catAuditUpdater"></span></div>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="cat-modal-actions">
+        <button class="cat-modal-cancel" onclick="window.closeCatModal()">Cancel</button>
+        <button class="cat-modal-save" id="catSaveBtn" onclick="window.saveCategory()">
+          Save Category
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end #categoriesTab -->
