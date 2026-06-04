@@ -135,8 +135,8 @@ quill = new Quill('#editor', {
   placeholder: 'Write detailed product description...',
   modules: {
     toolbar: [
-      [{ header: [1, 2, 3, false] }],
       [{ color: [] }, { background: [] }],
+    [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
       [{ align: [] }],
       [{ list: "ordered" }, { list: "bullet" }],
