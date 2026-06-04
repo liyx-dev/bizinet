@@ -134,18 +134,44 @@ quill = new Quill('#editor', {
   theme: 'snow',
   placeholder: 'Write detailed product description...',
   modules: {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline", "strike"],
+    toolbar: {
+      container: [
+        // Move color + background to the left
         [{ color: [] }, { background: [] }],
+
+        // Keep headers next
+        [{ header: [1, 2, 3, false] }],
+
+        // Text formatting
+        ["bold", "italic", "underline", "strike"],
+
+        // Alignment
         [{ align: [] }],
+
+        // Lists
         [{ list: "ordered" }, { list: "bullet" }],
+
+        // Links
         ["link"],
+
+        // Clean formatting
         ["clean"]
-    ]
+      ],
+      // Inline styling to prevent overflow
+      handlers: {}
+    }
   }
 });
 
+// Add a little inline CSS tweak for the toolbar container
+const toolbarEl = document.querySelector('.ql-toolbar');
+if (toolbarEl) {
+  toolbarEl.style.display = "flex";
+  toolbarEl.style.flexWrap = "wrap";     // wrap items if too long
+  toolbarEl.style.justifyContent = "flex-start"; // align left
+  toolbarEl.style.gap = "6px";           // spacing between buttons
+  toolbarEl.style.overflowX = "auto";    // scroll if still too wide
+}
 // Prevents overflow for quill on screens 
 setTimeout(() => {
   document.querySelectorAll('.ql-picker').forEach(picker => {
