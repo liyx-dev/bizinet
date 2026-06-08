@@ -6,8 +6,8 @@
 //  get_all_stories is the single source of truth for ALL store
 //  identity data. Every row carries:
 //    s.store_logo      ← profile.logo_url        (live JOIN)
-//    s.store_name      ← profile.business_name   (live JOIN) ← NEW
-//    s.store_whatsapp  ← profile.whatsapp_number (live JOIN) ← NEW
+//    s.store_name      ← profile.business_name   (live JOIN)
+//    s.store_whatsapp  ← profile.whatsapp_number (live JOIN)
 //    s.creator_name    ← store_members.member_name (live JOIN)
 //
 //  There are NO module-level vars for logo, store name, store WA,
@@ -31,13 +31,7 @@ let runtimeState = null;
 let currentSessionToken = null;
 const R2_PUBLIC_BASE = window.APP_CONFIG.r2PublicBase;
 const supabaseClient = window.APP_CLIENT;
-
-async function loadStories() {
-  await window.APP_RUNTIME_READY;
-  
-  runtimeState = window.APP_RUNTIME.runtimeState;
-  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-  if (!runtimeState) return;
+const supabaseUrl = window.APP_CONFIG.supabaseUrl;
 
 // ── Core State
 let allStories             = [];
@@ -98,7 +92,7 @@ let previewTouchStartT = 0;
 
 function r2KeyStory(url) {
   if (!url) return null;
-  const key = url.replace(STORY_R2_BASE + "/", "");
+  const key = url.replace(R2_PUBLIC_BASE + "/", "");
   return key === url ? null : key;
 }
 
@@ -308,6 +302,12 @@ function truncate(str, max) {
 // Graceful timeout + retry on network failure
 // ============================================================
 async function loadStories(appendMode = false) {
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
+
   const grid  = document.getElementById("storiesGrid");
   const empty = document.getElementById("storiesEmpty");
   const btn   = document.getElementById("storiesReloadBtn");
@@ -405,7 +405,8 @@ async function loadStories(appendMode = false) {
           </button>
         </div>`;
     } else if (appendMode) {
-      storyCurrentPage--; // roll back page count so retry works correctly     _injectLoadMoreTrigger(true);
+      storyCurrentPage--; // roll back page count so retry works correctly     
+      _injectLoadMoreTrigger(true);
       _watchForReconnect();
     }
     toast("Couldn't load your stories. Please try again.", "error");
@@ -510,7 +511,6 @@ function _injectLoadMoreTrigger(failed = false) {
 
 // Handles load-more with online detection + auto-retry on reconnect
 async function _attemptLoadMore() {
-  // If offline, show failed state and start watching for reconnect
   if (!navigator.onLine) {
     _injectLoadMoreTrigger(true);
     _watchForReconnect();
@@ -532,17 +532,13 @@ async function _attemptLoadMore() {
 
   try {
     await loadStories(true);
-    // loadStories(true) calls _injectLoadMoreTrigger() itself on success
   } catch (e) {
-    // loadStories already handles its own error UI
-    // Re-inject failed state so user can retry
     _injectLoadMoreTrigger(true);
   }
 }
 
 // Watches for network restoration and auto-retries load-more
 function _watchForReconnect() {
-  // Avoid stacking multiple listeners
   if (window._stReconnectWatching) return;
   window._stReconnectWatching = true;
 
@@ -550,7 +546,6 @@ function _watchForReconnect() {
     window._stReconnectWatching = false;
     window.removeEventListener("online", onReconnect);
 
-    // Show a brief "back online" pulse on the trigger before loading
     const trigger = document.getElementById("storyLoadMoreTrigger");
     if (trigger) {
       trigger.innerHTML = `
@@ -568,7 +563,6 @@ function _watchForReconnect() {
         </span>`;
     }
 
-    // Small delay so user sees the "back online" message
     setTimeout(() => {
       loadStories(true);
     }, 800);
@@ -576,7 +570,6 @@ function _watchForReconnect() {
 
   window.addEventListener("online", onReconnect);
 }
-
 
 // ============================================================
 // RENDER ENGINE
@@ -843,7 +836,7 @@ window.openStoryModal = async function (editId = null) {
   storyIsFeatured     = false;
   storyCtaType        = "none";
   storySelectedHours  = 24;
-  _storyProductsCache = null; // always clear — fresh RPC on every open
+  _storyProductsCache = null;
 
   ["st_story_title", "st_story_caption", "st_story_wa", "st_story_url", "st_story_cta_text"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -1022,7 +1015,7 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
       </div>`;
   } else if (type === "audio") {
     wrap.innerHTML += `
-      <div style="padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div style="padding:166px;display:flex;flex-direction:column;align-items:center;gap:12px;">
         <div style="font-size:48px;">🎵</div>
         <audio src="${url}" controls style="width:100%;max-width:340px;"
           onclick="event.stopPropagation();"
@@ -1204,12 +1197,9 @@ window.setCTAText = (t) => {
 
 // ── WhatsApp autofill
 // Reads s.store_whatsapp from the already-loaded allStories data.
-// get_all_stories returned this live from profile. Zero extra DB call.
-// Zero caching. Zero cross-store contamination.
 window.useProfileWhatsapp = function () {
   const el = document.getElementById("st_story_wa");
   if (!el) return;
-  // Pull from the live story data already in memory from this session's RPC call
   const liveWa = allStories[0]?.store_whatsapp || "";
   if (liveWa) {
     el.value = liveWa;
@@ -1479,12 +1469,10 @@ window.showProductPreview = async function (productId, productName) {
   if (!productId) return;
   let popup = document.getElementById("storyProductPreviewPopup");
 
-  // Helper to remove the popup and resume the story safely
   const closeAndResume = () => {
     if (popup) popup.remove();
     const modal = document.getElementById("storyPreviewModal");
     
-    // Only resume if the main story modal is still open
     if (modal && modal.classList.contains("open")) {
       const wrap = document.getElementById("previewMediaWrap");
       if (wrap) wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(()=>{}));
@@ -1505,7 +1493,6 @@ window.showProductPreview = async function (productId, productName) {
       background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
       animation:stFadeIn .2s ease;`;
       
-    // Close when clicking the dark background
     popup.onclick = e => { if (e.target === popup) closeAndResume(); };
     document.body.appendChild(popup);
   }
@@ -1526,7 +1513,6 @@ window.showProductPreview = async function (productId, productName) {
           font-size:13px;font-weight:700;cursor:pointer;">Close</button>
     </div>`;
 
-  // Attach the close/resume logic to the actual close button
   document.getElementById("stProdCloseBtn").onclick = closeAndResume;
 
   try {
@@ -1568,22 +1554,8 @@ window.showProductPreview = async function (productId, productName) {
   }
 };
 
-
-
 // ============================================================
 // WHATSAPP-STYLE PREVIEW VIEWER
-// ============================================================
-// BINDING CONTRACT — FINAL v10:
-//
-//   #previewStoreLogo     ← s.store_logo      (profile JOIN, per row, no cache)
-//   #previewStoreName     ← s.store_name      (profile JOIN, per row, no cache) ← NEW
-//   #previewUploaderName  ← s.creator_name    (store_members JOIN, per row)
-//   #previewTime          ← timeAgo(s.created_at)
-//
-//   useProfileWhatsapp()  ← s.store_whatsapp  (profile JOIN, per row, no cache) ← NEW
-//
-//   Zero window.* variables. Zero module-level name/logo/wa cache.
-//   Every single store identity field comes live from the DB per story row.
 // ============================================================
 
 window.openPreviewAt = function (id) {
@@ -1606,7 +1578,6 @@ function _renderPreviewSlide() {
   
   clearTimeout(previewTimer);
 
-  // Progress dots
   const track = document.getElementById("previewProgressTrack");
   if (track) track.innerHTML = previewStoryList.map((_, i) =>
     `<div class="st-preview-dot ${i === previewIndex ? "active" : i < previewIndex ? "done" : ""}"></div>`
@@ -1615,7 +1586,6 @@ function _renderPreviewSlide() {
   const counter = document.getElementById("previewCounter");
   if (counter) counter.textContent = `${previewIndex + 1} / ${previewStoryList.length}`;
 
-  // ── Store logo
   const storeLogoEl = document.getElementById("previewStoreLogo");
   if (storeLogoEl) {
     storeLogoEl.innerHTML = s.store_logo
@@ -1629,13 +1599,11 @@ function _renderPreviewSlide() {
            font-size:18px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
   }
 
-  // ── Store name
   const storeNameEl = document.getElementById("previewStoreName");
   if (storeNameEl) {
     storeNameEl.textContent = s.store_name || "Our Store";
   }
 
-  // ── Uploader name
   const uploaderEl = document.getElementById("previewUploaderName");
   if (uploaderEl) {
     uploaderEl.textContent = s.creator_name ? `by ${s.creator_name}` : "";
@@ -1644,7 +1612,6 @@ function _renderPreviewSlide() {
   const timeEl = document.getElementById("previewTime");
   if (timeEl) timeEl.textContent = timeAgo(s.created_at);
 
-  // Media wrap
   const wrap = document.getElementById("previewMediaWrap");
   if (!wrap) return;
   wrap.querySelectorAll("video,audio").forEach(el => { el.pause(); el.src = ""; });
@@ -1712,13 +1679,11 @@ function _renderPreviewSlide() {
     previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
   }
 
-  // Title / caption
   const titleEl   = document.getElementById("previewTitle");
   const captionEl = document.getElementById("previewCaption");
   if (titleEl)   titleEl.textContent   = s.title   || "";
   if (captionEl) captionEl.textContent = s.caption || "";
 
-  // CTA button
   const ctaEl = document.getElementById("previewCta");
   if (ctaEl) {
     if (s.cta_text && s.link_type && s.link_type !== "none") {
@@ -1731,23 +1696,20 @@ function _renderPreviewSlide() {
           color:#111;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;       
         ctaEl.onclick = (e) => {
-          e.stopPropagation(); // 🔴 Stops the click from waking up the background wrapper
-
-          // 🔴 Pause the story while the product popup is open        clearTimeout(previewTimer);
-         _pauseProgressBar();
+          e.stopPropagation();
+          _pauseProgressBar();
           const pWrap = document.getElementById("previewMediaWrap");
           if (pWrap) pWrap.querySelectorAll("video,audio").forEach(el => el.pause());
-         showProductPreview(s.product_id, s.product_name);
+          showProductPreview(s.product_id, s.product_name);
         };
 
-        // 🔴 Block touch events from triggering the swipe/hold handlers
         ctaEl.onmousedown = (e) => e.stopPropagation();
         ctaEl.onmouseup = (e) => e.stopPropagation();
         ctaEl.ontouchstart = (e) => e.stopPropagation();
         ctaEl.ontouchend = (e) => e.stopPropagation();
 
       } else if (s.link_type === "whatsapp") {
-        ctaEl.style.cssText = `         display:block;background:linear-gradient(135deg,#28A428,#34BF49);         color:#fff;border:none;border-radius:12px;padding:10px 24px;          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
+        ctaEl.style.cssText = `display:block;background:linear-gradient(135deg,#28A428,#34BF49);color:#fff;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
         ctaEl.onclick = () => {
           if (s.whatsapp_number) {
             window.open(
@@ -1757,7 +1719,7 @@ function _renderPreviewSlide() {
           }
         };
       } else {
-        ctaEl.style.cssText = `          display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);         color:#fff;border:none;border-radius:12px;padding:10px 24px;         font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
+        ctaEl.style.cssText = `display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;border-radius:12px;padding:10px 24px;font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
         ctaEl.onclick = () => { if (s.link_target) window.open(s.link_target, "_blank"); };
       }
     } else {
@@ -1767,7 +1729,6 @@ function _renderPreviewSlide() {
   const holdHint = document.getElementById("previewHoldHint");
   if (holdHint) { holdHint.style.opacity = "1"; setTimeout(() => holdHint.style.opacity = "0", 2000); }
 }
-
 
 window.closePreview = function () {
   clearTimeout(previewTimer);
@@ -1825,7 +1786,6 @@ window.previewNav = function (direction) {
       document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
     });
     screen.addEventListener("mouseup", () => {
-      // 🔴 SAFETY CHECK: Do nothing if the preview is closed
       if (!document.getElementById("storyPreviewModal")?.classList.contains("open")) return; 
       
       previewHolding = false;
@@ -1856,7 +1816,6 @@ function onPreviewTouchStart(e) {
 window.onPreviewTouchStart = onPreviewTouchStart;
 
 function onPreviewTouchEnd(e, defaultDir) {
-  // 🔴 SAFETY CHECK: Do nothing if the preview is closed
   if (!document.getElementById("storyPreviewModal")?.classList.contains("open")) return; 
   
   e.preventDefault();
@@ -1873,13 +1832,11 @@ function onPreviewTouchEnd(e, defaultDir) {
   if (Math.abs(deltaX) > 35) { previewNav(deltaX < 0 ? 1 : -1); return; }
   previewNav(defaultDir === "next" ? 1 : -1);
 }
-
 window.onPreviewTouchEnd = onPreviewTouchEnd;
 
 document.getElementById("storyPreviewModal")?.addEventListener("click", function (e) {
   if (e.target === this) closePreview();
 });
-
 
 // ============================================================
 // FILTER HANDLERS
@@ -1921,5 +1878,4 @@ window.handleRoleSelectFilter = function (selectElement) {
   document.head.appendChild(s);
 })();
 
-  window.loadStories = loadStories;
-
+window.loadStories = loadStories;
