@@ -1,16 +1,7 @@
 // ================================================================
 //  BiziNet · Global Helpers
 //  dashboard/js/helpers.js
-//  Loaded in <head> — available to ALL tab scripts
-//
-//  Exposes on window:
-//    window.toast(msg, type, duration)
-//    window.optimizeImage(file)
-//    window.R2_PUBLIC_BASE
 // ================================================================
-
-// ── R2 base URL — used by products, stories, settings
-window.R2_PUBLIC_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
 
 // ── Toast notification
 window.toast = function (msg, type = "success", duration = 4000) {
@@ -25,7 +16,7 @@ window.toast = function (msg, type = "success", duration = 4000) {
   }, duration);
 };
 
-// ── Image optimiser — resize to max 1200px, convert to WebP 70%
+// ── Image optimiser 
 window.optimizeImage = function (file) {
   return new Promise((resolve, reject) => {
     const img    = new Image();
