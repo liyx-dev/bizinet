@@ -22,11 +22,22 @@
 //  Feed load: graceful timeout + retry on failure.
 // ============================================================
 // ── Pull shared globals set by runtime.js, config.js, helpers.js
-const supabaseClient      = window.APP_CLIENT;
-const supabaseUrl         = window.APP_CONFIG.supabaseUrl;
-let   runtimeState        = window.APP_RUNTIME.runtimeState;
-let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-const STORY_R2_BASE = window.R2_PUBLIC_BASE;
+// ================================================================
+//  BiziNet Tab Engine · Stories
+//  dashboard/js/stories.js
+// ================================================================
+
+let runtimeState = null;
+let currentSessionToken = null;
+const R2_PUBLIC_BASE = window.APP_CONFIG.r2PublicBase;
+const supabaseClient = window.APP_CLIENT;
+
+async function loadStories() {
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
 
 // ── Core State
 let allStories             = [];
@@ -1909,4 +1920,6 @@ window.handleRoleSelectFilter = function (selectElement) {
   `;
   document.head.appendChild(s);
 })();
+
+  window.loadStories = loadStories;
 
