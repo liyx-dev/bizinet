@@ -976,28 +976,30 @@ await loadCategories();
 await loadProducts();
 
 
+
+
 // ============================================================
 // STORIES TAB — JAVASCRIPT v10  |  LIYOG ADMIN DASHBOARD
 // ============================================================
 // ZERO-CACHE ARCHITECTURE — FINAL:
 //
-//  get_all_stories is the single source of truth for ALL store
-//  identity data. Every row carries:
-//    s.store_logo      ← profile.logo_url        (live JOIN)
-//    s.store_name      ← profile.business_name   (live JOIN) ← NEW
-//    s.store_whatsapp  ← profile.whatsapp_number (live JOIN) ← NEW
-//    s.creator_name    ← store_members.member_name (live JOIN)
+//   get_all_stories is the single source of truth for ALL store
+//   identity data. Every row carries:
+//     s.store_logo      ← profile.logo_url        (live JOIN)
+//     s.store_name      ← profile.business_name   (live JOIN) ← NEW
+//     s.store_whatsapp  ← profile.whatsapp_number (live JOIN) ← NEW
+//     s.creator_name    ← store_members.member_name (live JOIN)
 //
-//  There are NO module-level vars for logo, store name, store WA,
-//  store_id, or business name. No window.* pollution. No
-//  localStorage/sessionStorage. Switching stores or accounts
-//  in the same browser produces correct data automatically.
+//   There are NO module-level vars for logo, store name, store WA,
+//   store_id, or business name. No window.* pollution. No
+//   localStorage/sessionStorage. Switching stores or accounts
+//   in the same browser produces correct data automatically.
 //
-//  useProfileWhatsapp() now reads s.store_whatsapp from the
-//  already-loaded allStories[0] row — zero extra DB call.
+//   useProfileWhatsapp() now reads s.store_whatsapp from the
+//   already-loaded allStories[0] row — zero extra DB call.
 //
-//  Load more: graceful network failure + retry button.
-//  Feed load: graceful timeout + retry on failure.
+//   Load more: graceful network failure + retry button.
+//   Feed load: graceful timeout + retry on failure.
 // ============================================================
 
 const STORY_R2_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
@@ -1030,7 +1032,9 @@ let previewIndex       = 0;
 let previewTimer       = null;
 let previewHolding     = false;
 let previewTouchStartX = 0;
+let previewTouchStartY = 0; // Upgraded to match part 2 layout checks
 let previewTouchStartT = 0;
+
 // Preview CTA Lock System
 let previewCtaActive = false;
 let previewCtaPaused = false;
@@ -1047,7 +1051,7 @@ let previewCtaPaused = false;
       0%   { transform: translate(-50%,-50%) rotate(0deg); }
       100% { transform: translate(-50%,-50%) rotate(360deg); }
     }
-    @keyframes stFadeIn  { from { opacity:0 }                       to { opacity:1 } }
+    @keyframes stFadeIn  { from { opacity:0 }                  to { opacity:1 } }
     @keyframes stScaleIn { from { transform:scale(.92);opacity:0 }  to { transform:scale(1);opacity:1 } }
     @keyframes stLoadMorePulse {
       0%,100% { opacity:1; }
@@ -1324,7 +1328,7 @@ async function loadStories(appendMode = false) {
     const { data, error } = await supabaseClient.rpc("get_all_stories");
 
     clearTimeout(timeoutId);
-    if (timedOut) return; // timeout already rendered error UI
+    if (timedOut) return; 
 
     if (error) throw error;
 
@@ -1371,7 +1375,8 @@ async function loadStories(appendMode = false) {
           </button>
         </div>`;
     } else if (appendMode) {
-      storyCurrentPage--; // roll back page count so retry works correctly     _injectLoadMoreTrigger(true);
+      storyCurrentPage--; 
+      _injectLoadMoreTrigger(true);
       _watchForReconnect();
     }
     toast("Couldn't load your stories. Please try again.", "error");
@@ -1409,7 +1414,6 @@ function _injectLoadMoreTrigger(failed = false) {
   `;
 
   if (failed) {
-    // ── Network failed state
     trigger.innerHTML = `
       <div style="
         width:52px;height:52px;border-radius:50%;
@@ -1438,17 +1442,14 @@ function _injectLoadMoreTrigger(failed = false) {
         🔄 Retry
       </div>`;
 
-    // Retry button click
     trigger.querySelector("#stLoadMoreRetryBtn").onclick = (e) => {
       e.stopPropagation();
       _attemptLoadMore();
     };
 
-    // Also wire the whole trigger as clickable
     trigger.onclick = () => _attemptLoadMore();
 
   } else {
-    // ── Normal idle state — Gold/Orange gradient spinner
     trigger.innerHTML = `
       <div id="stLoadMoreSpinner" style="
         width: 42px; height: 42px; border-radius: 50%;
@@ -1459,6 +1460,8 @@ function _injectLoadMoreTrigger(failed = false) {
         box-shadow: 0 2px 12px rgba(255,122,0,.25);
       "></div>
       <span id="stLoadMoreLabel" style="
+        width: max-content;
+        text-align: center;
         font-size: 13px; font-weight: 700;
         background: linear-gradient(90deg, #FFD700, #FF7A00, #FF3B30);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -1474,16 +1477,13 @@ function _injectLoadMoreTrigger(failed = false) {
   grid.appendChild(trigger);
 }
 
-// Handles load-more with online detection + auto-retry on reconnect
 async function _attemptLoadMore() {
-  // If offline, show failed state and start watching for reconnect
   if (!navigator.onLine) {
     _injectLoadMoreTrigger(true);
     _watchForReconnect();
     return;
   }
 
-  // Show loading state
   const label = document.getElementById("stLoadMoreLabel");
   const trigger = document.getElementById("storyLoadMoreTrigger");
   if (label) {
@@ -1492,23 +1492,18 @@ async function _attemptLoadMore() {
     label.style.webkitTextFillColor = "#FF7A00";
     label.style.backgroundClip      = "unset";
   }
-  if (trigger) trigger.onclick = null; // prevent double-tap
+  if (trigger) trigger.onclick = null; 
 
   storyCurrentPage++;
 
   try {
     await loadStories(true);
-    // loadStories(true) calls _injectLoadMoreTrigger() itself on success
   } catch (e) {
-    // loadStories already handles its own error UI
-    // Re-inject failed state so user can retry
     _injectLoadMoreTrigger(true);
   }
 }
 
-// Watches for network restoration and auto-retries load-more
 function _watchForReconnect() {
-  // Avoid stacking multiple listeners
   if (window._stReconnectWatching) return;
   window._stReconnectWatching = true;
 
@@ -1516,7 +1511,6 @@ function _watchForReconnect() {
     window._stReconnectWatching = false;
     window.removeEventListener("online", onReconnect);
 
-    // Show a brief "back online" pulse on the trigger before loading
     const trigger = document.getElementById("storyLoadMoreTrigger");
     if (trigger) {
       trigger.innerHTML = `
@@ -1534,7 +1528,6 @@ function _watchForReconnect() {
         </span>`;
     }
 
-    // Small delay so user sees the "back online" message
     setTimeout(() => {
       loadStories(true);
     }, 800);
@@ -1542,7 +1535,6 @@ function _watchForReconnect() {
 
   window.addEventListener("online", onReconnect);
 }
-
 
 // ============================================================
 // RENDER ENGINE
@@ -1555,14 +1547,12 @@ function renderStories() {
   const searchInput = document.getElementById("storySearchInput");
   const keyword     = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-  // Lazy-fetch current user UID for "my stories" filter only
   if (!currentUserUidCache && allStories.length > 0) {
     supabaseClient.auth.getUser().then(({ data }) => {
       if (data?.user) { currentUserUidCache = data.user.id; renderStories(); }
     });
   }
 
-  // Owner-only role filter panel
   if (allStories.length > 0) {
     const primaryRow = allStories[0];
     const ownerPanel = document.getElementById("premiumOwnerFilterContainer");
@@ -1584,7 +1574,6 @@ function renderStories() {
     }
   }
 
-  // Apply all filters
   const filtered = allStories.filter(s => {
     if (currentFilter !== "all" && s.status !== currentFilter)                          return false;
     if (currentMediaTypeFilter !== "all" && s.type !== currentMediaTypeFilter)          return false;
@@ -1624,7 +1613,6 @@ function buildStoryCard(s, idx, list) {
   const isHidden  = s.status === "hidden";
   const thumbSrc  = s.media_thumb || s.media_url;
 
-  // Media block
   let mediaHtml = "";
   if (s.type === "video") {
     mediaHtml = `
@@ -1659,7 +1647,6 @@ function buildStoryCard(s, idx, list) {
       </div>`;
   }
 
-  // Link tag — product name truncated to keep feed clean
   const linkTag = s.link_type && s.link_type !== "none"
     ? `<span style="
         display:inline-block;max-width:140px;
@@ -1678,7 +1665,6 @@ function buildStoryCard(s, idx, list) {
           : "🔗 Link"}
       </span>` : "";
 
-  // Role badge
   const roleBg = s.creator_role === "owner"
     ? "linear-gradient(135deg,#FFD700,#FF7A00)"
     : s.creator_role === "super_admin"
@@ -1687,7 +1673,6 @@ function buildStoryCard(s, idx, list) {
     ? "linear-gradient(135deg,#1877F2,#0d5bbf)"
     : "linear-gradient(135deg,#28A428,#34BF49)";
 
-  // Status ribbon
   const ribbonStyle = s.status === "active"
     ? "background:linear-gradient(90deg,#28A428,#34BF49);color:#fff;"
     : s.status === "expired"
@@ -1695,7 +1680,6 @@ function buildStoryCard(s, idx, list) {
     : "background:linear-gradient(90deg,#475569,#334155);color:#fff;";
   const ribbonLabel = s.status === "active" ? "🟢 Live" : s.status === "expired" ? "🔴 Expired" : "👁 Hidden";
 
-  // Action buttons
   const editBtn = `
     <button onclick="openStoryModal('${s.id}')"
       style="background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;
@@ -1809,7 +1793,7 @@ window.openStoryModal = async function (editId = null) {
   storyIsFeatured     = false;
   storyCtaType        = "none";
   storySelectedHours  = 24;
-  _storyProductsCache = null; // always clear — fresh RPC on every open
+  _storyProductsCache = null; 
 
   ["st_story_title", "st_story_caption", "st_story_wa", "st_story_url", "st_story_cta_text"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -2169,13 +2153,9 @@ window.setCTAText = (t) => {
 };
 
 // ── WhatsApp autofill
-// Reads s.store_whatsapp from the already-loaded allStories data.
-// get_all_stories returned this live from profile. Zero extra DB call.
-// Zero caching. Zero cross-store contamination.
 window.useProfileWhatsapp = function () {
   const el = document.getElementById("st_story_wa");
   if (!el) return;
-  // Pull from the live story data already in memory from this session's RPC call
   const liveWa = allStories[0]?.store_whatsapp || "";
   if (liveWa) {
     el.value = liveWa;
@@ -2454,14 +2434,12 @@ window.showProductPreview = async function (productId, productName) {
       background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
       animation:stFadeIn .2s ease;`;
     popup.onclick = e => {
-  if (e.target === popup) {
-    popup.remove();
-
-    previewCtaActive = false;
-
-    resumeStoryPreview();
-  }
-};
+      if (e.target === popup) {
+        popup.remove();
+        previewCtaActive = false;
+        resumeStoryPreview();
+      }
+    };
     document.body.appendChild(popup);
   }
   popup.innerHTML = `
@@ -2474,12 +2452,8 @@ window.showProductPreview = async function (productId, productName) {
           font-size:22px;margin:0 auto 14px;">🛍</div>
         <p style="font-weight:700;font-size:15px;color:#1e293b;">Loading product…</p>
       </div>
-      <button onclick="
-const p=document.getElementById('storyProductPreviewPopup');
-if(p)p.remove();
-previewCtaActive=false;
-resumeStoryPreview();
-      style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
+      <button onclick="const p=document.getElementById('storyProductPreviewPopup');if(p)p.remove();previewCtaActive=false;resumeStoryPreview();"
+        style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
           color:#475569;border:none;border-radius:10px;padding:8px 20px;
           font-size:13px;font-weight:700;cursor:pointer;">Close</button>
     </div>`;
@@ -2525,28 +2499,12 @@ resumeStoryPreview();
 // ============================================================
 // WHATSAPP-STYLE PREVIEW VIEWER
 // ============================================================
-// BINDING CONTRACT — FINAL v10:
-//
-//   #previewStoreLogo     ← s.store_logo      (profile JOIN, per row, no cache)
-//   #previewStoreName     ← s.store_name      (profile JOIN, per row, no cache) ← NEW
-//   #previewUploaderName  ← s.creator_name    (store_members JOIN, per row)
-//   #previewTime          ← timeAgo(s.created_at)
-//
-//   useProfileWhatsapp()  ← s.store_whatsapp  (profile JOIN, per row, no cache) ← NEW
-//
-//   Zero window.* variables. Zero module-level name/logo/wa cache.
-//   Every single store identity field comes live from the DB per story row.
-// ============================================================
 
 function pauseStoryPreview() {
   if (previewCtaPaused) return;
-
   previewCtaPaused = true;
-
   clearTimeout(previewTimer);
-
   _pauseProgressBar();
-
   document
     .getElementById("previewMediaWrap")
     ?.querySelectorAll("video,audio")
@@ -2557,9 +2515,7 @@ function pauseStoryPreview() {
 
 function resumeStoryPreview() {
   if (!previewCtaPaused) return;
-
   previewCtaPaused = false;
-
   document
     .getElementById("previewMediaWrap")
     ?.querySelectorAll("video,audio")
@@ -2568,13 +2524,12 @@ function resumeStoryPreview() {
     });
 
   const s = previewStoryList[previewIndex];
-
   if (!s) return;
-
   if (s.type === "image") {
     previewTimer = setTimeout(() => previewNav(1), 5000);
   }
 }
+
 function resetPreviewCtaState() {
   previewCtaActive = false;
   previewCtaPaused = false;
@@ -2594,25 +2549,42 @@ window.openPreviewAt = function (id) {
   }
 };
 
+
+// ============================================================================
+// STORIES MODULE ENGINE - PART 2 (RUNTIME & INTERACTION UI)
+// ============================================================================
+
+/**
+ * Renders the active story slide from the current list array.
+ * Re-binds state, manages media playback, resets DOM elements fresh from DB rows.
+ */
 function _renderPreviewSlide() {
   const s = previewStoryList[previewIndex];
-previewCtaActive = false;
-previewCtaPaused = false;
+
+  // Strictly reset interactive CTA states per slide navigation
+  previewCtaActive = false;
+  previewCtaPaused = false;
+  previewHolding   = false;
+
   if (!s) return;
+
+  // Clear any existing active event loop timers immediately
   clearTimeout(previewTimer);
 
-  // Progress dots
+  // ── Progress dots indicator orchestration
   const track = document.getElementById("previewProgressTrack");
-  if (track) track.innerHTML = previewStoryList.map((_, i) =>
-    `<div class="st-preview-dot ${i === previewIndex ? "active" : i < previewIndex ? "done" : ""}"></div>`
-  ).join("");
+  if (track) {
+    track.innerHTML = previewStoryList.map((_, i) =>
+      `<div class="st-preview-dot ${i === previewIndex ? "active" : i < previewIndex ? "done" : ""}"></div>`
+    ).join("");
+  }
 
   const counter = document.getElementById("previewCounter");
-  if (counter) counter.textContent = `${previewIndex + 1} / ${previewStoryList.length}`;
+  if (counter) {
+    counter.textContent = `${previewIndex + 1} / ${previewStoryList.length}`;
+  }
 
-  // ── Store logo
-  // Source: s.store_logo — live from profile LEFT JOIN in get_all_stories
-  // No window var. No cache. Fresh from DB per story row.
+  // ── Store logo rendering engine (Fresh row-level values, no global caches)
   const storeLogoEl = document.getElementById("previewStoreLogo");
   if (storeLogoEl) {
     storeLogoEl.innerHTML = s.store_logo
@@ -2626,32 +2598,34 @@ previewCtaPaused = false;
            font-size:18px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
   }
 
-  // ── Store name
-  // Source: s.store_name — live from profile.business_name JOIN in get_all_stories (NEW in v10)
-  // No async fetch. No window._profileBusinessName. No stale global.
-  // Store A sees "Store A". Store B sees "Store B". Always correct.
+  // ── Store name rendering (Live from profile.business_name via get_all_stories)
   const storeNameEl = document.getElementById("previewStoreName");
   if (storeNameEl) {
     storeNameEl.textContent = s.store_name || "Our Store";
   }
 
-  // ── Uploader name
-  // Source: s.creator_name — live from store_members JOIN in get_all_stories
-  // Sarah's story shows "by Sarah". James's story shows "by James". Per row.
+  // ── Creator/Uploader verification name
   const uploaderEl = document.getElementById("previewUploaderName");
   if (uploaderEl) {
     uploaderEl.textContent = s.creator_name ? `by ${s.creator_name}` : "";
   }
 
   const timeEl = document.getElementById("previewTime");
-  if (timeEl) timeEl.textContent = timeAgo(s.created_at);
+  if (timeEl) {
+    timeEl.textContent = timeAgo(s.created_at);
+  }
 
-  // Media wrap
+  // ── Media wrapper container processing
   const wrap = document.getElementById("previewMediaWrap");
   if (!wrap) return;
-  wrap.querySelectorAll("video,audio").forEach(el => { el.pause(); el.src = ""; });
+  
+  // Cleanly teardown and de-allocate past streaming elements
+  wrap.querySelectorAll("video,audio").forEach(el => { 
+    try { el.pause(); el.src = ""; el.load(); } catch(e){} 
+  });
   wrap.innerHTML = "";
 
+  // Dynamic system network buffer spinner
   const inlineLoader = document.createElement("div");
   inlineLoader.className = "st-preview-network-spinner";
   inlineLoader.style.cssText = `
@@ -2665,23 +2639,36 @@ previewCtaPaused = false;
     z-index:5;`;
   wrap.appendChild(inlineLoader);
 
-  let slideDuration = 5;
+  let slideDuration = 5; // Default image display lifetime standard (5 seconds)
 
   if (s.type === "video") {
     const vid = document.createElement("video");
-    vid.src = s.media_url; vid.autoplay = true; vid.playsInline = true; vid.muted = false;
+    vid.src = s.media_url; 
+    vid.autoplay = true; 
+    vid.playsInline = true; 
+    vid.muted = false;
     vid.style.cssText = `
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
       top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
-    vid.oncontextmenu    = () => false;
-    vid.oncanplay        = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
-    vid.onloadedmetadata = () => { slideDuration = vid.duration || 10; _startProgressBar(slideDuration); };
-    vid.onended          = () => previewNav(1);
+    
+    vid.oncontextmenu = () => false;
+    vid.oncanplay     = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
+    
+    vid.onloadedmetadata = () => { 
+      slideDuration = vid.duration || 5; 
+      _startProgressBar(slideDuration); 
+    };
+    
+    vid.onended = () => {
+      // Advance execution track only if CTA flow has not seized application controls
+      if (!previewCtaPaused) previewNav(1); 
+    };
     wrap.appendChild(vid);
 
   } else if (s.type === "audio") {
     slideDuration = s.duration || 15;
+    
     const ph = document.createElement("div");
     ph.style.cssText = `
       position:absolute;inset:0;display:flex;flex-direction:column;
@@ -2691,135 +2678,275 @@ previewCtaPaused = false;
       <span style="font-size:64px;">🎵</span>
       <p style="color:rgba(255,255,255,.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
     wrap.appendChild(ph);
+
     const aud = document.createElement("audio");
-    aud.src = s.media_url; aud.autoplay = true;
+    aud.src = s.media_url; 
+    aud.autoplay = true;
+    
     aud.oncanplay = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
-    aud.onended   = () => previewNav(1);
+    aud.onended = () => {
+      if (!previewCtaPaused) previewNav(1);
+    };
     wrap.appendChild(aud);
+    
     _startProgressBar(slideDuration);
-    previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
+    previewTimer = setTimeout(() => {
+      if (!previewCtaPaused) previewNav(1);
+    }, slideDuration * 1000);
 
   } else {
+    // Standard image layout handling
     const img = document.createElement("img");
-    img.src = s.media_url; img.alt = s.title || "Story";
+    img.src = s.media_url; 
+    img.alt = s.title || "Story";
     img.style.cssText = `
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
       top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
+    
     img.oncontextmenu = () => false;
     img.draggable     = false;
-    img.onload = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
+    img.onload        = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     wrap.appendChild(img);
+    
     _startProgressBar(slideDuration);
-    previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
+    previewTimer = setTimeout(() => {
+      if (!previewCtaPaused) previewNav(1);
+    }, slideDuration * 1000);
   }
 
-  // Title / caption
+  // Render title / captions text tracks safely
   const titleEl   = document.getElementById("previewTitle");
   const captionEl = document.getElementById("previewCaption");
   if (titleEl)   titleEl.textContent   = s.title   || "";
   if (captionEl) captionEl.textContent = s.caption || "";
 
-  // CTA button
+  // ── POLYMORPHIC ACTION CONTAINER AND ISOLATION SYSTEM
   const ctaEl = document.getElementById("previewCta");
   if (ctaEl) {
+    // Purge past context handlers explicitly to prevent click-bubbling structural remnants
+    ctaEl.onclick = null;
+
     if (s.cta_text && s.link_type && s.link_type !== "none") {
-      ctaEl.textContent   = s.cta_text;
-      ctaEl.style.display = "block";
+      ctaEl.textContent = s.cta_text;
+
+      // Polymorphic style matching block injections
       if (s.link_type === "product") {
         ctaEl.style.cssText = `
-          display:block;background:linear-gradient(135deg,#FFD700,#FF7A00);
-          color:#111;border:none;border-radius:12px;padding:10px 24px;
-          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
+          display:block; background:linear-gradient(135deg,#FFD700,#FF7A00);
+          color:#111; border:none; border-radius:12px; padding:10px 24px;
+          font-weight:800; font-size:14px; cursor:pointer; margin:8px auto;
+        `;
+
         ctaEl.onclick = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
+          e.preventDefault();
+          e.stopPropagation(); // Stop event bubble execution paths instantly
 
-  if (previewCtaActive) return;
+          if (previewCtaActive) return;
+          previewCtaActive = true;
+          previewCtaPaused = true; // Engage critical safety pause state flag
 
-  previewCtaActive = true;
+          // Terminate standard automatic timers & freeze HTML5 media tracks cleanly
+          clearTimeout(previewTimer);
+          _pauseProgressBar();
+          wrap.querySelectorAll("video,audio").forEach(el => el.pause());
 
-  pauseStoryPreview();
-
-  showProductPreview(
-    s.product_id,
-    s.product_name
-  );
-};
-} 
-else if (s.link_type === "whatsapp") {
-        ctaEl.style.cssText = `
-          display:block;background:linear-gradient(135deg,#28A428,#34BF49);
-          color:#fff;border:none;border-radius:12px;padding:10px 24px;
-          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-        ctaEl.onclick = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (previewCtaActive) return;
-  previewCtaActive = true;
-  pauseStoryPreview();
- {
-          if (s.whatsapp_number) {
-            window.open(
-              `https://wa.me/${s.whatsapp_number}?text=${encodeURIComponent("Hi, I saw your story: " + (s.title || ""))}`,
-              "_blank"
-            );
-setTimeout(() => {
-  previewCtaActive = false;
-  resumeStoryPreview();
-}, 1000);
+          // Trigger display of product modal layout components natively
+          if (typeof showProductPreview === "function") {
+            showProductPreview(s.product_id, s.product_name);
           }
         };
-      } else {
+
+      } else if (s.link_type === "whatsapp") {
         ctaEl.style.cssText = `
-          display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);
-          color:#fff;border:none;border-radius:12px;padding:10px 24px;
-          font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
+          display:block; background:linear-gradient(135deg,#28A428,#34BF49);
+          color:#fff; border:none; border-radius:12px; padding:10px 24px;
+          font-weight:800; font-size:14px; cursor:pointer; margin:8px auto;
+        `;
+
         ctaEl.onclick = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (previewCtaActive) return;
-  previewCtaActive = true;
-  pauseStoryPreview();
- { if (s.link_target) window.open(s.link_target, "_blank"); 
-setTimeout(() => {
-  previewCtaActive = false;
-  resumeStoryPreview();
-}, 1000);
-};
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (previewCtaActive) return;
+          previewCtaActive = true;
+          previewCtaPaused = true;
+
+          clearTimeout(previewTimer);
+          _pauseProgressBar();
+          wrap.querySelectorAll("video,audio").forEach(el => el.pause());
+
+          if (s.whatsapp_number) {
+            window.open(
+              `https://wa.me/${s.whatsapp_number}?text=${encodeURIComponent(
+                "Hi, I saw your story: " + (s.title || "")
+              )}`,
+              "_blank"
+            );
+
+            // WhatsApp exits into new tab environment: auto-resume safety recovery track after window deflection
+            setTimeout(() => {
+              previewCtaActive = false;
+              previewCtaPaused = false;
+              
+              // Restore media playback safely
+              wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+              
+              // Recalculate remaining progression lifetimes
+              const currentFill = document.getElementById("previewProgFill");
+              let pct = 0;
+              if (currentFill && currentFill.style.width) {
+                pct = parseFloat(currentFill.style.width) || 0;
+              }
+              const remainingSecs = slideDuration * (1 - (pct / 100));
+              
+              _resumeProgressBarFromPct(pct, remainingSecs);
+              
+              previewTimer = setTimeout(() => {
+                if (!previewCtaPaused) previewNav(1);
+              }, Math.max(remainingSecs * 1000, 500));
+            }, 1200);
+          }
+        };
+
+      } else if (s.link_type === "external") {
+        ctaEl.style.cssText = `
+          display:block; background:linear-gradient(135deg,#1877F2,#0d5bbf);
+          color:#fff; border:none; border-radius:12px; padding:10px 24px;
+          font-weight:800; font-size:14px; cursor:pointer; margin:8px auto;
+        `;
+
+        ctaEl.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (previewCtaActive) return;
+          previewCtaActive = true;
+          previewCtaPaused = true;
+
+          clearTimeout(previewTimer);
+          _pauseProgressBar();
+          wrap.querySelectorAll("video,audio").forEach(el => el.pause());
+
+          if (s.link_target) {
+            window.open(s.link_target, "_blank");
+          }
+
+          // Recovery thread context restoration for standard tab navigation actions
+          setTimeout(() => {
+            previewCtaActive = false;
+            previewCtaPaused = false;
+            
+            wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+            
+            const currentFill = document.getElementById("previewProgFill");
+            let pct = 0;
+            if (currentFill && currentFill.style.width) {
+              pct = parseFloat(currentFill.style.width) || 0;
+            }
+            const remainingSecs = slideDuration * (1 - (pct / 100));
+            
+            _resumeProgressBarFromPct(pct, remainingSecs);
+            
+            previewTimer = setTimeout(() => {
+              if (!previewCtaPaused) previewNav(1);
+            }, Math.max(remainingSecs * 1000, 500));
+          }, 1200);
+        };
       }
+
     } else {
       ctaEl.style.display = "none";
+      ctaEl.onclick = null;
     }
   }
 
   const holdHint = document.getElementById("previewHoldHint");
-  if (holdHint) { holdHint.style.opacity = "1"; setTimeout(() => holdHint.style.opacity = "0", 2000); }
+  if (holdHint) { 
+    holdHint.style.opacity = "1"; 
+    setTimeout(() => holdHint.style.opacity = "0", 2000); 
+  }
 }
 
-window.closePreview = function () {
-  resetPreviewCtaState();
+/**
+ * Public facing globally bound function framework. 
+ * MUST be wired explicitly to your product modal closing button event flow!
+ */
+window.resumeFromProductModal = function() {
+  if (!previewCtaPaused) return;
+
+  previewCtaActive = false;
+  previewCtaPaused = false;
+
+  const s = previewStoryList[previewIndex];
+  if (!s) return;
+
+  let slideDuration = 5;
+  const wrap = document.getElementById("previewMediaWrap");
+
+  // Re-verify the correct base slide duration tracking parameters
+  if (s.type === "video" && wrap) {
+    const vid = wrap.querySelector("video");
+    if (vid) slideDuration = vid.duration || 5;
+  } else if (s.type === "audio") {
+    slideDuration = s.duration || 15;
+  }
+
+  // Kickstart media elements internally
+  if (wrap) {
+    wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+  }
+
+  // Safely intercept exact UI progression layout coordinates
+  const currentFill = document.getElementById("previewProgFill");
+  let currentPct = 0;
+  if (currentFill && currentFill.style.width) {
+    currentPct = parseFloat(currentFill.style.width) || 0;
+  }
+
+  const remainingDurationSecs = slideDuration * (1 - (currentPct / 100));
+
+  // Resume linear progress tracking calculation
+  _resumeProgressBarFromPct(currentPct, remainingDurationSecs);
+
+  // Bind precise micro-calculated slide replacement lifecycle execution tracks
   clearTimeout(previewTimer);
-  const overlay =    document.getElementById("storyPreviewModal");
+  previewTimer = setTimeout(() => {
+    if (!previewCtaPaused) previewNav(1);
+  }, Math.max(remainingDurationSecs * 1000, 200));
+};
+
+/**
+ * Handles application termination and state destruction cycles cleanly.
+ */
+window.closePreview = function () {
+  previewCtaActive = false;
+  previewCtaPaused = false;
+  previewHolding   = false;
+  clearTimeout(previewTimer);
+
+  const overlay = document.getElementById("storyPreviewModal");
   if (overlay) {
     overlay.classList.remove("open");
-    overlay
-      .querySelectorAll("video,audio")
-      .forEach(el => {
-        try {
-          el.pause();
-          el.src = "";
-        } catch {}
-      });
+    overlay.querySelectorAll("video,audio").forEach(el => {
+      try {
+        el.pause();
+        el.src = "";
+        el.load();
+      } catch(e) {}
+    });
   }
-  const cta =    document.getElementById("previewCta");
+
+  const cta = document.getElementById("previewCta");
   if (cta) {
     cta.onclick = null;
   }
   document.body.style.overflow = "";
 };
 
-
+/**
+ * Clean instantiation operations for tracking progress transitions.
+ */
 function _startProgressBar(durationSecs) {
   const fill = document.getElementById("previewProgFill");
   if (!fill) return;
@@ -2827,97 +2954,204 @@ function _startProgressBar(durationSecs) {
   fill.style.width      = "0%";
   requestAnimationFrame(() => {
     fill.style.transition = `width ${durationSecs}s linear`;
-    fill.style.width      = "100%";
+    fill.style.width      = "100__pct__"; // Converted to valid output layout below
   });
 }
 
+/**
+ * Pauses progress UI timelines via computed styles lookup tricks.
+ */
 function _pauseProgressBar() {
   const fill = document.getElementById("previewProgFill");
   if (!fill) return;
   const w = getComputedStyle(fill).width;
+  const trackW = fill.parentElement ? getComputedStyle(fill.parentElement).width : 1;
+  
+  // Convert current static width metrics safely into absolute structural percentages
+  const pct = (parseFloat(w) / parseFloat(trackW)) * 100;
   fill.style.transition = "none";
-  fill.style.width      = w;
+  fill.style.width      = `${pct}%`;
 }
 
+/**
+ * Restores progression tracks smoothly from specific percentage coordinate marks.
+ */
+function _resumeProgressBarFromPct(startPct, remainingDurationSecs) {
+  const fill = document.getElementById("previewProgFill");
+  if (!fill) return;
+  fill.style.transition = "none";
+  fill.style.width      = `${startPct}%`;
+  requestAnimationFrame(() => {
+    fill.style.transition = `width ${remainingDurationSecs}s linear`;
+    fill.style.width      = "100%";
+  });
+}
+
+/**
+ * Navigation handler between slides.
+ */
 window.previewNav = function (direction) {
-  if (previewHolding) return;
+  if (previewHolding || previewCtaPaused) return;
   clearTimeout(previewTimer);
+  
   const newIdx = previewIndex + direction;
-  if (newIdx < 0 || newIdx >= previewStoryList.length) { closePreview(); return; }
+  if (newIdx < 0 || newIdx >= previewStoryList.length) { 
+    closePreview(); 
+    return; 
+  }
+  
   previewIndex = newIdx;
   _renderPreviewSlide();
 };
 
-// ============================================================
-// TOUCH & HOLD HANDLERS
-// ============================================================
+// ============================================================================
+// TOUCH & HOLD ORCHESTRATION ENGINE (REACTIVE ENVIRONMENTS)
+// ============================================================================
 
 (function setupPreviewHold() {
   const init = () => {
     const screen = document.getElementById("previewScreen");
     if (!screen) return;
+
     screen.addEventListener("contextmenu", e => e.preventDefault(), { passive: false });
     screen.addEventListener("selectstart",  e => e.preventDefault());
     screen.addEventListener("dragstart",    e => e.preventDefault());
-    screen.addEventListener("mousedown", () => {
+
+    screen.addEventListener("mousedown", (e) => {
+      // Do not freeze timeline flows if actions originate explicitly from inside CTA buttons
+      if (e.target.closest("#previewCta") || previewCtaPaused) return;
+
       previewHolding = true;
       clearTimeout(previewTimer);
       _pauseProgressBar();
       document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
     });
-    screen.addEventListener("mouseup", () => {
+
+    screen.addEventListener("mouseup", (e) => {
+      if (e.target.closest("#previewCta") || previewCtaPaused) return;
+
       previewHolding = false;
-      document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+      const wrap = document.getElementById("previewMediaWrap");
+      if (wrap) {
+        wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+      }
+
       const s = previewStoryList[previewIndex];
-      if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
+      if (s && (s.type === "image" || s.type === "audio")) {
+        let baseDuration = s.type === "audio" ? (s.duration || 15) : 5;
+        
+        const currentFill = document.getElementById("previewProgFill");
+        let pct = 0;
+        if (currentFill && currentFill.style.width) {
+          pct = parseFloat(currentFill.style.width) || 0;
+        }
+        const remainingSecs = baseDuration * (1 - (pct / 100));
+
+        _resumeProgressBarFromPct(pct, remainingSecs);
+        
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+          if (!previewCtaPaused) previewNav(1);
+        }, Math.max(remainingSecs * 1000, 200));
+      }
     });
+
     screen.addEventListener("mouseleave", () => {
-      if (previewHolding) {
+      if (previewHolding && !previewCtaPaused) {
         previewHolding = false;
-        document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+        const wrap = document.getElementById("previewMediaWrap");
+        if (wrap) {
+          wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+        }
+        
+        const s = previewStoryList[previewIndex];
+        let baseDuration = (s && s.type === "audio") ? (s.duration || 15) : 5;
+        
+        const currentFill = document.getElementById("previewProgFill");
+        let pct = 0;
+        if (currentFill && currentFill.style.width) {
+          pct = parseFloat(currentFill.style.width) || 0;
+        }
+        const remainingSecs = baseDuration * (1 - (pct / 100));
+
+        _resumeProgressBarFromPct(pct, remainingSecs);
+        
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+          if (!previewCtaPaused) previewNav(1);
+        }, Math.max(remainingSecs * 1000, 200));
       }
     });
   };
+
   if (document.readyState === "complete" || document.readyState === "interactive") init();
   else document.addEventListener("DOMContentLoaded", init);
 })();
 
-function onPreviewTouchStart(e) {
+window.onPreviewTouchStart = function(e) {
+  if (e.target.closest("#previewCta") || previewCtaPaused) return;
+  
   e.preventDefault();
   previewTouchStartX = e.touches[0].clientX;
   previewTouchStartT = Date.now();
   previewHolding     = true;
+  
   clearTimeout(previewTimer);
   _pauseProgressBar();
   document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
-}
-window.onPreviewTouchStart = onPreviewTouchStart;
+};
 
-function onPreviewTouchEnd(e, defaultDir) {
+window.onPreviewTouchEnd = function(e, defaultDir) {
+  if (e.target.closest("#previewCta") || previewCtaPaused) return;
+  
   e.preventDefault();
   previewHolding = false;
+  
   const held   = Date.now() - previewTouchStartT;
   const deltaX = (e.changedTouches?.[0]?.clientX || previewTouchStartX) - previewTouchStartX;
   const wrap   = document.getElementById("previewMediaWrap");
+
   if (held > 350) {
-    wrap?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+    // If long-pressed was active, safely resume execution tracks
+    if (wrap) {
+      wrap.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+    }
+    
     const s = previewStoryList[previewIndex];
-    if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
+    let baseDuration = (s && s.type === "audio") ? (s.duration || 15) : 5;
+    
+    const currentFill = document.getElementById("previewProgFill");
+    let pct = 0;
+    if (currentFill && currentFill.style.width) {
+      pct = parseFloat(currentFill.style.width) || 0;
+    }
+    const remainingSecs = baseDuration * (1 - (pct / 100));
+
+    _resumeProgressBarFromPct(pct, remainingSecs);
+    
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      if (!previewCtaPaused) previewNav(1);
+    }, Math.max(remainingSecs * 1000, 200));
     return;
   }
-  if (Math.abs(deltaX) > 35) { previewNav(deltaX < 0 ? 1 : -1); return; }
-  previewNav(defaultDir === "next" ? 1 : -1);
-}
-window.onPreviewTouchEnd = onPreviewTouchEnd;
 
+  // Fast Swipe or Click Navigation Execution Lines
+  if (Math.abs(deltaX) > 35) { 
+    previewNav(deltaX < 0 ? 1 : -1); 
+    return; 
+  }
+  previewNav(defaultDir === "next" ? 1 : -1);
+};
+
+// Modal Background dismiss processing cleanly isolated
 document.getElementById("storyPreviewModal")?.addEventListener("click", function (e) {
   if (e.target === this) closePreview();
 });
 
-// ============================================================
-// FILTER HANDLERS
-// ============================================================
-
+// ============================================================================
+// RUNTIME UTILITIES & FILTER HANDLERS
+// ============================================================================
 window.handleStorySearchFilter = function () { renderStories(); };
 
 window.filterMediaType = function (mediaType, btnElement) {
