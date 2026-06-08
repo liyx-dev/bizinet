@@ -1,35 +1,7 @@
-// ================================================================
-//  BiziNet · Navigation Control Center
-//  dashboard/js/tabscript.js
-// ================================================================
-
-// 1. Responsive layout handler
-function applyTableLayout() {
-  const desktopWrap = document.querySelector('.table-wrap');
-  const mobileWrap = document.getElementById('productsMobileContainer');
-  if (!desktopWrap || !mobileWrap) return;
-
-  const isDesktop = window.innerWidth >= 768;
-  desktopWrap.style.display = isDesktop ? "block" : "none";
-  mobileWrap.style.display = isDesktop ? "none" : "flex";
-}
-
-window.addEventListener("resize", applyTableLayout);
-window.addEventListener("orientationchange", applyTableLayout);
-document.addEventListener("DOMContentLoaded", applyTableLayout);
-
 // =============================================
-// TAB SYSTEM & SMART SWIPE CONFIGURATION
+// TAB SYSTEM & SMART SWIPE GESTURES
 // =============================================
 const tabsList = ["uploadTab", "storiesTab", "categoriesTab", "settingsTab"];
-
-// Maps data-tab attributes directly to container IDs defined in tab-loader.js
-const containerMapping = {
-  uploadTab: "productsContainer",
-  storiesTab: "storiesContainer",
-  categoriesTab: "categoriesContainer",
-  settingsTab: "settingsContainer"
-};
 
 const swipeConfig = {
   minDistance: 72,              // must move this far
@@ -66,7 +38,7 @@ const swipeState = {
 };
 
 function getActiveTabId() {
-  return document.querySelector(".tab-btn.active")?.getAttribute("data-tab") || tabsList[0];
+  return document.querySelector(".tab-btn.active")?.dataset?.tab || tabsList[0];
 }
 
 function isModalOpen() {
@@ -79,114 +51,87 @@ function isModalOpen() {
 
 function isIgnoredSwipeTarget(target) {
   if (!(target instanceof Element)) return true;
+
   if (target.closest(swipeConfig.ignoredSelector)) return true;
   if (target.closest(".tabs-container")) return true;
   if (target.closest("[data-swipe-lock='true']")) return true;
+
   return false;
 }
 
 function hasHorizontalScrollableAncestor(target) {
   let el = target instanceof Element ? target : null;
+
   while (el && el !== document.body) {
     const style = window.getComputedStyle(el);
     const overflowX = style.overflowX;
+
     if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) {
       return true;
     }
+
     el = el.parentElement;
   }
+
   return false;
 }
 
 function pauseMediaInSection(section) {
   if (!section) return;
+
   section.querySelectorAll("video, audio").forEach(media => {
     try {
       media.pause();
     } catch (_) {}
   });
+
+  // If you use iframe embeds (YouTube/Vimeo), they need provider-specific pause handling.
+  // For a hard stop, you can reset src here, but that can restart the media later.
+  // section.querySelectorAll("iframe").forEach(frame => {
+  //   const src = frame.src;
+  //   frame.src = src;
+  // });
 }
 
 function lockSection(section, locked) {
   if (!section) return;
+
   if ("inert" in section) {
     section.inert = locked;
   }
+
   section.setAttribute("aria-hidden", locked ? "true" : "false");
 }
 
-// ── UPGRADED SWITCHNATION RULE ENGINE ─────────────────────────────────
 function switchTab(tabId) {
   if (!tabId || !tabsList.includes(tabId)) return;
 
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-  if (!targetBtn) return;
+  const targetSection = document.getElementById(tabId);
+  if (!targetBtn || !targetSection) return;
 
-  // Toggle active button states
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn === targetBtn);
   });
 
-  // Toggle outer section visibility mapping using correct loader container IDs
-  Object.entries(containerMapping).forEach(([key, divId]) => {
-    const section = document.getElementById(divId);
-    if (!section) return;
-
-    const isActive = (key === tabId);
-    
-    if (isActive) {
-      section.style.setProperty("display", "block", "important");
-      section.classList.add("active");
-    } else {
-      section.style.setProperty("display", "none", "important");
-      section.classList.remove("active");
-    }
-    
+  document.querySelectorAll(".admin-section").forEach(section => {
+    const isActive = section.id === tabId;
+    section.classList.toggle("active", isActive);
     lockSection(section, !isActive);
+
     if (!isActive) {
       pauseMediaInSection(section);
     }
   });
 
-  // Enhanced: Keeps the active tab button scrolled into view gracefully on mobile viewport rails
-  const tabsContainer = document.querySelector(".tabs-container");
-  if (tabsContainer) {
-    const containerWidth = tabsContainer.offsetWidth;
-    const btnLeft = targetBtn.offsetLeft;
-    const btnWidth = targetBtn.offsetWidth;
-    tabsContainer.scrollTo({
-      left: btnLeft - (containerWidth / 2) + (btnWidth / 2),
-      behavior: "smooth"
-    });
-  }
-}
-
-// ── LIFECYCLE INTERACTION HOOK ────────────────────────────────────
-window.initTabNavigation = function() {
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.removeEventListener("click", handleTabClick);
-    btn.addEventListener("click", handleTabClick);
+  // Keep the active tab button visible on small screens
+  targetBtn.scrollIntoView({
+    behavior: "smooth",
+    inline: "center",
+    block: "nearest"
   });
-  
-  const initialTab = getActiveTabId();
-  switchTab(initialTab);
-  applyTableLayout();
-};
-
-function handleTabClick(e) {
-  const tabId = e.currentTarget.getAttribute("data-tab");
-  switchTab(tabId);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (!document.getElementById("productsContainer")) {
-    window.initTabNavigation();
-  }
-});
-
-// =============================================
-// GESTURE RECOGNITION SWIPE ENGINE
-// =============================================
 function resetSwipeState() {
   swipeState.tracking = false;
   swipeState.startX = 0;
@@ -201,6 +146,7 @@ document.addEventListener("touchstart", e => {
   }
 
   const target = e.target;
+
   if (isModalOpen()) return;
   if (isIgnoredSwipeTarget(target)) return;
   if (hasHorizontalScrollableAncestor(target)) return;
@@ -220,6 +166,7 @@ document.addEventListener("touchmove", e => {
   const dx = currentX - swipeState.startX;
   const dy = currentY - swipeState.startY;
 
+  // If it becomes clearly vertical scrolling, stop tracking it as a swipe.
   if (Math.abs(dy) > Math.abs(dx) * swipeConfig.directionRatio) {
     resetSwipeState();
   }
@@ -234,8 +181,11 @@ document.addEventListener("touchend", e => {
     return;
   }
 
-  const dx = touch.clientX - swipeState.startX;
-  const dy = touch.clientY - swipeState.startY;
+  const endX = touch.clientX;
+  const endY = touch.clientY;
+
+  const dx = endX - swipeState.startX;
+  const dy = endY - swipeState.startY;
   const absX = Math.abs(dx);
   const absY = Math.abs(dy);
   const duration = performance.now() - swipeState.startTime;
@@ -247,6 +197,7 @@ document.addEventListener("touchend", e => {
   if (document.querySelector(".ql-editor:focus")) return;
   if (document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus")) return;
 
+  // Must be a real horizontal swipe
   if (absX < swipeConfig.minDistance) return;
   if (absX <= absY * swipeConfig.directionRatio) return;
   if (duration > swipeConfig.maxDuration && absX < swipeConfig.minDistance * 1.5) return;
@@ -256,13 +207,22 @@ document.addEventListener("touchend", e => {
   const currentIndex = tabsList.indexOf(activeTab);
   if (currentIndex === -1) return;
 
+  // Swipe left -> next tab
   if (dx < 0 && currentIndex < tabsList.length - 1) {
     switchTab(tabsList[currentIndex + 1]);
   }
 
+  // Swipe right -> previous tab
   if (dx > 0 && currentIndex > 0) {
     switchTab(tabsList[currentIndex - 1]);
   }
 }, { passive: true });
 
 document.addEventListener("touchcancel", resetSwipeState, { passive: true });
+
+// Keep hidden tab media locked on first load too
+document.addEventListener("DOMContentLoaded", () => {
+  const initialTab = getActiveTabId();
+  switchTab(initialTab);
+});
+    
