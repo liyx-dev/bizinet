@@ -22,7 +22,11 @@ let bioEditor         = null;
 let _listenersBound   = false;
 let _settingsLoaded   = false; // track first load
 
-const R2_PUBLIC_BASE  = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
+const R2_PUBLIC_BASE  = window.R2_PUBLIC_BASE;
+const supabaseClient      = window.APP_CLIENT;
+const supabaseUrl         = window.APP_CONFIG.supabaseUrl;
+let   runtimeState        = window.APP_RUNTIME.runtimeState;
+let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
 
 // ── QUILL LINK POPUP FIX (z-index) ───────────────────────────────
 // Inject CSS to fix Quill tooltip showing below the editor box
