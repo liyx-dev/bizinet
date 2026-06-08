@@ -10,6 +10,22 @@
 //  7. Resolved RPC 404 & Edge 400 by adhering to existing API signatures
 // ================================================================
 
+// ================================================================
+//  BiziNet Tab Engine · Settings
+//  dashboard/js/settings.js
+// ================================================================
+
+let runtimeState = null;
+let currentSessionToken = null;
+const supabaseClient = window.APP_CLIENT;
+
+async function loadSettings() {
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
+
 // ── STATE ────────────────────────────────────────────────────────
 let settingsProfileId = null;
 let selectedCurrency  = "₦";
@@ -22,11 +38,6 @@ let bioEditor         = null;
 let _listenersBound   = false;
 let _settingsLoaded   = false; // track first load
 
-const R2_PUBLIC_BASE  = window.R2_PUBLIC_BASE;
-const supabaseClient      = window.APP_CLIENT;
-const supabaseUrl         = window.APP_CONFIG.supabaseUrl;
-let   runtimeState        = window.APP_RUNTIME.runtimeState;
-let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
 
 // ── QUILL LINK POPUP FIX (z-index) ───────────────────────────────
 // Inject CSS to fix Quill tooltip showing below the editor box
@@ -852,3 +863,5 @@ window.saveSettings = async function() {
     btn.innerHTML = "Save All Settings";
   }
 };
+
+window.loadSettings = loadSettings;
