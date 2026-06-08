@@ -93,6 +93,7 @@ async function loadDashboardTabs() {
 // ======================================================
 
 function initializeDashboard() {
+
   // Products
   if (typeof loadProducts === "function") {
     loadProducts();
@@ -113,12 +114,9 @@ function initializeDashboard() {
     loadSettings();
   }
 
-  // 🔥 THIS ACTIVATES RUNTIME MOUNTING AND TAB EXCLUSIVITY KEYS
-  if (typeof window.initTabNavigation === "function") {
-    window.initTabNavigation();
-  }
-
-  console.log("✅ Dashboard partials loaded successfully");
+  console.log(
+    "✅ Dashboard partials loaded successfully"
+  );
 }
 
 
@@ -130,4 +128,3 @@ document.addEventListener(
   "DOMContentLoaded",
   loadDashboardTabs
 );
-
