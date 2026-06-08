@@ -38,6 +38,8 @@
   <script src="js/dashboard-flags.js"></script>
   <!-- 5. Runtime — boot guard, fills APP_RUNTIME, resolves APP_RUNTIME_READY -->
   <script src="js/runtime.js"></script>
+   <!-- Shared helpers — toast, optimizeImage, R2 base -->
+  <script src="js/helpers.js"></script>
 </head>
 <body>
 
@@ -132,24 +134,15 @@
 </main>
 
 </div><!-- /admin-wrapper -->
-  <script> // TOAST
-  function toast(msg, type = "success", duration = 4000) {
-    const div = document.createElement("div");
-    div.className = `toast ${type}`;
-    div.textContent = msg;
-    document.body.appendChild(div);
-    requestAnimationFrame(() => div.classList.add("show"));
-    setTimeout(() => {
-      div.classList.remove("show");
-      setTimeout(() => div.remove(), 300);
-    }, duration);
-  }
-  </script>
-<script src="js/tabscript.js"></script>
   
-<script src="js/stories.js"></script>
-<script src="js/categories.js"></script>
-<script src="js/settings.js"></script>
+ <!-- Tab scripts — helpers already loaded so they can call toast() etc -->
+  <script src="js/products.js"></script>
+  <script src="js/stories.js"></script>
+  <script src="js/categories.js"></script>
+  <script src="js/settings.js"></script>
+
+  <!-- Tab switcher + swipe — calls loadStories(), loadCategoriesTab(), loadSettings() -->
+  <script src="js/tabs.js"></script>
 
 <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tab-loader.js"></script>
