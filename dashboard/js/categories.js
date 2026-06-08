@@ -9,8 +9,21 @@
 // Friendly language · Global CSS tokens · Search · Premium UX
 // All RPC calls unchanged — only UI layer upgraded
 // ================================================================
+// ================================================================
+//  BiziNet Tab Engine · Categories
+//  dashboard/js/categories.js
+// ================================================================
+
+let runtimeState = null;
+let currentSessionToken = null;
 const supabaseClient = window.APP_CLIENT;
-let   runtimeState   = window.APP_RUNTIME.runtimeState;
+
+async function loadCategoriesTab() {
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
 
 const EMOJI_SHORTCUTS = [
   "👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
@@ -347,4 +360,3 @@ async function loadCategoriesTab() {
 }
 
 window.loadCategoriesTab = loadCategoriesTab;
-
