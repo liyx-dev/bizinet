@@ -18,55 +18,18 @@ window.addEventListener("resize", applyTableLayout);
 window.addEventListener("orientationchange", applyTableLayout);
 document.addEventListener("DOMContentLoaded", applyTableLayout);
 
-// 2. Active Tab Switch Rules
-const tabsList = ["uploadTab", "storiesTab", "categoriesTab", "settingsTab"];
-
-function getActiveTabId() {
-  const activeBtn = document.querySelector(".tab-btn.active");
-  return activeBtn ? activeBtn.getAttribute("data-tab") : "uploadTab";
-}
-
-function switchTab(tabId) {
-  // Update your tab-btn styling classes
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    if(btn.getAttribute("data-tab") === tabId) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
-
-  // Toggle layout partition blocks visibility
-  const containerMapping = {
-    uploadTab: "productsContainer",
-    storiesTab: "storiesContainer",
-    categoriesTab: "categoriesContainer",
-    settingsTab: "settingsContainer"
-  };
-
-  Object.entries(containerMapping).forEach(([key, divId]) => {
-    const el = document.getElementById(divId);
-    if (!el) return;
-    el.style.display = (key === tabId) ? "block" : "none";
-  });
-}
-
-// Bind navigation clicks
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      switchTab(btn.getAttribute("data-tab"));
-    });
-  });
-  
-  // Default fallback state 
-  switchTab("uploadTab");
-});
-
 // =============================================
-// TAB SYSTEM & SMART SWIPE GESTURES
+// TAB SYSTEM & SMART SWIPE CONFIGURATION
 // =============================================
 const tabsList = ["uploadTab", "storiesTab", "categoriesTab", "settingsTab"];
+
+// Maps data-tab attributes directly to container IDs defined in tab-loader.js
+const containerMapping = {
+  uploadTab: "productsContainer",
+  storiesTab: "storiesContainer",
+  categoriesTab: "categoriesContainer",
+  settingsTab: "settingsContainer"
+};
 
 const swipeConfig = {
   minDistance: 72,              // must move this far
@@ -103,7 +66,7 @@ const swipeState = {
 };
 
 function getActiveTabId() {
-  return document.querySelector(".tab-btn.active")?.dataset?.tab || tabsList[0];
+  return document.querySelector(".tab-btn.active")?.getAttribute("data-tab") || tabsList[0];
 }
 
 function isModalOpen() {
@@ -116,80 +79,70 @@ function isModalOpen() {
 
 function isIgnoredSwipeTarget(target) {
   if (!(target instanceof Element)) return true;
-
   if (target.closest(swipeConfig.ignoredSelector)) return true;
   if (target.closest(".tabs-container")) return true;
   if (target.closest("[data-swipe-lock='true']")) return true;
-
   return false;
 }
 
 function hasHorizontalScrollableAncestor(target) {
   let el = target instanceof Element ? target : null;
-
   while (el && el !== document.body) {
     const style = window.getComputedStyle(el);
     const overflowX = style.overflowX;
-
     if ((overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8) {
       return true;
     }
-
     el = el.parentElement;
   }
-
   return false;
 }
 
 function pauseMediaInSection(section) {
   if (!section) return;
-
   section.querySelectorAll("video, audio").forEach(media => {
     try {
       media.pause();
     } catch (_) {}
   });
-
-  // If you use iframe embeds (YouTube/Vimeo), they need provider-specific pause handling.
-  // For a hard stop, you can reset src here, but that can restart the media later.
-  // section.querySelectorAll("iframe").forEach(frame => {
-  //   const src = frame.src;
-  //   frame.src = src;
-  // });
 }
 
 function lockSection(section, locked) {
   if (!section) return;
-
   if ("inert" in section) {
     section.inert = locked;
   }
-
   section.setAttribute("aria-hidden", locked ? "true" : "false");
 }
 
+// ── FIXED SWITCHNATION RULE ENGINE ─────────────────────────────────
 function switchTab(tabId) {
   if (!tabId || !tabsList.includes(tabId)) return;
 
   const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-  const targetSection = document.getElementById(tabId);
-  if (!targetBtn || !targetSection) return;
+  if (!targetBtn) return;
 
+  // Toggle active button states
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn === targetBtn);
   });
 
-  document.querySelectorAll(".admin-section").forEach(section => {
-    const isActive = section.id === tabId;
-    section.classList.toggle("active", isActive);
-    lockSection(section, !isActive);
+  // Toggle outer section visibility mapping using correct loader container IDs
+  Object.entries(containerMapping).forEach(([key, divId]) => {
+    const section = document.getElementById(divId);
+    if (!section) return;
 
+    const isActive = (key === tabId);
+    section.style.display = isActive ? "block" : "none";
+    section.classList.toggle("active", isActive);
+    
+    lockSection(section, !isActive);
     if (!isActive) {
       pauseMediaInSection(section);
     }
   });
 
-  // Keep the active tab button visible on small screens
+  // Keep the active tab button visible horizontally on small mobile screens
   targetBtn.scrollIntoView({
     behavior: "smooth",
     inline: "center",
@@ -197,6 +150,37 @@ function switchTab(tabId) {
   });
 }
 
+// ── LIFECYCLE INTERACTION HOOK ────────────────────────────────────
+// Exposed globally to be called safely by initializeDashboard() inside tab-loader.js
+window.initTabNavigation = function() {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    // Prevent duplicate listeners if initialized multiple times
+    btn.removeEventListener("click", handleTabClick);
+    btn.addEventListener("click", handleTabClick);
+  });
+  
+  // Set default initial tab layout view
+  const initialTab = getActiveTabId();
+  switchTab(initialTab);
+  applyTableLayout();
+};
+
+function handleTabClick(e) {
+  const tabId = e.currentTarget.getAttribute("data-tab");
+  switchTab(tabId);
+}
+
+// Fallback listener for non-async standard loading scenarios
+document.addEventListener("DOMContentLoaded", () => {
+  // Only auto-initialize if not utilizing the tab-loader script template system
+  if (!document.getElementById("productsContainer")) {
+    window.initTabNavigation();
+  }
+});
+
+// =============================================
+// GESTURE RECOGNITION SWIPE ENGINE
+// =============================================
 function resetSwipeState() {
   swipeState.tracking = false;
   swipeState.startX = 0;
@@ -211,7 +195,6 @@ document.addEventListener("touchstart", e => {
   }
 
   const target = e.target;
-
   if (isModalOpen()) return;
   if (isIgnoredSwipeTarget(target)) return;
   if (hasHorizontalScrollableAncestor(target)) return;
@@ -246,11 +229,8 @@ document.addEventListener("touchend", e => {
     return;
   }
 
-  const endX = touch.clientX;
-  const endY = touch.clientY;
-
-  const dx = endX - swipeState.startX;
-  const dy = endY - swipeState.startY;
+  const dx = touch.clientX - swipeState.startX;
+  const dy = touch.clientY - swipeState.startY;
   const absX = Math.abs(dx);
   const absY = Math.abs(dy);
   const duration = performance.now() - swipeState.startTime;
@@ -262,7 +242,7 @@ document.addEventListener("touchend", e => {
   if (document.querySelector(".ql-editor:focus")) return;
   if (document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus")) return;
 
-  // Must be a real horizontal swipe
+  // Verify swipe distance constraints match requirements
   if (absX < swipeConfig.minDistance) return;
   if (absX <= absY * swipeConfig.directionRatio) return;
   if (duration > swipeConfig.maxDuration && absX < swipeConfig.minDistance * 1.5) return;
@@ -272,22 +252,15 @@ document.addEventListener("touchend", e => {
   const currentIndex = tabsList.indexOf(activeTab);
   if (currentIndex === -1) return;
 
-  // Swipe left -> next tab
+  // Swipe left -> navigate to next tab index position
   if (dx < 0 && currentIndex < tabsList.length - 1) {
     switchTab(tabsList[currentIndex + 1]);
   }
 
-  // Swipe right -> previous tab
+  // Swipe right -> navigate to previous tab index position
   if (dx > 0 && currentIndex > 0) {
     switchTab(tabsList[currentIndex - 1]);
   }
 }, { passive: true });
 
 document.addEventListener("touchcancel", resetSwipeState, { passive: true });
-
-// Keep hidden tab media locked on first load too
-document.addEventListener("DOMContentLoaded", () => {
-  const initialTab = getActiveTabId();
-  switchTab(initialTab);
-});
-    
