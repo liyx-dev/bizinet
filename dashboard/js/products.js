@@ -1,144 +1,143 @@
-// =============================
-  //  RESPONSIVE TABLE SHOW/HIDE LOGIC
-// ===============================
-  // Show table on md+ screens, cards on mobile
+
+// ================================================================
+//  BiziNet · Products Tab (Upload & Manage)
+//  dashboard/js/products.js
+//
+//  Depends on (loaded before this in <head> or above in <body>):
+//    window.APP_CLIENT        — Supabase client (config.js)
+//    window.APP_CONFIG        — supabaseUrl, renderUrl (config.js)
+//    window.APP_RUNTIME       — runtimeState, currentSessionToken (runtime.js)
+//    window.APP_RUNTIME_READY — Promise (runtime.js)
+//    window.toast()           — toast notifications (helpers.js)
+//    window.optimizeImage()   — image compression (helpers.js)
+//    window.R2_PUBLIC_BASE    — R2 base URL (helpers.js)
+//    Quill, Sortable          — CDN scripts
+// ================================================================
+
+// ── Responsive table/card switcher — runs immediately on resize
 function applyTableLayout() {
-  const desktopWrap = document.querySelector('.table-wrap');
-  const mobileWrap = document.getElementById('productsMobileContainer');
-
+  const desktopWrap = document.querySelector(".table-wrap");
+  const mobileWrap  = document.getElementById("productsMobileContainer");
   if (!desktopWrap || !mobileWrap) return;
-
   const isDesktop = window.innerWidth >= 768;
-
   desktopWrap.style.display = isDesktop ? "block" : "none";
-
-  mobileWrap.style.display = isDesktop ? "none" : "flex";
+  mobileWrap.style.display  = isDesktop ? "none"  : "flex";
 }
-
-window.addEventListener("resize", applyTableLayout);
-
+window.addEventListener("resize",            applyTableLayout);
 window.addEventListener("orientationchange", applyTableLayout);
-
 document.addEventListener("DOMContentLoaded", applyTableLayout);
 
-// ================================================
-//  BiziNet · Main Application Script
-//  dashboard/js/tabscript.js
-// ================================================
-
-// Read config injected by config.js
-const supabaseUrl = window.APP_CONFIG.supabaseUrl;
-const supabaseKey = window.APP_CONFIG.supabaseKey;
-const renderUrl   = window.APP_CONFIG.renderUrl;
-let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-let   runtimeState        = window.APP_RUNTIME.runtimeState;
-
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-let els  = {};
-let quill;
+// ── Module-level references — filled after APP_RUNTIME_READY resolves
+let supabaseClient;
+let supabaseUrl;
+let renderUrl;
+let currentSessionToken;
+let runtimeState;
 
 document.addEventListener("DOMContentLoaded", async () => {
-await window.APP_RUNTIME_READY;
- 
 
- els = {
-    formTitle: document.getElementById("formTitle"),
-    cancelEditBtn: document.getElementById("cancelEditBtn"),
-    name: document.getElementById("name"),
-    price: document.getElementById("price"),
-    stock: document.getElementById("stock"),
-    category: document.getElementById("category"),
-    tags: document.getElementById("tags"),
-    discount: document.getElementById("discount"),
-    discountPreview: document.getElementById("discountPreview"),
-    isVisible: document.getElementById("isVisible"),
-    isFeatured: document.getElementById("isFeatured"),
-    whatsapp: document.getElementById("whatsapp"),
-    youtube: document.getElementById("youtube"),
-    description: document.getElementById("description"),
-    images: document.getElementById("images"),
-    video: document.getElementById("video"),
-    existingVideoBanner: document.getElementById("existingVideoBanner"),
-    dropZone: document.getElementById("dropZone"),
-    preview: document.getElementById("preview"),
-    liveImage: document.getElementById("liveImage"),
-    liveName: document.getElementById("liveName"),
-    livePrice: document.getElementById("livePrice"),
-    liveDesc: document.getElementById("liveDesc"),
-    submitBtn: document.getElementById("submitBtn"),
-    statusText: document.getElementById("statusText"),
-    progressContainer: document.getElementById("progressContainer"),
-    progressBar: document.getElementById("progressBar"),
-    previewVideoBtn: document.getElementById("previewVideoBtn"),
-    mediaModal: document.getElementById("mediaModal"),
-    modalContent: document.getElementById("modalContent"),
-    productsTableBody: document.getElementById("productsTableBody"),
-    productsMobileContainer: document.getElementById("productsMobileContainer")
+  // ── Wait for boot guard to finish — runtime is null until this resolves
+  await window.APP_RUNTIME_READY;
+
+  // ── Now safe to read — runtime is fully populated
+  supabaseClient      = window.APP_CLIENT;
+  supabaseUrl         = window.APP_CONFIG.supabaseUrl;
+  renderUrl           = window.APP_CONFIG.renderUrl;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  runtimeState        = window.APP_RUNTIME.runtimeState;
+
+  // ── Element cache
+  const els = {
+    formTitle:                document.getElementById("formTitle"),
+    cancelEditBtn:            document.getElementById("cancelEditBtn"),
+    name:                     document.getElementById("name"),
+    price:                    document.getElementById("price"),
+    stock:                    document.getElementById("stock"),
+    category:                 document.getElementById("category"),
+    tags:                     document.getElementById("tags"),
+    discount:                 document.getElementById("discount"),
+    discountPreview:          document.getElementById("discountPreview"),
+    isVisible:                document.getElementById("isVisible"),
+    isFeatured:               document.getElementById("isFeatured"),
+    whatsapp:                 document.getElementById("whatsapp"),
+    youtube:                  document.getElementById("youtube"),
+    description:              document.getElementById("description"),
+    images:                   document.getElementById("images"),
+    video:                    document.getElementById("video"),
+    existingVideoBanner:      document.getElementById("existingVideoBanner"),
+    dropZone:                 document.getElementById("dropZone"),
+    preview:                  document.getElementById("preview"),
+    liveImage:                document.getElementById("liveImage"),
+    liveName:                 document.getElementById("liveName"),
+    livePrice:                document.getElementById("livePrice"),
+    liveDesc:                 document.getElementById("liveDesc"),
+    submitBtn:                document.getElementById("submitBtn"),
+    statusText:               document.getElementById("statusText"),
+    progressContainer:        document.getElementById("progressContainer"),
+    progressBar:              document.getElementById("progressBar"),
+    previewVideoBtn:          document.getElementById("previewVideoBtn"),
+    mediaModal:               document.getElementById("mediaModal"),
+    modalContent:             document.getElementById("modalContent"),
+    productsTableBody:        document.getElementById("productsTableBody"),
+    productsMobileContainer:  document.getElementById("productsMobileContainer")
   };
 
-quill = new Quill('#editor', {
-  theme: 'snow',
-  placeholder: 'Write detailed product description...',
-  modules: {
-    toolbar: [
-      [{ color: [] }, { background: [] }],
-    [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ align: [] }],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["link"],
-      ["clean"]
-    ]
-  }
-});
-
-// Prevents overflow for quill on screens 
-setTimeout(() => {
-  document.querySelectorAll('.ql-picker').forEach(picker => {
-    picker.addEventListener('click', () => {
-      const options = picker.querySelector('.ql-picker-options');
-      if (!options) return;
-      const rect = options.getBoundingClientRect();
-      if (rect.right > window.innerWidth) {
-        options.style.left = 'auto';
-        options.style.right = '0';
-      }
-      if (rect.left < 0) {
-        options.style.left = '0';
-        options.style.right = 'auto';
-      }
-    });
+  // ── Quill editor
+  const quill = new Quill("#editor", {
+    theme: "snow",
+    placeholder: "Write detailed product description...",
+    modules: {
+      toolbar: [
+        [{ color: [] }, { background: [] }],
+        [{ header: [1, 2, 3, false] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ align: [] }],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link"],
+        ["clean"]
+      ]
+    }
   });
-}, 500);
 
-  // STATE
-  let selectedImages = [];
-  let uploading = false;
-  let editingProductId = null;
+  // Quill picker overflow fix for mobile
+  setTimeout(() => {
+    document.querySelectorAll(".ql-picker").forEach(picker => {
+      picker.addEventListener("click", () => {
+        const options = picker.querySelector(".ql-picker-options");
+        if (!options) return;
+        const rect = options.getBoundingClientRect();
+        if (rect.right > window.innerWidth) { options.style.left = "auto"; options.style.right = "0"; }
+        if (rect.left  < 0)                { options.style.left = "0";    options.style.right = "auto"; }
+      });
+    });
+  }, 500);
+
+  // ── State
+  let selectedImages        = [];
+  let uploading             = false;
+  let editingProductId      = null;
   let currentEditingProduct = null;
-  let filesToDeleteFromR2 = [];
-
-  let currentSearch = "";
+  let filesToDeleteFromR2   = [];
+  let currentSearch         = "";
   let currentVisibilityFilter = "";
-  let currentPage = 1;
-  const PAGE_SIZE = 10;
+  let currentPage           = 1;
+  const PAGE_SIZE           = 10;
 
-  // SORTABLE — image previews
+  // ── Sortable — image previews
   Sortable.create(els.preview, {
     animation: 150,
-    ghostClass: 'sortable-ghost',
-    onEnd: function (evt) {
+    ghostClass: "sortable-ghost",
+    onEnd: (evt) => {
       const item = selectedImages.splice(evt.oldIndex, 1)[0];
       selectedImages.splice(evt.newIndex, 0, item);
       updateLive();
     }
   });
 
-  // SORTABLE — desktop table
+  // ── Sortable — desktop table
   Sortable.create(els.productsTableBody, {
     animation: 150,
-    handle: '.drag-handle',
+    handle: ".drag-handle",
     onEnd: async () => {
       const ids = [...els.productsTableBody.children].map(x => x.dataset.id);
       await supabaseClient.rpc("reorder_products", { p_ids: ids });
@@ -147,10 +146,10 @@ setTimeout(() => {
     }
   });
 
-  // SORTABLE — mobile cards
+  // ── Sortable — mobile cards
   Sortable.create(els.productsMobileContainer, {
     animation: 150,
-    handle: '.drag-handle',
+    handle: ".drag-handle",
     onEnd: async () => {
       const ids = [...els.productsMobileContainer.children].map(x => x.dataset.id);
       await supabaseClient.rpc("reorder_products", { p_ids: ids });
@@ -159,764 +158,655 @@ setTimeout(() => {
     }
   });
 
-  // TOAST
-  function toast(msg, type = "success", duration = 4000) {
-    const div = document.createElement("div");
-    div.className = `toast ${type}`;
-    div.textContent = msg;
-    document.body.appendChild(div);
-    requestAnimationFrame(() => div.classList.add("show"));
-    setTimeout(() => {
-      div.classList.remove("show");
-      setTimeout(() => div.remove(), 300);
-    }, duration);
-  }
-
+  // ================================================================
   // LIVE PREVIEW UPDATER
+  // ================================================================
   function updateLive() {
     els.liveName.textContent = els.name.value.trim() || "Product Name";
     const rawPrice = els.price.value;
     els.livePrice.textContent = rawPrice ? `${Number(rawPrice).toLocaleString()}` : "0";
-    const descHTML = quill.root.innerHTML.trim();
 
-if (
-  descHTML &&
-  descHTML !== "<p><br></p>"
-) {
-  els.liveDesc.innerHTML = descHTML;
-} else {
-  els.liveDesc.innerHTML =
-    "<span style='color:var(--text-muted)'>Description preview will appear here...</span>";
-}
+    const descHTML = quill.root.innerHTML.trim();
+    if (descHTML && descHTML !== "<p><br></p>") {
+      els.liveDesc.innerHTML = descHTML;
+    } else {
+      els.liveDesc.innerHTML = "<span style='color:var(--text-muted)'>Description preview will appear here...</span>";
+    }
+
     if (selectedImages.length > 0) {
       els.liveImage.src = selectedImages[0].url;
     } else {
       els.liveImage.src = "https://placehold.co/600x400?text=Image+Preview";
     }
-    // update mini stats
-    const imgCount = document.getElementById("previewImgCount");
-    const stockCount = document.getElementById("previewStockCount");
+
+    const imgCount    = document.getElementById("previewImgCount");
+    const stockCount  = document.getElementById("previewStockCount");
     const videoStatus = document.getElementById("previewVideoStatus");
-    if (imgCount) imgCount.textContent = selectedImages.length;
-    if (stockCount) stockCount.textContent = els.stock.value || 1;
-    if (videoStatus) videoStatus.textContent = (els.video.files && els.video.files.length > 0) ? "✓" : (currentEditingProduct?.video_url ? "✓" : "—");
+    if (imgCount)    imgCount.textContent    = selectedImages.length;
+    if (stockCount)  stockCount.textContent  = els.stock.value || 1;
+    if (videoStatus) videoStatus.textContent = (els.video.files?.length > 0)
+      ? "✓" : (currentEditingProduct?.video_url ? "✓" : "—");
 
-const price = Number(els.price.value || 0);
-const discount = Number(els.discount.value || 0);
-
-if (discount > 0 && price > 0) {
-  const original = Math.round(price / (1 - (discount / 100)));
-
-  els.discountPreview.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:4px;">
-      <span style="color:var(--liyog-red);">
-        ${discount}% OFF
-      </span>
-
-      <span style="text-decoration:line-through;color:var(--text-muted);">
-        ₦${original.toLocaleString()}
-      </span>
-
-      <span style="font-size:15px;color:var(--liyog-green);">
-        Now: ₦${price.toLocaleString()}
-      </span>
-    </div>
-  `;
-} else {
-  els.discountPreview.textContent = "No discount applied";
-}
+    const price    = Number(els.price.value    || 0);
+    const discount = Number(els.discount.value || 0);
+    if (discount > 0 && price > 0) {
+      const original = Math.round(price / (1 - discount / 100));
+      els.discountPreview.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span style="color:var(--liyog-red);">${discount}% OFF</span>
+          <span style="text-decoration:line-through;color:var(--text-muted);">₦${original.toLocaleString()}</span>
+          <span style="font-size:15px;color:var(--liyog-green);">Now: ₦${price.toLocaleString()}</span>
+        </div>`;
+    } else {
+      els.discountPreview.textContent = "No discount applied";
+    }
   }
 
-async function loadCategories() {
-  try {
-    els.category.innerHTML = `<option>Loading...</option>`;
-    
-    // UPGRADED: Added explicit store_id filter for strict SaaS isolation
-    const { data, error } = await supabaseClient
-      .from("categories")
-      .select("id,name")
-      .eq("store_id", runtimeState.store_id) 
-      .order("name");
-      
-    if (error) throw error;
-    
-    els.category.innerHTML = `<option value="">Select a category</option>`;
-    
-    data.forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat.id; 
-      option.textContent = cat.name;
-      els.category.appendChild(option);
-    });
-    
-  } catch (err) { 
-    toast("Failed to load categories.", "error"); 
-  }
-}
-
-  // IMAGE OPTIMISE
-  async function optimizeImage(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image(); const reader = new FileReader();
-      reader.onload = e => { img.src = e.target.result; }; reader.onerror = reject;
-      img.onload = () => {
-        const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d");
-        const maxWidth = 1200; const scale = Math.min(1, maxWidth / img.width);
-        canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => {
-          if (!blob) return reject("Processing failed");
-          resolve(new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }));
-        }, "image/webp", 0.70);
-      };
-      img.onerror = reject; reader.readAsDataURL(file);
-    });
+  // ================================================================
+  // LOAD CATEGORIES (dropdown)
+  // ================================================================
+  async function loadCategories() {
+    try {
+      els.category.innerHTML = `<option>Loading...</option>`;
+      const { data, error } = await supabaseClient
+        .from("categories")
+        .select("id,name")
+        .eq("store_id", runtimeState.store_id)
+        .order("name");
+      if (error) throw error;
+      els.category.innerHTML = `<option value="">Select category</option>`;
+      (data || []).forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value       = cat.id;
+        opt.textContent = cat.name;
+        els.category.appendChild(opt);
+      });
+    } catch (err) {
+      console.error("loadCategories error:", err);
+      els.category.innerHTML = `<option value="">Couldn't load categories</option>`;
+    }
   }
 
+  // expose so categories.js can trigger a refresh after save/delete
+  window.loadCategories = loadCategories;
+
+  // ================================================================
+  // IMAGE HELPERS
+  // ================================================================
   function renderPreviews() {
     els.preview.innerHTML = "";
-    selectedImages.forEach((imageObj) => {
-      const div = document.createElement("div");
-      div.className = "preview-item"; div.setAttribute("data-id", imageObj.id);
-      const img = document.createElement("img"); img.src = imageObj.url;
-      const btn = document.createElement("div"); btn.className = "remove-btn"; btn.innerHTML = "&times;";
-      btn.onclick = (e) => { e.stopPropagation(); removeImage(imageObj.id); };
-      div.appendChild(img); div.appendChild(btn); els.preview.appendChild(div);
+    selectedImages.forEach(img => {
+      const item = document.createElement("div");
+      item.className = "preview-item";
+      item.innerHTML = `
+        <img src="${img.url}" alt="preview">
+        <button class="remove-btn" onclick="removeImage('${img.id}')">×</button>`;
+      els.preview.appendChild(item);
     });
     updateLive();
   }
 
-  function removeImage(id) {
-    const imgToRemove = selectedImages.find(img => img.id === id);
-    if (imgToRemove) {
-      if (!imgToRemove.existing) URL.revokeObjectURL(imgToRemove.url);
-      else filesToDeleteFromR2.push(imgToRemove.url);
+  window.removeImage = function (imgId) {
+    const idx = selectedImages.findIndex(i => i.id === imgId);
+    if (idx === -1) return;
+    const img = selectedImages[idx];
+    if (img.url?.startsWith("blob:")) URL.revokeObjectURL(img.url);
+    if (img.existing) filesToDeleteFromR2.push(img.url);
+    selectedImages.splice(idx, 1);
+    renderPreviews();
+  };
+
+  async function handleFiles(fileList) {
+    const files = [...fileList];
+    if (selectedImages.length + files.length > 10) {
+      return toast("Maximum 10 images allowed.", "error");
     }
-    selectedImages = selectedImages.filter(img => img.id !== id);
+    for (const file of files) {
+      try {
+        const optimised = await optimizeImage(file);
+        selectedImages.push({
+          id:   crypto.randomUUID(),
+          file: optimised,
+          url:  URL.createObjectURL(optimised),
+          existing: false
+        });
+      } catch (e) {
+        toast(`Couldn't process ${file.name}`, "error");
+      }
+    }
     renderPreviews();
   }
 
-  async function handleFiles(fileList) {
-    const files = Array.from(fileList).filter(file => file.type.startsWith("image/"));
-    if (selectedImages.length + files.length > 10) return toast("Maximum 10 images allowed.", "error");
-    els.dropZone.style.opacity = "0.6";
-    for (let file of files) {
-      try {
-        const optimized = await optimizeImage(file);
-        selectedImages.push({ id: crypto.randomUUID(), file: optimized, url: URL.createObjectURL(optimized), existing: false });
-      } catch { toast(`Failed to process ${file.name}`, "error"); }
-    }
-    els.dropZone.style.opacity = "1"; renderPreviews(); els.images.value = "";
+  // ================================================================
+  // VIDEO VALIDATION
+  // ================================================================
+  async function validateVideo(file) {
+    if (file.size > 50 * 1024 * 1024) throw new Error("Video must be under 50MB.");
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      const url   = URL.createObjectURL(file);
+      video.src   = url;
+      video.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(true); };
+      video.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Invalid video file.")); };
+    });
   }
 
-function validateVideo(file) {
-  return new Promise((resolve) => {
-    const MAX_SIZE_MB = 50;
-
-    // Convert MB to bytes
-    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-    // 1. File size check
-    if (file.size > MAX_SIZE_BYTES) {
-      toast(
-        `Video is too large. Please upload a file under ${MAX_SIZE_MB}MB.`,
-        "error"
-      );
-      return resolve(false);
-    }
-
-    // 2. Basic file validation
-    const video = document.createElement("video");
-    const videoURL = URL.createObjectURL(file);
-
-    video.src = videoURL;
-
-    video.onloadeddata = () => {
-      URL.revokeObjectURL(videoURL);
-      resolve(true);
-    };
-
-    video.onerror = () => {
-      URL.revokeObjectURL(videoURL);
-      toast(
-        "We couldn’t process this video. Please upload a valid video file.",
-        "error"
-      );
-      resolve(false);
-    };
-  });
-}
-
+  // ================================================================
+  // R2 UPLOAD / DELETE
+  // ================================================================
   async function uploadFile(file) {
-  // Step 1: Get presigned PUT URL using session token
-  const response = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json", 
-      "Authorization": `Bearer ${currentSessionToken}` // UPGRADED: Using session token
-    },
-    body: JSON.stringify({ 
-    fileName: file.name, 
-    fileType: file.type, 
-    folder: "products",
-    fileSize: file.size // <-- FIX: Added to pass Edge Function validation
-  })
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Failed to get upload URL");
-  // Step 2: PUT file directly to R2
-  const upload = await fetch(result.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file
-  });
-  if (!upload.ok) throw new Error("Direct upload to Storage failed");
-
-  // Step 3: Return public URL
-  return result.publicUrl;
-}
-
-  /** * Upgraded Delete functions using currentSessionToken 
- */
-async function deleteFromR2(url) {
-  try {
-    const fileKey = url.replace("https://pub-0fc5736899f3449d987d356eafdca873.r2.dev/", "");
-    const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
+    const payload = { fileName: file.name, fileType: file.type, fileSize: file.size, folder: "products" };
+    const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentSessionToken}` // UPGRADED
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${currentSessionToken}`
       },
-      body: JSON.stringify({ fileKey })
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error("Store delete failed");
-    return true;
-  } catch (err) {
-    console.error("Store Cleanup error", err);
-    return false;
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Upload URL failed.");
+    await fetch(result.uploadUrl, {
+      method:  "PUT",
+      headers: { "Content-Type": file.type },
+      body:    file
+    });
+    return result.publicUrl;
   }
-}
 
-  function setStatus(loading, text = "", progress = 0) {
-    if (loading) {
-      els.submitBtn.disabled = true;
-      els.submitBtn.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
-      els.statusText.classList.remove("hidden"); els.statusText.textContent = text;
-      els.progressContainer.style.display = "block"; els.progressBar.style.width = `${progress}%`;
-    } else {
-      els.submitBtn.disabled = false;
-      els.submitBtn.innerHTML = `<span>${editingProductId ? "Update Product" : "Upload Product"}</span>`;
-      els.statusText.classList.add("hidden"); els.progressContainer.style.display = "none";
-    }
+  async function deleteFromR2(url) {
+    if (!url) return;
+    try {
+      const fileKey = url.replace(window.R2_PUBLIC_BASE + "/", "");
+      if (fileKey === url) return;
+      await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
+        method: "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${currentSessionToken}`
+        },
+        body: JSON.stringify({ fileKey })
+      });
+    } catch (e) { console.error("R2 delete error:", e); }
+  }
+
+  // ================================================================
+  // FORM STATUS
+  // ================================================================
+  function setStatus(loading, text, progress = null) {
+    els.submitBtn.disabled = loading;
+    els.submitBtn.innerHTML = loading
+      ? `<span class="spinner"></span><span>${text}</span>`
+      : `<span>${text || "Upload Product"}</span>`;
+    if (els.progressContainer) els.progressContainer.style.display = loading ? "block" : "none";
+    if (progress !== null && els.progressBar) els.progressBar.style.width = `${progress}%`;
   }
 
   function updateStatus(text, isWarning = false) {
+    if (!els.statusText) return;
     els.statusText.textContent = text;
-    els.statusText.style.color = isWarning ? "var(--liyog-orange)" : "var(--text-muted)";
+    els.statusText.style.color = isWarning ? "var(--liyog-red)" : "var(--text-muted)";
   }
 
-  window.resetForm = function () {
-    ["name", "price", "stock", "tags", "whatsapp", "youtube", "discount"].forEach(id => els[id].value = "");
-quill.setText("");
-els.isVisible.checked = true;
-els.isFeatured.checked = false;
-els.discountPreview.textContent = "No discount applied";
-
-    els.stock.value = "1"; els.category.value = ""; els.video.value = "";
-    els.previewVideoBtn.classList.add("hidden"); els.existingVideoBanner.classList.add("hidden");
-    selectedImages.forEach(img => { if (!img.existing) URL.revokeObjectURL(img.url); });
-    selectedImages = []; filesToDeleteFromR2 = [];
-    editingProductId = null; currentEditingProduct = null;
-    els.formTitle.textContent = "Upload New Product";
-    els.cancelEditBtn.classList.add("hidden");
-    els.submitBtn.innerHTML = `<span>Upload Product</span>`;
-    renderPreviews(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
+  // ================================================================
+  // VALIDATION
+  // ================================================================
   function validateForm() {
-    document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
-    let isValid = true;
-    const markInvalid = (el) => {
+    let valid = true;
+    const markError = (el) => {
       el.classList.add("input-error", "animate-shake");
       setTimeout(() => el.classList.remove("animate-shake"), 400);
+      valid = false;
+    };
+    const clearError = (el) => el.classList.remove("input-error");
+
+    if (!els.name.value.trim())                          { markError(els.name);     } else { clearError(els.name); }
+    if (!els.price.value || isNaN(Number(els.price.value))) { markError(els.price); } else { clearError(els.price); }
+    if (els.whatsapp.value && !/^\d{10,15}$/.test(els.whatsapp.value.replace(/\D/g, ""))) {
+      markError(els.whatsapp); toast("Enter a valid WhatsApp number (10-15 digits).", "error");
+    } else { clearError(els.whatsapp); }
+    if (els.youtube.value && !/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)/.test(els.youtube.value)) {
+      markError(els.youtube); toast("Enter a valid YouTube URL.", "error");
+    } else { clearError(els.youtube); }
+    if (selectedImages.length === 0) {
+      toast("Please add at least one product image.", "error"); valid = false;
     }
-    if (!els.name.value.trim()) { markInvalid(els.name); isValid = false; }
-    if (!els.price.value.trim() || isNaN(els.price.value) || Number(els.price.value) < 0) { markInvalid(els.price); isValid = false; }
-    const waVal = els.whatsapp.value.replace(/\s+/g, '');
-    if (!waVal || !/^[0-9]{10,15}$/.test(waVal)) { markInvalid(els.whatsapp); isValid = false; toast("WhatsApp: 10–15 digits, no spaces.", "error"); }
-    if (els.youtube.value && !/^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/.test(els.youtube.value)) { markInvalid(els.youtube); isValid = false; }
-    if (selectedImages.length === 0) { markInvalid(els.dropZone); isValid = false; toast("Add at least 1 image.", "error"); }
-    return isValid;
+    return valid;
   }
 
-  window.previewYouTube = () => {
-    const url = els.youtube.value.trim(); if (!url) return toast("Enter a YouTube URL first.", "info");
-    let videoId = url.includes("youtu.be/") ? url.split("youtu.be/")[1]?.split("?")[0] : (url.includes("watch?v=") ? url.split("watch?v=")[1]?.split("&")[0] : "");
-    if (!videoId) return toast("Invalid YouTube URL format.", "error");
-    els.modalContent.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" style="width:100%;height:100%;" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.previewLocalVideo = () => {
-    const file = els.video.files[0]; if (!file) return;
-    els.modalContent.innerHTML = `<video src="${URL.createObjectURL(file)}" style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.previewExistingVideo = () => {
-    if (!currentEditingProduct || !currentEditingProduct.video_url) return;
-    els.modalContent.innerHTML = `<video src="${currentEditingProduct.video_url}" style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.removeExistingVideo = () => {
-    if (currentEditingProduct && currentEditingProduct.video_url) {
-      filesToDeleteFromR2.push(currentEditingProduct.video_url);
-      currentEditingProduct.video_url = null;
-    }
+  // ================================================================
+  // RESET FORM
+  // ================================================================
+  window.resetForm = function () {
+    els.formTitle.textContent     = "Upload New Product";
+    els.cancelEditBtn.classList.add("hidden");
+    els.name.value                = "";
+    els.price.value               = "";
+    els.stock.value               = "";
+    els.discount.value            = "";
+    els.tags.value                = "";
+    els.whatsapp.value            = "";
+    els.youtube.value             = "";
+    els.isVisible.checked         = true;
+    els.isFeatured.checked        = false;
+    els.category.value            = "";
+    quill.setText("");
+    selectedImages.forEach(img => { if (img.url?.startsWith("blob:")) URL.revokeObjectURL(img.url); });
+    selectedImages        = [];
+    filesToDeleteFromR2   = [];
+    editingProductId      = null;
+    currentEditingProduct = null;
+    renderPreviews();
+    setStatus(false, "Upload Product");
+    updateStatus("");
     els.existingVideoBanner.classList.add("hidden");
-    toast("Attached video removed.", "info");
+    if (els.video) els.video.value = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ================================================================
+  // VIDEO PREVIEW HELPERS (on window — called from HTML onclick)
+  // ================================================================
+  window.previewYouTube = function () {
+    const url = els.youtube.value.trim();
+    if (!url) return toast("Paste a YouTube URL first.", "error");
+    let videoId = null;
+    try {
+      const u = new URL(url);
+      videoId = u.searchParams.get("v") || u.pathname.split("/").pop();
+    } catch { videoId = url.split("v=")[1]?.split("&")[0]; }
+    if (!videoId) return toast("Couldn't find a video ID in that URL.", "error");
+    els.modalContent.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen style="width:100%;height:100%;"></iframe>`;
+    els.mediaModal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  };
+
+  window.previewLocalVideo = function () {
+    const file = els.video.files?.[0];
+    if (!file) return toast("No video selected.", "error");
+    const url  = URL.createObjectURL(file);
+    els.modalContent.innerHTML = `<video src="${url}" controls autoplay style="width:100%;height:100%;object-fit:contain;"></video>`;
+    els.mediaModal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  };
+
+  window.previewExistingVideo = function () {
+    const url = currentEditingProduct?.video_url;
+    if (!url) return toast("No existing video found.", "error");
+    els.modalContent.innerHTML = `<video src="${url}" controls autoplay style="width:100%;height:100%;object-fit:contain;"></video>`;
+    els.mediaModal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  };
+
+  window.removeExistingVideo = function () {
+    if (currentEditingProduct?.video_url) filesToDeleteFromR2.push(currentEditingProduct.video_url);
+    els.existingVideoBanner.classList.add("hidden");
+    if (currentEditingProduct) currentEditingProduct.video_url = null;
     updateLive();
   };
 
-  window.closeModal = () => {
-    els.mediaModal.classList.remove("active");
-    setTimeout(() => { els.modalContent.innerHTML = ""; }, 300);
+  window.closeModal = function () {
+    els.mediaModal.style.display = "none";
+    els.modalContent.innerHTML   = "";
+    document.body.style.overflow = "";
   };
-  els.mediaModal.addEventListener("click", (e) => { if (e.target === els.mediaModal) closeModal(); });
 
-  // LISTENERS
-  els.dropZone.addEventListener("click", () => els.images.click());
-  els.dropZone.addEventListener("dragover", e => { e.preventDefault(); els.dropZone.classList.add("dragover"); });
+  // ================================================================
+  // DROP ZONE + FILE INPUT EVENTS
+  // ================================================================
+  els.dropZone.addEventListener("click",     () => els.images.click());
+  els.dropZone.addEventListener("dragover",  e  => { e.preventDefault(); els.dropZone.classList.add("dragover"); });
   els.dropZone.addEventListener("dragleave", () => els.dropZone.classList.remove("dragover"));
-  els.dropZone.addEventListener("drop", e => { e.preventDefault(); els.dropZone.classList.remove("dragover"); handleFiles(e.dataTransfer.files); });
-  els.images.addEventListener("change", e => handleFiles(e.target.files));
-  els.video.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) els.previewVideoBtn.classList.remove("hidden");
-    else els.previewVideoBtn.classList.add("hidden");
+  els.dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    els.dropZone.classList.remove("dragover");
+    handleFiles(e.dataTransfer.files);
+  });
+  els.images.addEventListener("change", e => { handleFiles(e.target.files); els.images.value = ""; });
+
+  els.video.addEventListener("change", () => {
+    els.previewVideoBtn.style.display = els.video.files?.length > 0 ? "inline-flex" : "none";
     updateLive();
   });
-  ["name", "price", "stock", "discount"].forEach(id => { els[id].addEventListener("input", updateLive); });
-quill.on('text-change', updateLive);
 
- window.submitProduct = async function () {
-  if (uploading) return;
-  if (!validateForm()) return toast("Please fix the highlighted errors.", "error");
-  uploading = true; setStatus(true, "Initializing...", 5);
-  try {
-    const imageUrls = []; const totalImages = selectedImages.length;
-    for (let i = 0; i < totalImages; i++) {
-      let pct = 5 + ((i / totalImages) * 40);
-      setStatus(true, `Uploading image ${i + 1}/${totalImages}...`, pct);
-      if (selectedImages[i].existing) imageUrls.push(selectedImages[i].url);
-      else imageUrls.push(await uploadFile(selectedImages[i].file));
-    }
+  // Live-update listeners
+  ["name", "price", "stock", "discount"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", updateLive);
+  });
+  quill.on("text-change", updateLive);
 
-    let finalVideoUrl = currentEditingProduct ? currentEditingProduct.video_url : null;
-    const newVideoFile = els.video.files[0];
+  // ================================================================
+  // SUBMIT PRODUCT
+  // ================================================================
+  window.submitProduct = async function () {
+    if (uploading)       return;
+    if (!validateForm()) return;
 
-    if (newVideoFile) {
-      // Validate before anything else
-      const isValid = await validateVideo(newVideoFile);
-      if (!isValid) {
-        uploading = false; setStatus(false);
-        return; // Stop — updateStatus already showed the error
+    uploading = true;
+    setStatus(true, "Preparing upload…", 5);
+    updateStatus("Starting upload…");
+
+    try {
+      // Upload images
+      const imageUrls = [];
+      let uploaded    = 0;
+      for (const img of selectedImages) {
+        if (img.existing) { imageUrls.push(img.url); uploaded++; }
+        else {
+          setStatus(true, `Uploading image ${uploaded + 1} of ${selectedImages.length}…`, Math.round((uploaded / selectedImages.length) * 60) + 10);
+          imageUrls.push(await uploadFile(img.file));
+          uploaded++;
+        }
       }
 
-      setStatus(true, "Uploading video...", 60);
-      if (finalVideoUrl) filesToDeleteFromR2.push(finalVideoUrl);
-      finalVideoUrl = await uploadFile(newVideoFile); // Direct upload, no compression
-    }
+      // Upload video if new
+      let videoUrl = currentEditingProduct?.video_url || null;
+      if (els.video.files?.length > 0) {
+        const vFile = els.video.files[0];
+        setStatus(true, "Validating video…", 70);
+        await validateVideo(vFile);
+        setStatus(true, "Uploading video…", 75);
+        videoUrl = await uploadFile(vFile);
+      }
 
-    setStatus(true, editingProductId ? "Updating Product Details..." : "Creating product...", 90);
-    let response;
-    if (editingProductId) {
-      response = await supabaseClient.rpc("update_product", {
-        p_id: editingProductId, p_name: els.name.value.trim(), p_price: String(els.price.value),
-        p_image_urls: imageUrls, p_description: quill.root.innerHTML,
-        p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
-        p_category_id: els.category.value || null, p_tags: els.tags.value.trim(),
-        p_video_url: finalVideoUrl, p_youtube_url: els.youtube.value.trim() || null,
-        p_stock_quantity: parseInt(els.stock.value) || 0,
-p_is_visible: els.isVisible.checked,
-p_is_featured: els.isFeatured.checked,
-p_discount_percentage: parseFloat(els.discount.value) || 0,
-      });
-      if (response.error) throw response.error;
-      for (let url of filesToDeleteFromR2) { await deleteFromR2(url); }
-      toast("Product updated successfully! ✓", "success");
-    } else {
-      response = await supabaseClient.rpc("create_product", {
-  p_name: els.name.value.trim(),
-  p_price: String(els.price.value),
-  p_image_urls: imageUrls,
-  p_description: quill.root.innerHTML,
-  p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
-  p_category_id: els.category.value || null,
-  p_tags: els.tags.value.trim(),
-  p_video_url: finalVideoUrl,
-  p_youtube_url: els.youtube.value.trim() || null,
-  p_sort_order: 0,
-  p_stock_quantity: parseInt(els.stock.value) || 0,
-  p_is_visible: els.isVisible.checked,
-  p_is_featured: els.isFeatured.checked,
-  p_discount_percentage: parseFloat(els.discount.value) || 0
-});
+      setStatus(true, editingProductId ? "Updating product…" : "Saving product…", 90);
 
-      if (response.error) throw response.error;
-      toast("Product listed successfully! ✓", "success");
+      const tags        = els.tags.value.split(",").map(t => t.trim()).filter(Boolean);
+      const description = quill.root.innerHTML.trim();
+      const categoryId  = els.category.value || null;
+      const payload     = {
+        p_name:                els.name.value.trim(),
+        p_price:               Number(els.price.value),
+        p_image_urls:          imageUrls,
+        p_description:         description,
+        p_whatsapp_number:     els.whatsapp.value.trim() || null,
+        p_category_id:         categoryId,
+        p_tags:                tags,
+        p_video_url:           videoUrl,
+        p_youtube_url:         els.youtube.value.trim() || null,
+        p_stock_quantity:      Number(els.stock.value || 0),
+        p_is_visible:          els.isVisible.checked,
+        p_is_featured:         els.isFeatured.checked,
+        p_discount_percentage: Number(els.discount.value || 0)
+      };
+
+      let error;
+      if (editingProductId) {
+        const { error: e } = await supabaseClient.rpc("update_product", { ...payload, p_id: editingProductId });
+        error = e;
+      } else {
+        const { error: e } = await supabaseClient.rpc("create_product", payload);
+        error = e;
+      }
+      if (error) throw error;
+
+      // Delete old R2 files after successful save
+      for (const url of filesToDeleteFromR2) await deleteFromR2(url);
+      filesToDeleteFromR2 = [];
+
+      toast(editingProductId ? "Product updated ✓" : "Product uploaded ✓", "success");
+      setStatus(true, "Done!", 100);
+      setTimeout(() => { resetForm(); loadProducts(); }, 800);
+
+    } catch (err) {
+      console.error("submitProduct error:", err);
+      toast(err.message || "Upload failed. Please try again.", "error");
+      setStatus(false, editingProductId ? "Update Product" : "Upload Product");
+      updateStatus("Something went wrong.", true);
+    } finally {
+      uploading = false;
     }
-    await loadProducts();
-    setTimeout(() => { resetForm(); }, 500);
-  } catch (error) {
-    console.error(error);
-    toast(error.message || "Action failed", "error");
-  } finally {
-    uploading = false; setStatus(false);
-  }
-};
- 
+  };
+
+  // ================================================================
+  // TOGGLE HELPERS
+  // ================================================================
   window.toggleVisible = async function (id, current) {
     const { error } = await supabaseClient.from("products").update({ is_visible: !current }).eq("id", id);
-    if (error) return toast("Failed to update visibility.", "error");
+    if (error) return toast("Couldn't update visibility.", "error");
+    toast(current ? "Product hidden." : "Product visible ✓", "success");
     loadProducts();
   };
+
   window.toggleProductFeatured = async function (id, current) {
-    const newValue = current === true || current === 'true' ? false : true;
-    const { error } = await supabaseClient.from("products").update({ is_featured: newValue }).eq("id", id);
-    if (error) {
-        console.error(error);
-        return toast(error.message || "Failed to update featured.", "error");
-    }
+    const { error } = await supabaseClient.from("products").update({ is_featured: !current }).eq("id", id);
+    if (error) return toast("Couldn't update featured status.", "error");
+    toast(current ? "Removed from featured." : "Marked as featured ✓", "success");
     loadProducts();
-};
+  };
 
   window.deleteProduct = async function (id) {
-  if (!confirm("Delete this product permanently?")) return;
+    if (!confirm("Delete this product permanently?")) return;
+    try {
+      const { data: prod } = await supabaseClient.from("products").select("image_urls,video_url").eq("id", id).single();
+      for (const url of (prod?.image_urls || [])) await deleteFromR2(url);
+      if (prod?.video_url) await deleteFromR2(prod.video_url);
+      const { error } = await supabaseClient.rpc("delete_product_full", { p_id: id });
+      if (error) throw error;
+      toast("Product deleted ✓", "success");
+      loadProducts();
+    } catch (err) {
+      toast("Couldn't delete product. Please try again.", "error");
+    }
+  };
 
-  // Step 1: Fetch file URLs first without deleting Supabase yet
-  const { data: product, error: fetchError } = await supabaseClient
-    .from("products")
-    .select("image_urls, video_url")
-    .eq("id", id)
-    .single();
-
-  if (fetchError) return toast("Delete failed.", "error");
-
-  // Step 2: Delete all files from R2 first
-  const files = [...(product.image_urls || []), product.video_url].filter(Boolean);
-  const r2Results = await Promise.all(files.map(url => deleteFromR2(url)));
-  const allR2Deleted = r2Results.every(result => result === true);
-
-  if (!allR2Deleted) {
-    // R2 failed — Supabase record still safe, user can retry
-    return toast("Delete failed. Please try again.", "error");
-  }
-
-  // Step 3: Only delete from Supabase AFTER R2 is confirmed deleted
-  const { error } = await supabaseClient.rpc("delete_product_full", { p_id: id });
-  if (error) return toast("Files deleted but database error. Contact support.", "error");
-
-  toast("Product deleted. ✓", "success");
-  loadProducts();
-};
-
+  // ================================================================
   // LOAD PRODUCTS
+  // ================================================================
   async function loadProducts() {
     // Skeleton
-    els.productsTableBody.innerHTML = `<tr><td colspan="5" style="padding:16px;"><div class="skeleton" style="height:52px;width:100%;"></div></td></tr><tr><td colspan="5" style="padding:8px 16px;"><div class="skeleton" style="height:52px;width:100%;"></div></td></tr>`;
-    els.productsMobileContainer.innerHTML = `<div class="skeleton" style="height:110px;width:100%;"></div><div class="skeleton" style="height:110px;width:100%;margin-top:12px;"></div>`;
-
-    // FETCH RAW PRODUCTS TABLE AND FILTER STRICTLY BY THE RUNTIME STORE CONTEXT
-    let query = supabaseClient
-      .from("products")
-      .select("*, categories(name)", { count: "exact" })
-      .eq("store_id", runtimeState.store_id) // Isolated directly here!
-      .order("sort_order", { ascending: true });
-
-    if (currentSearch) query = query.ilike("name", `%${currentSearch}%`);
-    if (currentVisibilityFilter === "visible") query = query.eq("is_visible", true);
-    if (currentVisibilityFilter === "hidden") query = query.eq("is_visible", false);
-if (currentVisibilityFilter === "featured")
-  query = query.eq("is_featured", true);
-    query = query.range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      els.productsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load products</td></tr>`;
-      els.productsMobileContainer.innerHTML = `<p style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load products</p>`;
-      return toast("Failed to load products", "error");
-    }
-
-    els.productsTableBody.innerHTML = "";
-    els.productsMobileContainer.innerHTML = "";
-
-    if (data.length === 0) {
-      els.productsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:40px;font-size:15px;">No products found</td></tr>`;
-      els.productsMobileContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:15px;font-weight:600;">No products found</div>`;
-    }
-
-    data.forEach(product => {
-      const finalPrice = Number(product.price || 0);
-const discount = Number(product.discount_percentage || 0);
-
-let originalPrice = finalPrice;
-
-if(discount > 0){
-  originalPrice = Math.round(
-    finalPrice / (1 - discount / 100)
-  );
-}
-
-const priceFmt = finalPrice.toLocaleString();
-const originalFmt = originalPrice.toLocaleString();
-
-      const imgUrl = product.image_urls?.[0] || 'https://placehold.co/100x100';
-      const catName = product.categories?.name || 'Uncategorized';
-
-      // DESKTOP ROW
-      const tr = document.createElement("tr");
-      tr.dataset.id = product.id;
-      tr.innerHTML = `
-        <td><span class="drag-handle">☰</span></td>
-        <td><img src="${imgUrl}" class="product-thumb" alt="${product.name}"></td>
-        <td>
-          <div class="prod-name">${product.name || "Unnamed"}</div>
-          <div class="prod-price">
-
-  ${
-    discount > 0
-    ? `
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <span style="
-          text-decoration:line-through;
-          color:var(--text-muted);
-          font-size:12px;
-        ">
-          ${originalFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-green);
-          font-weight:700;
-        ">
-          ${priceFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-red);
-          font-size:11px;
-          font-weight:700;
-        ">
-          ${discount}% OFF
-        </span>
-      </div>
-    `
-    : `${priceFmt}`
-  }
-
-</div>
-          <div class="prod-meta">${catName} · Stock: ${product.stock_quantity || 0}</div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="toggle-btn ${product.is_visible ? 'active' : ''}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
-            <button class="toggle-btn ${product.is_featured ? 'featured active' : ''}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
-          </div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-       <button class="action-btn"
-onclick="moveProduct('${product.id}','up')">⬆️</button>
-
-<button class="action-btn"
-onclick="moveProduct('${product.id}','down')">⬇️</button>     
-<button class="action-btn edit-btn" onclick="editProduct('${product.id}')">✏️ Edit</button>
-            <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
-          </div>
-        </td>
-      `;
-      els.productsTableBody.appendChild(tr);
-
-      // MOBILE CARD
-      const card = document.createElement("div");
-      card.className = "mobile-product-card";
-      card.dataset.id = product.id;
-      card.innerHTML = `
-        <div class="mobile-card-top">
-          <span class="mobile-card-drag drag-handle">☰</span>
-          <img src="${imgUrl}" class="mobile-card-img" alt="${product.name}">
-          <div class="mobile-card-info">
-            <div class="mobile-card-name">${product.name || "Unnamed"}</div>
-            
-<div class="mobile-card-price">
-
-  ${
-    discount > 0
-    ? `
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <span style="
-          text-decoration:line-through;
-          color:var(--text-muted);
-          font-size:12px;
-        ">
-          ${originalFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-green);
-          font-weight:700;
-        ">
-          ${priceFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-red);
-          font-size:11px;
-          font-weight:700;
-        ">
-          ${discount}% OFF
-        </span>
-      </div>
-    `
-    : `${priceFmt}`
-  }
-
-</div>
-
-            <div class="mobile-card-cat">${catName}</div>
-            <div class="mobile-card-stock">Stock: ${product.stock_quantity || 0}</div>
-          </div>
+    els.productsTableBody.innerHTML = [1,2,3].map(() => `
+      <tr>
+        <td><div class="skeleton" style="width:44px;height:44px;border-radius:10px;"></div></td>
+        <td><div class="skeleton" style="height:14px;width:80%;margin-bottom:6px;"></div><div class="skeleton" style="height:12px;width:55%;"></div></td>
+        <td><div class="skeleton" style="height:30px;width:120px;"></div></td>
+        <td><div class="skeleton" style="height:30px;width:140px;"></div></td>
+      </tr>`).join("");
+    els.productsMobileContainer.innerHTML = [1,2].map(() => `
+      <div class="mobile-product-card">
+        <div class="skeleton" style="height:72px;width:72px;border-radius:14px;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <div class="skeleton" style="height:14px;width:70%;"></div>
+          <div class="skeleton" style="height:12px;width:50%;"></div>
         </div>
-        <div class="mobile-card-footer">
-          <div class="mobile-card-toggles">
-            <button class="toggle-btn ${product.is_visible ? 'active' : ''}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
-            <button class="toggle-btn ${product.is_featured ? 'featured active' : ''}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
+      </div>`).join("");
+
+    try {
+      let query = supabaseClient
+        .from("products")
+        .select("*, categories(name)", { count: "exact" })
+        .eq("store_id", runtimeState.store_id)
+        .order("sort_order", { ascending: true })
+        .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
+
+      if (currentSearch)          query = query.ilike("name", `%${currentSearch}%`);
+      if (currentVisibilityFilter === "visible")  query = query.eq("is_visible", true);
+      if (currentVisibilityFilter === "hidden")   query = query.eq("is_visible", false);
+      if (currentVisibilityFilter === "featured") query = query.eq("is_featured", true);
+
+      const { data: products, error, count } = await query;
+      if (error) throw error;
+
+      els.productsTableBody.innerHTML      = "";
+      els.productsMobileContainer.innerHTML = "";
+
+      (products || []).forEach(product => {
+        const imgUrl      = product.image_urls?.[0] || "https://placehold.co/80x80?text=No+Image";
+        const catName     = product.categories?.name || "Uncategorised";
+        const discount    = product.discount_percentage || 0;
+        const price       = Number(product.price || 0);
+        const original    = discount > 0 ? Math.round(price / (1 - discount / 100)) : price;
+        const priceFmt    = `₦${price.toLocaleString()}`;
+        const originalFmt = `₦${original.toLocaleString()}`;
+
+        const priceHtml = discount > 0
+          ? `<div style="display:flex;flex-direction:column;gap:2px;">
+               <span style="text-decoration:line-through;color:var(--text-muted);font-size:12px;">${originalFmt}</span>
+               <span style="color:var(--liyog-green);font-weight:700;">${priceFmt}</span>
+               <span style="color:var(--liyog-red);font-size:11px;font-weight:700;">${discount}% OFF</span>
+             </div>`
+          : priceFmt;
+
+        // Desktop row
+        const tr = document.createElement("tr");
+        tr.dataset.id = product.id;
+        tr.innerHTML = `
+          <td><span class="drag-handle">⠿</span></td>
+          <td><img src="${imgUrl}" class="product-thumb" alt="${product.name}" onerror="this.src='https://placehold.co/52x52?text=?'"></td>
+          <td>
+            <div class="prod-name">${product.name || "Unnamed"}</div>
+            <div class="prod-price">${priceHtml}</div>
+            <div class="prod-meta">${catName} · Stock: ${product.stock_quantity || 0}</div>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="toggle-btn ${product.is_visible  ? "active"        : ""}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
+              <button class="toggle-btn ${product.is_featured ? "featured active" : ""}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="action-btn" onclick="moveProduct('${product.id}','up')">⬆️</button>
+              <button class="action-btn" onclick="moveProduct('${product.id}','down')">⬇️</button>
+              <button class="action-btn edit-btn"   onclick="editProduct('${product.id}')">✏️ Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
+            </div>
+          </td>`;
+        els.productsTableBody.appendChild(tr);
+
+        // Mobile card
+        const card = document.createElement("div");
+        card.className = "mobile-product-card";
+        card.dataset.id = product.id;
+        card.innerHTML = `
+          <div class="mobile-card-top">
+            <span class="mobile-card-drag drag-handle">☰</span>
+            <img src="${imgUrl}" class="mobile-card-img" alt="${product.name}" onerror="this.src='https://placehold.co/72x72?text=?'">
+            <div class="mobile-card-info">
+              <div class="mobile-card-name">${product.name || "Unnamed"}</div>
+              <div class="mobile-card-price">${priceHtml}</div>
+              <div class="mobile-card-cat">${catName}</div>
+              <div class="mobile-card-stock">Stock: ${product.stock_quantity || 0}</div>
+            </div>
           </div>
-          <div class="mobile-card-actions">
-     <button class="action-btn"
-onclick="moveProduct('${product.id}','up')">⬆️</button>
+          <div class="mobile-card-footer">
+            <div class="mobile-card-toggles">
+              <button class="toggle-btn ${product.is_visible  ? "active"         : ""}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
+              <button class="toggle-btn ${product.is_featured ? "featured active" : ""}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
+            </div>
+            <div class="mobile-card-actions">
+              <button class="action-btn" onclick="moveProduct('${product.id}','up')">⬆️</button>
+              <button class="action-btn" onclick="moveProduct('${product.id}','down')">⬇️</button>
+              <button class="action-btn edit-btn"   onclick="editProduct('${product.id}')">✏️</button>
+              <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
+            </div>
+          </div>`;
+        els.productsMobileContainer.appendChild(card);
+      });
 
-<button class="action-btn"
-onclick="moveProduct('${product.id}','down')">⬇️</button>
-       
-<button class="action-btn edit-btn" onclick="editProduct('${product.id}')">✏️</button>
-            <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
-          </div>
-        </div>
-      `;
-      els.productsMobileContainer.appendChild(card);
-    });
+      applyTableLayout();
 
-    applyTableLayout();
+      // Pagination
+      const paginationWrap = document.getElementById("pagination");
+      if (paginationWrap) {
+        paginationWrap.innerHTML = "";
+        const totalPages = Math.ceil((count || 0) / PAGE_SIZE);
+        if (totalPages > 1) {
+          const prevBtn = document.createElement("button");
+          prevBtn.className = "page-btn"; prevBtn.textContent = "← Prev";
+          prevBtn.disabled  = currentPage === 1;
+          prevBtn.onclick   = () => { currentPage--; loadProducts(); };
+          paginationWrap.appendChild(prevBtn);
 
-    // PAGINATION
-    const paginationWrap = document.getElementById("pagination");
-    paginationWrap.innerHTML = "";
-    const totalPages = Math.ceil((count || 0) / PAGE_SIZE);
-    if (totalPages > 1) {
-      const prevBtn = document.createElement("button");
-      prevBtn.className = "page-btn"; prevBtn.textContent = "← Prev";
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.onclick = () => { currentPage--; loadProducts(); };
-      paginationWrap.appendChild(prevBtn);
+          const pageInd = document.createElement("span");
+          pageInd.className   = "page-indicator";
+          pageInd.textContent = `${currentPage} / ${totalPages}`;
+          paginationWrap.appendChild(pageInd);
 
-      const pageInd = document.createElement("span");
-      pageInd.className = "page-indicator";
-      pageInd.textContent = `${currentPage} / ${totalPages}`;
-      paginationWrap.appendChild(pageInd);
+          const nextBtn = document.createElement("button");
+          nextBtn.className = "page-btn"; nextBtn.textContent = "Next →";
+          nextBtn.disabled  = currentPage >= totalPages;
+          nextBtn.onclick   = () => { currentPage++; loadProducts(); };
+          paginationWrap.appendChild(nextBtn);
+        }
+      }
 
-      const nextBtn = document.createElement("button");
-      nextBtn.className = "page-btn"; nextBtn.textContent = "Next →";
-      nextBtn.disabled = currentPage >= totalPages;
-      nextBtn.onclick = () => { currentPage++; loadProducts(); };
-      paginationWrap.appendChild(nextBtn);
+    } catch (err) {
+      console.error("loadProducts error:", err);
+      toast("Couldn't load products. Please try again.", "error");
     }
   }
 
+  // expose for tab switcher reload button
+  window.loadProducts = loadProducts;
+
+  // ================================================================
   // SEARCH & FILTER
-  document.getElementById("searchProducts").addEventListener("input", e => { currentSearch = e.target.value.trim(); currentPage = 1; loadProducts(); });
-  document.getElementById("filterVisibility").addEventListener("change", e => { currentVisibilityFilter = e.target.value; currentPage = 1; loadProducts(); });
+  // ================================================================
+  document.getElementById("searchProducts")?.addEventListener("input", e => {
+    currentSearch = e.target.value.trim(); currentPage = 1; loadProducts();
+  });
+  document.getElementById("filterVisibility")?.addEventListener("change", e => {
+    currentVisibilityFilter = e.target.value; currentPage = 1; loadProducts();
+  });
 
+  // ================================================================
   // EDIT PRODUCT
+  // ================================================================
   window.editProduct = async function (id) {
     resetForm();
     toast("Loading product details...", "info", 2000);
     const { data, error } = await supabaseClient.from("products").select("*").eq("id", id).single();
     if (error) return toast("Failed to load product.", "error");
 
-    editingProductId = id;
+    editingProductId      = id;
     currentEditingProduct = data;
-
     els.formTitle.textContent = "Edit Product";
     els.cancelEditBtn.classList.remove("hidden");
-    els.name.value = data.name || "";
-    els.price.value = data.price || "";
-    els.stock.value = data.stock_quantity || "0";
-els.discount.value = data.discount_percentage || 0;
-
-els.isVisible.checked = data.is_visible ?? true;
-els.isFeatured.checked = data.is_featured ?? false;
-
-    quill.root.innerHTML = data.description || "";
+    els.name.value     = data.name             || "";
+    els.price.value    = data.price            || "";
+    els.stock.value    = data.stock_quantity   || "0";
+    els.discount.value = data.discount_percentage || 0;
+    els.isVisible.checked  = data.is_visible  ?? true;
+    els.isFeatured.checked = data.is_featured ?? false;
+    quill.root.innerHTML   = data.description || "";
     els.whatsapp.value = data.whatsapp_number || "";
-    els.category.value = data.category_id || "";
-    els.tags.value = data.tags ? (Array.isArray(data.tags) ? data.tags.join(",") : data.tags) : "";
-    els.youtube.value = data.youtube_url || "";
+    els.category.value = data.category_id     || "";
+    els.tags.value     = Array.isArray(data.tags) ? data.tags.join(",") : (data.tags || "");
+    els.youtube.value  = data.youtube_url     || "";
 
     if (data.video_url) els.existingVideoBanner.classList.remove("hidden");
 
     selectedImages = (data.image_urls || []).map(url => ({
       id: crypto.randomUUID(), file: null, url, existing: true
     }));
-
     renderPreviews();
     els.submitBtn.innerHTML = `<span>Update Product</span>`;
     window.scrollTo({ top: 0, behavior: "smooth" });
-    document.querySelector('[data-tab="uploadTab"]').click();
+    document.querySelector('[data-tab="uploadTab"]')?.click();
   };
 
-window.moveProduct = async function(id, direction){
-  const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-  const container = isDesktop
-    ? els.productsTableBody
-    : els.productsMobileContainer;
+  // ================================================================
+  // MOVE PRODUCT
+  // ================================================================
+  window.moveProduct = async function (id, direction) {
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    const container = isDesktop ? els.productsTableBody : els.productsMobileContainer;
+    const rows      = [...container.children];
+    const ids       = rows.map(r => r.dataset.id);
+    const index     = ids.indexOf(id);
+    if (index === -1) return;
+    if (direction === "up"   && index > 0)              [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
+    if (direction === "down" && index < ids.length - 1) [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]];
+    const { error } = await supabaseClient.rpc("reorder_products", { p_ids: ids });
+    if (error) { toast("Reorder failed.", "error"); return; }
+    toast("Product moved ✓", "success");
+    await loadProducts();
+  };
 
-  const rows = [...container.children];
-  const ids = rows.map(r => r.dataset.id);
-  const index = ids.indexOf(id);
-
-  if(index === -1) return;
-
-  if(direction === 'up' && index > 0){
-    [ids[index - 1], ids[index]] =
-      [ids[index], ids[index - 1]];
-  }
-
-  if(direction === 'down' && index < ids.length - 1){
-    [ids[index + 1], ids[index]] =
-      [ids[index], ids[index + 1]];
-  }
-
-  const { error } = await supabaseClient.rpc(
-    "reorder_products",
-    { p_ids: ids }
-  );
-
-  if(error){
-    console.error(error);
-    toast("Reorder failed","error");
-    return;
-  }
-
-  toast("Product moved","success");
+  // ================================================================
+  // INIT
+  // ================================================================
+  updateLive();
+  await loadCategories();
   await loadProducts();
-}
-
-  
-
-// INIT
-updateLive();
-await loadCategories();
-await loadProducts();
