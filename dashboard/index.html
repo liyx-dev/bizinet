@@ -38,8 +38,6 @@
   <script src="js/dashboard-flags.js"></script>
   <!-- 5. Runtime — boot guard, fills APP_RUNTIME, resolves APP_RUNTIME_READY -->
   <script src="js/runtime.js"></script>
-   <!-- Shared helpers — toast, optimizeImage, R2 base -->
-  <script src="js/helpers.js"></script>
 </head>
 <body>
 
@@ -135,10 +133,8 @@
 
 </div><!-- /admin-wrapper -->
   
-<!-- Tab switcher + swipe — calls loadStories(), loadCategoriesTab(), loadSettings() -->
-  <script src="js/tabscript.js"></script>
- 
-  <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
+<!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
+<script src="js/tabscript.js"></script>
 <script src="js/tab-loader.js"></script>
   
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
