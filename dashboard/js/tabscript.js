@@ -115,7 +115,7 @@ function lockSection(section, locked) {
   section.setAttribute("aria-hidden", locked ? "true" : "false");
 }
 
-// ── FIXED SWITCHNATION RULE ENGINE ─────────────────────────────────
+// ── UPGRADED SWITCHNATION RULE ENGINE ─────────────────────────────────
 function switchTab(tabId) {
   if (!tabId || !tabsList.includes(tabId)) return;
 
@@ -133,8 +133,14 @@ function switchTab(tabId) {
     if (!section) return;
 
     const isActive = (key === tabId);
-    section.style.display = isActive ? "block" : "none";
-    section.classList.toggle("active", isActive);
+    
+    if (isActive) {
+      section.style.setProperty("display", "block", "important");
+      section.classList.add("active");
+    } else {
+      section.style.setProperty("display", "none", "important");
+      section.classList.remove("active");
+    }
     
     lockSection(section, !isActive);
     if (!isActive) {
@@ -142,24 +148,26 @@ function switchTab(tabId) {
     }
   });
 
-  // Keep the active tab button visible horizontally on small mobile screens
-  targetBtn.scrollIntoView({
-    behavior: "smooth",
-    inline: "center",
-    block: "nearest"
-  });
+  // Enhanced: Keeps the active tab button scrolled into view gracefully on mobile viewport rails
+  const tabsContainer = document.querySelector(".tabs-container");
+  if (tabsContainer) {
+    const containerWidth = tabsContainer.offsetWidth;
+    const btnLeft = targetBtn.offsetLeft;
+    const btnWidth = targetBtn.offsetWidth;
+    tabsContainer.scrollTo({
+      left: btnLeft - (containerWidth / 2) + (btnWidth / 2),
+      behavior: "smooth"
+    });
+  }
 }
 
 // ── LIFECYCLE INTERACTION HOOK ────────────────────────────────────
-// Exposed globally to be called safely by initializeDashboard() inside tab-loader.js
 window.initTabNavigation = function() {
   document.querySelectorAll(".tab-btn").forEach(btn => {
-    // Prevent duplicate listeners if initialized multiple times
     btn.removeEventListener("click", handleTabClick);
     btn.addEventListener("click", handleTabClick);
   });
   
-  // Set default initial tab layout view
   const initialTab = getActiveTabId();
   switchTab(initialTab);
   applyTableLayout();
@@ -170,9 +178,7 @@ function handleTabClick(e) {
   switchTab(tabId);
 }
 
-// Fallback listener for non-async standard loading scenarios
 document.addEventListener("DOMContentLoaded", () => {
-  // Only auto-initialize if not utilizing the tab-loader script template system
   if (!document.getElementById("productsContainer")) {
     window.initTabNavigation();
   }
@@ -214,7 +220,6 @@ document.addEventListener("touchmove", e => {
   const dx = currentX - swipeState.startX;
   const dy = currentY - swipeState.startY;
 
-  // If it becomes clearly vertical scrolling, stop tracking it as a swipe.
   if (Math.abs(dy) > Math.abs(dx) * swipeConfig.directionRatio) {
     resetSwipeState();
   }
@@ -242,7 +247,6 @@ document.addEventListener("touchend", e => {
   if (document.querySelector(".ql-editor:focus")) return;
   if (document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus")) return;
 
-  // Verify swipe distance constraints match requirements
   if (absX < swipeConfig.minDistance) return;
   if (absX <= absY * swipeConfig.directionRatio) return;
   if (duration > swipeConfig.maxDuration && absX < swipeConfig.minDistance * 1.5) return;
@@ -252,12 +256,10 @@ document.addEventListener("touchend", e => {
   const currentIndex = tabsList.indexOf(activeTab);
   if (currentIndex === -1) return;
 
-  // Swipe left -> navigate to next tab index position
   if (dx < 0 && currentIndex < tabsList.length - 1) {
     switchTab(tabsList[currentIndex + 1]);
   }
 
-  // Swipe right -> navigate to previous tab index position
   if (dx > 0 && currentIndex > 0) {
     switchTab(tabsList[currentIndex - 1]);
   }
