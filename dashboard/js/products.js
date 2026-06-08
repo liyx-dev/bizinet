@@ -14,37 +14,32 @@
 //    Quill, Sortable          — CDN scripts
 // ================================================================
 
-// ── Responsive table/card switcher — runs immediately on resize
-function applyTableLayout() {
-  const desktopWrap = document.querySelector(".table-wrap");
-  const mobileWrap  = document.getElementById("productsMobileContainer");
-  if (!desktopWrap || !mobileWrap) return;
-  const isDesktop = window.innerWidth >= 768;
-  desktopWrap.style.display = isDesktop ? "block" : "none";
-  mobileWrap.style.display  = isDesktop ? "none"  : "flex";
-}
-window.addEventListener("resize",            applyTableLayout);
-window.addEventListener("orientationchange", applyTableLayout);
-document.addEventListener("DOMContentLoaded", applyTableLayout);
+// ================================================================
+//  BiziNet Tab Engine · Products
+//  dashboard/js/products.js
+// ================================================================
 
-// ── Module-level references — filled after APP_RUNTIME_READY resolves
-let supabaseClient;
-let supabaseUrl;
-let renderUrl;
-let currentSessionToken;
-let runtimeState;
+// Local structural variables for this specific context scope
+let runtimeState = null;
+let currentSessionToken = null;
+const R2_PUBLIC_BASE = window.APP_CONFIG.r2PublicBase;
+const renderUrl = window.APP_CONFIG.renderUrl;
+const supabaseClient = window.APP_CLIENT;
 
-document.addEventListener("DOMContentLoaded", async () => {
+let els = {};
+let quill;
 
-  // ── Wait for boot guard to finish — runtime is null until this resolves
+// This wrapper is fired automatically by tab-loader.js once partial HTML is safe in the DOM
+async function loadProducts() {
+  // Wait for session and database keys to verify
   await window.APP_RUNTIME_READY;
-
-  // ── Now safe to read — runtime is fully populated
-  supabaseClient      = window.APP_CLIENT;
-  supabaseUrl         = window.APP_CONFIG.supabaseUrl;
-  renderUrl           = window.APP_CONFIG.renderUrl;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-  runtimeState        = window.APP_RUNTIME.runtimeState;
+  if (!runtimeState) return;
+
+  // Map DOM elements safely now that products.html partition has been loaded
+  
 
   // ── Element cache
   const els = {
@@ -810,3 +805,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateLive();
   await loadCategories();
   await loadProducts();
+  // Ensure global access for tab-loader
+window.loadProducts = loadProducts;
+  
