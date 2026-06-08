@@ -21,8 +21,12 @@
 //  Load more: graceful network failure + retry button.
 //  Feed load: graceful timeout + retry on failure.
 // ============================================================
-
-const STORY_R2_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
+// ── Pull shared globals set by runtime.js, config.js, helpers.js
+const supabaseClient      = window.APP_CLIENT;
+const supabaseUrl         = window.APP_CONFIG.supabaseUrl;
+let   runtimeState        = window.APP_RUNTIME.runtimeState;
+let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+const STORY_R2_BASE = window.R2_PUBLIC_BASE;
 
 // ── Core State
 let allStories             = [];
