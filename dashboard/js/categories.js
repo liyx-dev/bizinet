@@ -1,4 +1,3 @@
-
 // ================================================================
 //  SHARED HELPER — tiny toast alias (uses the one already in scope)
 // ================================================================
@@ -16,14 +15,7 @@
 
 let runtimeState = null;
 let currentSessionToken = null;
-const supabaseClient = window.APP_CLIENT;
-
-async function loadCategoriesTab() {
-  await window.APP_RUNTIME_READY;
-  
-  runtimeState = window.APP_RUNTIME.runtimeState;
-  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-  if (!runtimeState) return;
+const supabaseClient = window.APP_CLIENT; // Safely reuse the global instance
 
 const EMOJI_SHORTCUTS = [
   "👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
@@ -72,11 +64,13 @@ function renderEmojiPicker() {
     btn.onclick = () => {
       const emojiEl = document.getElementById("catIconEmoji");
       const preview = document.getElementById("catIconPreview");
-      emojiEl.textContent = em;
+      if (emojiEl) emojiEl.textContent = em;
       
       // Visual feedback — pulse the preview
-      preview.style.transform = "scale(1.08)";
-      setTimeout(() => preview.style.transform = "scale(1)", 180);
+      if (preview) {
+        preview.style.transform = "scale(1.08)";
+        setTimeout(() => preview.style.transform = "scale(1)", 180);
+      }
     };
     picker.appendChild(btn);
   });
@@ -93,58 +87,72 @@ window.openCatModal = function (id = null) {
   const auditBox   = document.getElementById("catAuditTrailBox");
   const saveBtn    = document.getElementById("catSaveBtn");
 
+  if (!nameInput) return; // Guard backdrop layout maps
+
   // Reset Form
   nameInput.value = "";
   nameInput.classList.remove("input-error", "animate-shake");
-  emojiEl.textContent   = "🏷️";
-  saveBtn.textContent   = "Save Category";
-  saveBtn.disabled      = false;
+  if (emojiEl) emojiEl.textContent = "🏷️";
+  if (saveBtn) {
+    saveBtn.textContent = "Save Category";
+    saveBtn.disabled = false;
+  }
 
   if (id) {
     const cat = activeStoreCategoriesCache.find(c => c.id === id);
     if (cat) {
-      nameInput.value        = cat.name;
-      modalTitle.textContent = "Edit Category";
-      modalIcon.textContent  = "✏️";
+      nameInput.value = cat.name || "";
+      if (modalTitle) modalTitle.textContent = "Edit Category";
+      if (modalIcon) modalIcon.textContent = "✏️";
 
       // If it contains an icon, render it straight as text safely
-      if (cat.icon && !cat.icon.startsWith("http")) {
-        emojiEl.textContent = cat.icon;
-      } else {
-        emojiEl.textContent = "🏷️";
+      if (emojiEl) {
+        if (cat.icon && !cat.icon.startsWith("http")) {
+          emojiEl.textContent = cat.icon;
+        } else {
+          emojiEl.textContent = "🏷️";
+        }
       }
 
-      document.getElementById("catAuditCreator").textContent = cat.creator_name || "—";
-      document.getElementById("catAuditUpdater").textContent = cat.updater_name  || "—";
-      auditBox.style.display = "block";
+      const creatorEl = document.getElementById("catAuditCreator");
+      const updaterEl = document.getElementById("catAuditUpdater");
+      if (creatorEl) creatorEl.textContent = cat.creator_name || "—";
+      if (updaterEl) updaterEl.textContent = cat.updater_name  || "—";
+      if (auditBox) auditBox.style.display = "block";
     }
   } else {
-    modalTitle.textContent = "New Category";
-    modalIcon.textContent  = "➕";
-    auditBox.style.display = "none";
+    if (modalTitle) modalTitle.textContent = "New Category";
+    if (modalIcon) modalIcon.textContent = "➕";
+    if (auditBox) auditBox.style.display = "none";
   }
 
   renderEmojiPicker();
-  document.getElementById("catModal").classList.add("open");
+  const modal = document.getElementById("catModal");
+  if (modal) modal.classList.add("open");
   document.body.style.overflow = "hidden";
   setTimeout(() => nameInput.focus(), 220);
 };
 
 // ── Close modal
 window.closeCatModal = function () {
-  document.getElementById("catModal").classList.remove("open");
+  const modal = document.getElementById("catModal");
+  if (modal) modal.classList.remove("open");
   document.body.style.overflow = "";
 };
 
 // Backdrop click closes modal
-document.getElementById("catModal").addEventListener("click", function (e) {
-  if (e.target === this) window.closeCatModal();
-});
+const modalEl = document.getElementById("catModal");
+if (modalEl) {
+  modalEl.addEventListener("click", function (e) {
+    if (e.target === this) window.closeCatModal();
+  });
+}
 
 // ── Save / update category
 window.saveCategory = async function () {
   const nameInput = document.getElementById("catNameInput");
-  const name      = nameInput.value.trim();
+  if (!nameInput) return;
+  const name = nameInput.value.trim();
 
   if (!name) {
     nameInput.classList.add("input-error", "animate-shake");
@@ -154,13 +162,16 @@ window.saveCategory = async function () {
   }
 
   const saveBtn = document.getElementById("catSaveBtn");
-  saveBtn.disabled = true;
-  saveBtn.innerHTML = `<span style="display:flex;align-items:center;gap:8px;justify-content:center;">
-    <span style="display:inline-block;animation:cat-spin .7s linear infinite;">⏳</span> Saving…
-  </span>`;
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<span style="display:flex;align-items:center;gap:8px;justify-content:center;">
+      <span style="display:inline-block;animation:cat-spin .7s linear infinite;">⏳</span> Saving…
+    </span>`;
+  }
 
   try {
-    let finalIconValue = document.getElementById("catIconEmoji").textContent;
+    const emojiEl = document.getElementById("catIconEmoji");
+    let finalIconValue = emojiEl ? emojiEl.textContent : "🏷️";
 
     // Security Fallback validation: Ensure we don't send broken values or plain placeholder text
     if (!finalIconValue || finalIconValue === "🏷️") {
@@ -187,15 +198,17 @@ window.saveCategory = async function () {
     }
 
     window.closeCatModal();
-    await loadCategoriesTab();
+    await window.loadCategoriesTab();
     if (typeof loadCategories === "function") await loadCategories();
 
   } catch (err) {
     console.error("Category save error:", err);
     toast(err.message || "Couldn't save category. Please try again.", "error");
   } finally {
-    saveBtn.disabled    = false;
-    saveBtn.textContent = "Save Category";
+    if (saveBtn) {
+      saveBtn.disabled    = false;
+      saveBtn.textContent = "Save Category";
+    }
   }
 };
 
@@ -206,7 +219,7 @@ window.deleteCategory = async function (id, name) {
     const { error } = await supabaseClient.rpc("delete_category_secure", { p_id: id });
     if (error) throw error;
     toast("Category deleted ✓", "success");
-    await loadCategoriesTab();
+    await window.loadCategoriesTab();
     if (typeof loadCategories === "function") await loadCategories();
   } catch (err) {
     console.error("Category delete error:", err);
@@ -279,6 +292,7 @@ function _renderCatGrid() {
 
   visible.forEach(cat => grid.appendChild(_buildCatPill(cat)));
 
+  // Drag & drop sorting is explicitly bypassed when a filter term is active to preserve array mutations
   if (!_catSearchTerm) {
     _catSortable = Sortable.create(grid, {
       animation: 200,
@@ -300,7 +314,7 @@ function _renderCatGrid() {
         if (error) {
           console.error("Reorder error:", error);
           toast("Couldn't save new order. Please try again.", "error");
-          await loadCategoriesTab();
+          await window.loadCategoriesTab();
         } else {
           toast("Order saved ✓", "success");
           const idOrder = updatedIds;
@@ -315,22 +329,46 @@ function _renderCatGrid() {
 
 // ── Load + render categories from DB
 async function loadCategoriesTab() {
+  // Ensure runtime configuration is loaded before execution
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
+
   const grid       = document.getElementById("catGrid");
   const reloadBtn  = document.getElementById("catReloadBtn");
   if (!grid) return;
 
-  if (reloadBtn)  reloadBtn.classList.add("spinning");
+  if (reloadBtn) reloadBtn.classList.add("spinning");
 
+  // Mount loading skeleton arrays
   grid.innerHTML = [1, 2, 3, 4].map(() => `
     <div class="cat-pill" style="pointer-events:none;opacity:.7;">
       <div class="cat-skel-icon"></div>
       <div class="cat-skel-text" style="width:65%;margin-top:4px;"></div>
     </div>`).join("");
 
+  // Setup a robust loading timeout guard
+  let loadFinished = false;
+  setTimeout(() => {
+    if (!loadFinished && activeStoreCategoriesCache.length === 0) {
+      if (reloadBtn) reloadBtn.classList.remove("spinning");
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid rgba(255,59,48,.2);">
+          <div style="font-size:36px;margin-bottom:10px;">⏳</div>
+          <p style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">Connection Latency Warning</p>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">The database response is taking longer than expected.</p>
+          <button onclick="window.loadCategoriesTab()" style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry Connection</button>
+        </div>`;
+    }
+  }, 12000);
+
   try {
     const { data, error } = await supabaseClient.rpc("get_store_categories_v2");
     if (error) throw error;
 
+    loadFinished = true;
     activeStoreCategoriesCache = data || [];
 
     const badge = document.getElementById("catCountBadge");
@@ -345,13 +383,14 @@ async function loadCategoriesTab() {
     _renderCatGrid();
 
   } catch (err) {
+    loadFinished = true;
     console.error("Categories load error:", err);
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid rgba(255,59,48,.2);">
         <div style="font-size:36px;margin-bottom:10px;">😕</div>
         <p style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">Couldn't load categories</p>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Check your connection and try again</p>
-        <button onclick="loadCategoriesTab()" style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
+        <button onclick="window.loadCategoriesTab()" style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
       </div>`;
     toast("Couldn't load categories. Please try again.", "error");
   } finally {
@@ -359,4 +398,5 @@ async function loadCategoriesTab() {
   }
 }
 
+// Expose the ready instance to global browser context window
 window.loadCategoriesTab = loadCategoriesTab;
