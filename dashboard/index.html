@@ -39,7 +39,7 @@
   <!-- 5. Runtime — boot guard, fills APP_RUNTIME, resolves APP_RUNTIME_READY -->
   <script src="js/runtime.js"></script>
    <!-- Shared helpers — toast, optimizeImage, R2 base -->
-  
+  <script src="js/helpers.js"></script>
 </head>
 <body>
 
@@ -137,7 +137,12 @@
   
  
   <!-- Tab switcher + swipe — calls loadStories(), loadCategoriesTab(), loadSettings() -->
-  <script src="js/tabs.js"></script>
+  <script src="js/tabscript.js"></script>
+  
+  <script src="js/products.js"></script>
+  <script src="js/stories.js"></script>
+  <script src="js/categories.js"></script>
+  <script src="js/settings.js"></script>
 
 <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tab-loader.js"></script>
