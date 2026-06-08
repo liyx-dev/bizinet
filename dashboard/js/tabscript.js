@@ -975,17 +975,16 @@ updateLive();
 await loadCategories();
 await loadProducts();
 
-
 // ============================================================
-// STORIES TAB — JAVASCRIPT v10  |  LIYOG ADMIN DASHBOARD
+// STORIES TAB — JAVASCRIPT v10.1 | LIYOG ADMIN DASHBOARD (PATCHED)
 // ============================================================
 // ZERO-CACHE ARCHITECTURE — FINAL:
 //
 //  get_all_stories is the single source of truth for ALL store
 //  identity data. Every row carries:
 //    s.store_logo      ← profile.logo_url        (live JOIN)
-//    s.store_name      ← profile.business_name   (live JOIN) ← NEW
-//    s.store_whatsapp  ← profile.whatsapp_number (live JOIN) ← NEW
+//    s.store_name      ← profile.business_name   (live JOIN)
+//    s.store_whatsapp  ← profile.whatsapp_number (live JOIN)
 //    s.creator_name    ← store_members.member_name (live JOIN)
 //
 //  There are NO module-level vars for logo, store name, store WA,
@@ -1031,6 +1030,10 @@ let previewTimer       = null;
 let previewHolding     = false;
 let previewTouchStartX = 0;
 let previewTouchStartT = 0;
+let previewActiveSecs  = 5; 
+let previewElapsedMs   = 0; 
+let previewLastTick    = 0; 
+let isPopupModalOpen   = false; // Strict mutex isolation lock
 
 // ============================================================
 // INJECT KEYFRAMES ONCE
@@ -1289,7 +1292,6 @@ async function loadStories(appendMode = false) {
       </div>`).join("");
   }
 
-  // Timeout safety — avoids forever-loading on dead network
   const LOAD_TIMEOUT = 15000;
   let timedOut = false;
   const timeoutId = setTimeout(() => {
@@ -1313,15 +1315,10 @@ async function loadStories(appendMode = false) {
   }, LOAD_TIMEOUT);
 
   try {
-    // ONE RPC — returns per-row:
-    //   store_logo      ← profile.logo_url          (live JOIN, no cache)
-    //   store_name      ← profile.business_name     (live JOIN, no cache)
-    //   store_whatsapp  ← profile.whatsapp_number   (live JOIN, no cache)
-    //   creator_name    ← store_members.member_name (live JOIN, per uploader)
     const { data, error } = await supabaseClient.rpc("get_all_stories");
 
     clearTimeout(timeoutId);
-    if (timedOut) return; // timeout already rendered error UI
+    if (timedOut) return;
 
     if (error) throw error;
 
@@ -1368,7 +1365,7 @@ async function loadStories(appendMode = false) {
           </button>
         </div>`;
     } else if (appendMode) {
-      storyCurrentPage--; // roll back page count so retry works correctly     _injectLoadMoreTrigger(true);
+      storyCurrentPage--;
       _watchForReconnect();
     }
     toast("Couldn't load your stories. Please try again.", "error");
@@ -1406,7 +1403,6 @@ function _injectLoadMoreTrigger(failed = false) {
   `;
 
   if (failed) {
-    // ── Network failed state
     trigger.innerHTML = `
       <div style="
         width:52px;height:52px;border-radius:50%;
@@ -1435,19 +1431,16 @@ function _injectLoadMoreTrigger(failed = false) {
         🔄 Retry
       </div>`;
 
-    // Retry button click
     trigger.querySelector("#stLoadMoreRetryBtn").onclick = (e) => {
       e.stopPropagation();
       _attemptLoadMore();
     };
 
-    // Also wire the whole trigger as clickable
     trigger.onclick = () => _attemptLoadMore();
 
   } else {
-    // ── Normal idle state — Gold/Orange gradient spinner
     trigger.innerHTML = `
-      <div id="stLoadMoreSpinner" style="
+      <div id="stSpinConic" style="
         width: 42px; height: 42px; border-radius: 50%;
         background: conic-gradient(#FFD700 0%, #FF7A00 35%, #FF3B30 65%, #FFD700 100%);
         animation: stSpinConic 1s linear infinite;
@@ -1471,16 +1464,13 @@ function _injectLoadMoreTrigger(failed = false) {
   grid.appendChild(trigger);
 }
 
-// Handles load-more with online detection + auto-retry on reconnect
 async function _attemptLoadMore() {
-  // If offline, show failed state and start watching for reconnect
   if (!navigator.onLine) {
     _injectLoadMoreTrigger(true);
     _watchForReconnect();
     return;
   }
 
-  // Show loading state
   const label = document.getElementById("stLoadMoreLabel");
   const trigger = document.getElementById("storyLoadMoreTrigger");
   if (label) {
@@ -1489,23 +1479,18 @@ async function _attemptLoadMore() {
     label.style.webkitTextFillColor = "#FF7A00";
     label.style.backgroundClip      = "unset";
   }
-  if (trigger) trigger.onclick = null; // prevent double-tap
+  if (trigger) trigger.onclick = null;
 
   storyCurrentPage++;
 
   try {
     await loadStories(true);
-    // loadStories(true) calls _injectLoadMoreTrigger() itself on success
   } catch (e) {
-    // loadStories already handles its own error UI
-    // Re-inject failed state so user can retry
     _injectLoadMoreTrigger(true);
   }
 }
 
-// Watches for network restoration and auto-retries load-more
 function _watchForReconnect() {
-  // Avoid stacking multiple listeners
   if (window._stReconnectWatching) return;
   window._stReconnectWatching = true;
 
@@ -1513,7 +1498,6 @@ function _watchForReconnect() {
     window._stReconnectWatching = false;
     window.removeEventListener("online", onReconnect);
 
-    // Show a brief "back online" pulse on the trigger before loading
     const trigger = document.getElementById("storyLoadMoreTrigger");
     if (trigger) {
       trigger.innerHTML = `
@@ -1531,7 +1515,6 @@ function _watchForReconnect() {
         </span>`;
     }
 
-    // Small delay so user sees the "back online" message
     setTimeout(() => {
       loadStories(true);
     }, 800);
@@ -1539,7 +1522,6 @@ function _watchForReconnect() {
 
   window.addEventListener("online", onReconnect);
 }
-
 
 // ============================================================
 // RENDER ENGINE
@@ -1552,14 +1534,12 @@ function renderStories() {
   const searchInput = document.getElementById("storySearchInput");
   const keyword     = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-  // Lazy-fetch current user UID for "my stories" filter only
   if (!currentUserUidCache && allStories.length > 0) {
     supabaseClient.auth.getUser().then(({ data }) => {
       if (data?.user) { currentUserUidCache = data.user.id; renderStories(); }
     });
   }
 
-  // Owner-only role filter panel
   if (allStories.length > 0) {
     const primaryRow = allStories[0];
     const ownerPanel = document.getElementById("premiumOwnerFilterContainer");
@@ -1581,7 +1561,6 @@ function renderStories() {
     }
   }
 
-  // Apply all filters
   const filtered = allStories.filter(s => {
     if (currentFilter !== "all" && s.status !== currentFilter)                          return false;
     if (currentMediaTypeFilter !== "all" && s.type !== currentMediaTypeFilter)          return false;
@@ -1621,7 +1600,6 @@ function buildStoryCard(s, idx, list) {
   const isHidden  = s.status === "hidden";
   const thumbSrc  = s.media_thumb || s.media_url;
 
-  // Media block
   let mediaHtml = "";
   if (s.type === "video") {
     mediaHtml = `
@@ -1656,7 +1634,6 @@ function buildStoryCard(s, idx, list) {
       </div>`;
   }
 
-  // Link tag — product name truncated to keep feed clean
   const linkTag = s.link_type && s.link_type !== "none"
     ? `<span style="
         display:inline-block;max-width:140px;
@@ -1675,7 +1652,6 @@ function buildStoryCard(s, idx, list) {
           : "🔗 Link"}
       </span>` : "";
 
-  // Role badge
   const roleBg = s.creator_role === "owner"
     ? "linear-gradient(135deg,#FFD700,#FF7A00)"
     : s.creator_role === "super_admin"
@@ -1684,7 +1660,6 @@ function buildStoryCard(s, idx, list) {
     ? "linear-gradient(135deg,#1877F2,#0d5bbf)"
     : "linear-gradient(135deg,#28A428,#34BF49)";
 
-  // Status ribbon
   const ribbonStyle = s.status === "active"
     ? "background:linear-gradient(90deg,#28A428,#34BF49);color:#fff;"
     : s.status === "expired"
@@ -1692,7 +1667,6 @@ function buildStoryCard(s, idx, list) {
     : "background:linear-gradient(90deg,#475569,#334155);color:#fff;";
   const ribbonLabel = s.status === "active" ? "🟢 Live" : s.status === "expired" ? "🔴 Expired" : "👁 Hidden";
 
-  // Action buttons
   const editBtn = `
     <button onclick="openStoryModal('${s.id}')"
       style="background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;
@@ -1806,7 +1780,7 @@ window.openStoryModal = async function (editId = null) {
   storyIsFeatured     = false;
   storyCtaType        = "none";
   storySelectedHours  = 24;
-  _storyProductsCache = null; // always clear — fresh RPC on every open
+  _storyProductsCache = null;
 
   ["st_story_title", "st_story_caption", "st_story_wa", "st_story_url", "st_story_cta_text"]
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
@@ -2165,14 +2139,9 @@ window.setCTAText = (t) => {
   const el = document.getElementById("st_story_cta_text"); if (el) el.value = t;
 };
 
-// ── WhatsApp autofill
-// Reads s.store_whatsapp from the already-loaded allStories data.
-// get_all_stories returned this live from profile. Zero extra DB call.
-// Zero caching. Zero cross-store contamination.
 window.useProfileWhatsapp = function () {
   const el = document.getElementById("st_story_wa");
   if (!el) return;
-  // Pull from the live story data already in memory from this session's RPC call
   const liveWa = allStories[0]?.store_whatsapp || "";
   if (liveWa) {
     el.value = liveWa;
@@ -2182,7 +2151,7 @@ window.useProfileWhatsapp = function () {
 };
 
 // ============================================================
-// PRODUCT PICKER — get_all_products_v2 RPC, fresh every modal open
+// PRODUCT PICKER — get_all_products_v2 RPC
 // ============================================================
 
 async function _loadProductsForPicker() {
@@ -2431,7 +2400,7 @@ window.moveStory = async function (id, direction) {
     allStories.forEach((s, i) => { s.sort_order = i; });
   } catch (e) {
     console.error("Reorder save error:", e);
-    toast("Order shown but couldn't save. Please try again.", "error");
+    toast("Order shown but couldn't save. Please try again.", "order error");
   }
 };
 
@@ -2441,6 +2410,11 @@ window.moveStory = async function (id, direction) {
 
 window.showProductPreview = async function (productId, productName) {
   if (!productId) return;
+  
+  // Mutex lock out background status preview timelines smoothly
+  isPopupModalOpen = true;
+  _internalPausePreviewTimeline();
+
   let popup = document.getElementById("storyProductPreviewPopup");
   if (!popup) {
     popup = document.createElement("div");
@@ -2450,9 +2424,12 @@ window.showProductPreview = async function (productId, productName) {
       display:flex;align-items:center;justify-content:center;
       background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
       animation:stFadeIn .2s ease;`;
-    popup.onclick = e => { if (e.target === popup) popup.remove(); };
+    popup.onclick = e => { if (e.target === popup) window.closeProductPreview(); };
     document.body.appendChild(popup);
+  } else {
+    popup.style.display = "flex";
   }
+
   popup.innerHTML = `
     <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;
       text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.18);animation:stScaleIn .25s ease;">
@@ -2463,11 +2440,12 @@ window.showProductPreview = async function (productId, productName) {
           font-size:22px;margin:0 auto 14px;">🛍</div>
         <p style="font-weight:700;font-size:15px;color:#1e293b;">Loading product…</p>
       </div>
-      <button onclick="document.getElementById('storyProductPreviewPopup').remove()"
+      <button onclick="window.closeProductPreview()"
         style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
           color:#475569;border:none;border-radius:10px;padding:8px 20px;
           font-size:13px;font-weight:700;cursor:pointer;">Close</button>
     </div>`;
+
   try {
     const { data, error } = await supabaseClient
       .from("products")
@@ -2507,20 +2485,16 @@ window.showProductPreview = async function (productId, productName) {
   }
 };
 
+window.closeProductPreview = function() {
+  const popup = document.getElementById("storyProductPreviewPopup");
+  if (popup) popup.style.display = "none";
+  
+  isPopupModalOpen = false;
+  _internalResumePreviewTimeline();
+};
+
 // ============================================================
 // WHATSAPP-STYLE PREVIEW VIEWER
-// ============================================================
-// BINDING CONTRACT — FINAL v10:
-//
-//   #previewStoreLogo     ← s.store_logo      (profile JOIN, per row, no cache)
-//   #previewStoreName     ← s.store_name      (profile JOIN, per row, no cache) ← NEW
-//   #previewUploaderName  ← s.creator_name    (store_members JOIN, per row)
-//   #previewTime          ← timeAgo(s.created_at)
-//
-//   useProfileWhatsapp()  ← s.store_whatsapp  (profile JOIN, per row, no cache) ← NEW
-//
-//   Zero window.* variables. Zero module-level name/logo/wa cache.
-//   Every single store identity field comes live from the DB per story row.
 // ============================================================
 
 window.openPreviewAt = function (id) {
@@ -2529,6 +2503,7 @@ window.openPreviewAt = function (id) {
     : allStories.filter(s => s.status === currentFilter);
   previewStoryList = filtered;
   previewIndex     = Math.max(0, filtered.findIndex(s => s.id === id));
+  isPopupModalOpen = false; 
   const previewModal = document.getElementById("storyPreviewModal");
   if (previewModal) {
     previewModal.classList.add("open");
@@ -2540,9 +2515,9 @@ window.openPreviewAt = function (id) {
 function _renderPreviewSlide() {
   const s = previewStoryList[previewIndex];
   if (!s) return;
-  clearTimeout(previewTimer);
+  
+  _internalClearTimer();
 
-  // Progress dots
   const track = document.getElementById("previewProgressTrack");
   if (track) track.innerHTML = previewStoryList.map((_, i) =>
     `<div class="st-preview-dot ${i === previewIndex ? "active" : i < previewIndex ? "done" : ""}"></div>`
@@ -2551,9 +2526,6 @@ function _renderPreviewSlide() {
   const counter = document.getElementById("previewCounter");
   if (counter) counter.textContent = `${previewIndex + 1} / ${previewStoryList.length}`;
 
-  // ── Store logo
-  // Source: s.store_logo — live from profile LEFT JOIN in get_all_stories
-  // No window var. No cache. Fresh from DB per story row.
   const storeLogoEl = document.getElementById("previewStoreLogo");
   if (storeLogoEl) {
     storeLogoEl.innerHTML = s.store_logo
@@ -2567,27 +2539,15 @@ function _renderPreviewSlide() {
            font-size:18px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
   }
 
-  // ── Store name
-  // Source: s.store_name — live from profile.business_name JOIN in get_all_stories (NEW in v10)
-  // No async fetch. No window._profileBusinessName. No stale global.
-  // Store A sees "Store A". Store B sees "Store B". Always correct.
   const storeNameEl = document.getElementById("previewStoreName");
-  if (storeNameEl) {
-    storeNameEl.textContent = s.store_name || "Our Store";
-  }
+  if (storeNameEl) storeNameEl.textContent = s.store_name || "Our Store";
 
-  // ── Uploader name
-  // Source: s.creator_name — live from store_members JOIN in get_all_stories
-  // Sarah's story shows "by Sarah". James's story shows "by James". Per row.
   const uploaderEl = document.getElementById("previewUploaderName");
-  if (uploaderEl) {
-    uploaderEl.textContent = s.creator_name ? `by ${s.creator_name}` : "";
-  }
+  if (uploaderEl) uploaderEl.textContent = s.creator_name ? `by ${s.creator_name}` : "";
 
   const timeEl = document.getElementById("previewTime");
   if (timeEl) timeEl.textContent = timeAgo(s.created_at);
 
-  // Media wrap
   const wrap = document.getElementById("previewMediaWrap");
   if (!wrap) return;
   wrap.querySelectorAll("video,audio").forEach(el => { el.pause(); el.src = ""; });
@@ -2606,7 +2566,8 @@ function _renderPreviewSlide() {
     z-index:5;`;
   wrap.appendChild(inlineLoader);
 
-  let slideDuration = 5;
+  previewActiveSecs = 5; 
+  previewElapsedMs  = 0; 
 
   if (s.type === "video") {
     const vid = document.createElement("video");
@@ -2617,12 +2578,15 @@ function _renderPreviewSlide() {
       top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
     vid.oncontextmenu    = () => false;
     vid.oncanplay        = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
-    vid.onloadedmetadata = () => { slideDuration = vid.duration || 10; _startProgressBar(slideDuration); };
-    vid.onended          = () => previewNav(1);
+    vid.onloadedmetadata = () => { 
+      previewActiveSecs = vid.duration || 10; 
+      _startCustomTimeline(); 
+    };
+    vid.onended          = () => { if (!isPopupModalOpen) previewNav(1); };
     wrap.appendChild(vid);
 
   } else if (s.type === "audio") {
-    slideDuration = s.duration || 15;
+    previewActiveSecs = s.duration || 15;
     const ph = document.createElement("div");
     ph.style.cssText = `
       position:absolute;inset:0;display:flex;flex-direction:column;
@@ -2632,15 +2596,16 @@ function _renderPreviewSlide() {
       <span style="font-size:64px;">🎵</span>
       <p style="color:rgba(255,255,255,.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
     wrap.appendChild(ph);
+    
     const aud = document.createElement("audio");
     aud.src = s.media_url; aud.autoplay = true;
     aud.oncanplay = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
-    aud.onended   = () => previewNav(1);
+    aud.onended   = () => { if (!isPopupModalOpen) previewNav(1); };
     wrap.appendChild(aud);
-    _startProgressBar(slideDuration);
-    previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
+    _startCustomTimeline();
 
   } else {
+    previewActiveSecs = 5;
     const img = document.createElement("img");
     img.src = s.media_url; img.alt = s.title || "Story";
     img.style.cssText = `
@@ -2651,17 +2616,14 @@ function _renderPreviewSlide() {
     img.draggable     = false;
     img.onload = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     wrap.appendChild(img);
-    _startProgressBar(slideDuration);
-    previewTimer = setTimeout(() => previewNav(1), slideDuration * 1000);
+    _startCustomTimeline();
   }
 
-  // Title / caption
   const titleEl   = document.getElementById("previewTitle");
   const captionEl = document.getElementById("previewCaption");
   if (titleEl)   titleEl.textContent   = s.title   || "";
   if (captionEl) captionEl.textContent = s.caption || "";
 
-  // CTA button
   const ctaEl = document.getElementById("previewCta");
   if (ctaEl) {
     if (s.cta_text && s.link_type && s.link_type !== "none") {
@@ -2672,18 +2634,28 @@ function _renderPreviewSlide() {
           display:block;background:linear-gradient(135deg,#FFD700,#FF7A00);
           color:#111;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-        ctaEl.onclick = () => showProductPreview(s.product_id, s.product_name);
+        ctaEl.onclick = (e) => {
+          e.stopPropagation();
+          showProductPreview(s.product_id, s.product_name);
+        };
       } else if (s.link_type === "whatsapp") {
         ctaEl.style.cssText = `
           display:block;background:linear-gradient(135deg,#28A428,#34BF49);
           color:#fff;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-        ctaEl.onclick = () => {
+        ctaEl.onclick = (e) => {
+          e.stopPropagation();
           if (s.whatsapp_number) {
+            isPopupModalOpen = true; 
+            _internalPausePreviewTimeline();
             window.open(
               `https://wa.me/${s.whatsapp_number}?text=${encodeURIComponent("Hi, I saw your story: " + (s.title || ""))}`,
               "_blank"
             );
+            setTimeout(() => {
+              isPopupModalOpen = false;
+              _internalResumePreviewTimeline();
+            }, 1000);
           }
         };
       } else {
@@ -2691,7 +2663,18 @@ function _renderPreviewSlide() {
           display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);
           color:#fff;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-        ctaEl.onclick = () => { if (s.link_target) window.open(s.link_target, "_blank"); };
+        ctaEl.onclick = (e) => {
+          e.stopPropagation();
+          if (s.link_target) {
+            isPopupModalOpen = true;
+            _internalPausePreviewTimeline();
+            window.open(s.link_target, "_blank");
+            setTimeout(() => {
+              isPopupModalOpen = false;
+              _internalResumePreviewTimeline();
+            }, 1000);
+          }
+        };
       }
     } else {
       ctaEl.style.display = "none";
@@ -2703,7 +2686,8 @@ function _renderPreviewSlide() {
 }
 
 window.closePreview = function () {
-  clearTimeout(previewTimer);
+  _internalClearTimer();
+  isPopupModalOpen = false;
   const overlay = document.getElementById("storyPreviewModal");
   if (overlay) {
     overlay.classList.remove("open");
@@ -2712,28 +2696,72 @@ window.closePreview = function () {
   document.body.style.overflow = "";
 };
 
-function _startProgressBar(durationSecs) {
+// ============================================================
+// TIMELINE DISCIPLINE CONTROLLERS (High-Accuracy Loops)
+// ============================================================
+
+function _startCustomTimeline() {
+  _internalClearTimer();
+  previewLastTick = performance.now();
+  
   const fill = document.getElementById("previewProgFill");
-  if (!fill) return;
-  fill.style.transition = "none";
-  fill.style.width      = "0%";
-  requestAnimationFrame(() => {
-    fill.style.transition = `width ${durationSecs}s linear`;
-    fill.style.width      = "100%";
-  });
+  if (fill) {
+    fill.style.transition = "none";
+    fill.style.width = `${(previewElapsedMs / (previewActiveSecs * 1000)) * 1000}%`;
+  }
+  
+  function step(now) {
+    if (isPopupModalOpen || previewHolding) {
+      previewLastTick = now;
+      previewTimer = requestAnimationFrame(step);
+      return;
+    }
+    
+    const delta = now - previewLastTick;
+    previewLastTick = now;
+    previewElapsedMs += delta;
+    
+    const totalDurationMs = previewActiveSecs * 1000;
+    let pct = (previewElapsedMs / totalDurationMs) * 100;
+    if (pct > 100) pct = 100;
+    
+    if (fill) fill.style.width = `${pct}%`;
+    
+    if (previewElapsedMs >= totalDurationMs) {
+      previewNav(1);
+    } else {
+      previewTimer = requestAnimationFrame(step);
+    }
+  }
+  previewTimer = requestAnimationFrame(step);
+}
+
+function _internalClearTimer() {
+  if (previewTimer) {
+    cancelAnimationFrame(previewTimer);
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
+}
+
+function _internalPausePreviewTimeline() {
+  _pauseProgressBar();
+  document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
+}
+
+function _internalResumePreviewTimeline() {
+  if (isPopupModalOpen) return; 
+  previewLastTick = performance.now();
+  document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
 }
 
 function _pauseProgressBar() {
-  const fill = document.getElementById("previewProgFill");
-  if (!fill) return;
-  const w = getComputedStyle(fill).width;
-  fill.style.transition = "none";
-  fill.style.width      = w;
+  // handled visually inside the loop dynamically to prevent DOM layout stuttering
 }
 
 window.previewNav = function (direction) {
-  if (previewHolding) return;
-  clearTimeout(previewTimer);
+  if (previewHolding || isPopupModalOpen) return;
+  _internalClearTimer();
   const newIdx = previewIndex + direction;
   if (newIdx < 0 || newIdx >= previewStoryList.length) { closePreview(); return; }
   previewIndex = newIdx;
@@ -2741,7 +2769,7 @@ window.previewNav = function (direction) {
 };
 
 // ============================================================
-// TOUCH & HOLD HANDLERS
+// TOUCH & HOLD ACTION SANITIZATION
 // ============================================================
 
 (function setupPreviewHold() {
@@ -2751,22 +2779,23 @@ window.previewNav = function (direction) {
     screen.addEventListener("contextmenu", e => e.preventDefault(), { passive: false });
     screen.addEventListener("selectstart",  e => e.preventDefault());
     screen.addEventListener("dragstart",    e => e.preventDefault());
-    screen.addEventListener("mousedown", () => {
+    
+    screen.addEventListener("mousedown", (e) => {
+      if (isPopupModalOpen || e.target.closest('#previewCta')) return;
       previewHolding = true;
-      clearTimeout(previewTimer);
-      _pauseProgressBar();
-      document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
+      _internalPausePreviewTimeline();
     });
-    screen.addEventListener("mouseup", () => {
+    
+    screen.addEventListener("mouseup", (e) => {
+      if (isPopupModalOpen) return;
       previewHolding = false;
-      document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
-      const s = previewStoryList[previewIndex];
-      if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
+      _internalResumePreviewTimeline();
     });
+    
     screen.addEventListener("mouseleave", () => {
       if (previewHolding) {
         previewHolding = false;
-        document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
+        _internalResumePreviewTimeline();
       }
     });
   };
@@ -2775,34 +2804,35 @@ window.previewNav = function (direction) {
 })();
 
 function onPreviewTouchStart(e) {
+  if (isPopupModalOpen || e.target.closest('#previewCta')) return;
   e.preventDefault();
   previewTouchStartX = e.touches[0].clientX;
   previewTouchStartT = Date.now();
   previewHolding     = true;
-  clearTimeout(previewTimer);
-  _pauseProgressBar();
-  document.getElementById("previewMediaWrap")?.querySelectorAll("video,audio").forEach(el => el.pause());
+  _internalPausePreviewTimeline();
 }
 window.onPreviewTouchStart = onPreviewTouchStart;
 
 function onPreviewTouchEnd(e, defaultDir) {
+  if (isPopupModalOpen) return;
   e.preventDefault();
   previewHolding = false;
   const held   = Date.now() - previewTouchStartT;
   const deltaX = (e.changedTouches?.[0]?.clientX || previewTouchStartX) - previewTouchStartX;
-  const wrap   = document.getElementById("previewMediaWrap");
+  
   if (held > 350) {
-    wrap?.querySelectorAll("video,audio").forEach(el => el.play().catch(() => {}));
-    const s = previewStoryList[previewIndex];
-    if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
+    _internalResumePreviewTimeline();
     return;
   }
+  
+  _internalResumePreviewTimeline();
   if (Math.abs(deltaX) > 35) { previewNav(deltaX < 0 ? 1 : -1); return; }
   previewNav(defaultDir === "next" ? 1 : -1);
 }
 window.onPreviewTouchEnd = onPreviewTouchEnd;
 
 document.getElementById("storyPreviewModal")?.addEventListener("click", function (e) {
+  if (isPopupModalOpen) return;
   if (e.target === this) closePreview();
 });
 
@@ -2828,6 +2858,7 @@ window.handleRoleSelectFilter = function (selectElement) {
   currentRoleFilter = selectElement.value;
   renderStories();
 };
+
 
 // ============================================================
 // GLOBAL SPINNER KEYFRAMES
@@ -4272,7 +4303,3 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab(initialTab);
 });
 });
-
-
-
-
