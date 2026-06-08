@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", applyTableLayout);
 const supabaseUrl = window.APP_CONFIG.supabaseUrl;
 const supabaseKey = window.APP_CONFIG.supabaseKey;
 const renderUrl   = window.APP_CONFIG.renderUrl;
+let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+let   runtimeState        = window.APP_RUNTIME.runtimeState;
 
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -38,10 +40,6 @@ let quill;
 
 document.addEventListener("DOMContentLoaded", async () => {
 await window.APP_RUNTIME_READY;
- 
-let   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-let   runtimeState        = window.APP_RUNTIME.runtimeState;
-
  
 
  els = {
