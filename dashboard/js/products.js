@@ -1,48 +1,35 @@
-
 // ================================================================
-//  BiziNet · Products Tab (Upload & Manage)
-//  dashboard/js/products.js
-//
-//  Depends on (loaded before this in <head> or above in <body>):
-//    window.APP_CLIENT        — Supabase client (config.js)
-//    window.APP_CONFIG        — supabaseUrl, renderUrl (config.js)
-//    window.APP_RUNTIME       — runtimeState, currentSessionToken (runtime.js)
-//    window.APP_RUNTIME_READY — Promise (runtime.js)
-//    window.toast()           — toast notifications (helpers.js)
-//    window.optimizeImage()   — image compression (helpers.js)
-//    window.R2_PUBLIC_BASE    — R2 base URL (helpers.js)
-//    Quill, Sortable          — CDN scripts
-// ================================================================
-
-// ================================================================
-//  BiziNet Tab Engine · Products
+//  BiziNet · Products Tab (Upload & Manage Engine)
 //  dashboard/js/products.js
 // ================================================================
 
-// Local structural variables for this specific context scope
+// Local structural reference variables linked safely to the global runtime environment
 let runtimeState = null;
 let currentSessionToken = null;
-const R2_PUBLIC_BASE = window.APP_CONFIG.r2PublicBase;
-const renderUrl = window.APP_CONFIG.renderUrl;
+
+// Direct pointers to our unified shared instances
+const supabaseUrl    = window.APP_CONFIG.supabaseUrl;
+const renderUrl      = window.APP_CONFIG.renderUrl;
 const supabaseClient = window.APP_CLIENT;
 
+// Global application trackers
 let els = {};
 let quill;
 
 // This wrapper is fired automatically by tab-loader.js once partial HTML is safe in the DOM
 async function loadProducts() {
-  // Wait for session and database keys to verify
+  
+  // ─── CRITICAL CRASH GUARD ───
+  // We pause execution here until runtime.js completes its auth verification
+  // and populates the shared window context.
   await window.APP_RUNTIME_READY;
   
-  runtimeState = window.APP_RUNTIME.runtimeState;
+  runtimeState        = window.APP_RUNTIME.runtimeState;
   currentSessionToken = window.APP_RUNTIME.currentSessionToken;
   if (!runtimeState) return;
 
-  // Map DOM elements safely now that products.html partition has been loaded
-  
-
-  // ── Element cache
-  const els = {
+  // ── Element cache (Populated after partial products.html exists in DOM)
+  els = {
     formTitle:                document.getElementById("formTitle"),
     cancelEditBtn:            document.getElementById("cancelEditBtn"),
     name:                     document.getElementById("name"),
@@ -77,8 +64,8 @@ async function loadProducts() {
     productsMobileContainer:  document.getElementById("productsMobileContainer")
   };
 
-  // ── Quill editor
-  const quill = new Quill("#editor", {
+  // ── Quill editor initialization
+  quill = new Quill("#editor", {
     theme: "snow",
     placeholder: "Write detailed product description...",
     modules: {
@@ -107,7 +94,7 @@ async function loadProducts() {
     });
   }, 500);
 
-  // ── State
+  // ── Core Operational Functional State Management ──
   let selectedImages        = [];
   let uploading             = false;
   let editingProductId      = null;
@@ -137,7 +124,7 @@ async function loadProducts() {
       const ids = [...els.productsTableBody.children].map(x => x.dataset.id);
       await supabaseClient.rpc("reorder_products", { p_ids: ids });
       toast("Desktop order updated", "success");
-      loadProducts();
+      internalLoadProducts();
     }
   });
 
@@ -149,7 +136,7 @@ async function loadProducts() {
       const ids = [...els.productsMobileContainer.children].map(x => x.dataset.id);
       await supabaseClient.rpc("reorder_products", { p_ids: ids });
       toast("Mobile order updated", "success");
-      loadProducts();
+      internalLoadProducts();
     }
   });
 
@@ -157,6 +144,7 @@ async function loadProducts() {
   // LIVE PREVIEW UPDATER
   // ================================================================
   function updateLive() {
+    if (!els.liveName) return;
     els.liveName.textContent = els.name.value.trim() || "Product Name";
     const rawPrice = els.price.value;
     els.livePrice.textContent = rawPrice ? `${Number(rawPrice).toLocaleString()}` : "0";
@@ -198,9 +186,10 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // LOAD CATEGORIES (dropdown)
+  // LOAD CATEGORIES (dropdown selection)
   // ================================================================
   async function loadCategories() {
+    if (!els.category) return;
     try {
       els.category.innerHTML = `<option>Loading...</option>`;
       const { data, error } = await supabaseClient
@@ -221,14 +210,13 @@ async function loadProducts() {
       els.category.innerHTML = `<option value="">Couldn't load categories</option>`;
     }
   }
-
-  // expose so categories.js can trigger a refresh after save/delete
   window.loadCategories = loadCategories;
 
   // ================================================================
-  // IMAGE HELPERS
+  // IMAGE MANAGERS & COMPRESSION
   // ================================================================
   function renderPreviews() {
+    if (!els.preview) return;
     els.preview.innerHTML = "";
     selectedImages.forEach(img => {
       const item = document.createElement("div");
@@ -258,7 +246,7 @@ async function loadProducts() {
     }
     for (const file of files) {
       try {
-        const optimised = await optimizeImage(file);
+        const optimised = await window.optimizeImage(file);
         selectedImages.push({
           id:   crypto.randomUUID(),
           file: optimised,
@@ -273,7 +261,7 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // VIDEO VALIDATION
+  // VIDEO ENGINE VALIDATION
   // ================================================================
   async function validateVideo(file) {
     if (file.size > 50 * 1024 * 1024) throw new Error("Video must be under 50MB.");
@@ -287,7 +275,7 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // R2 UPLOAD / DELETE
+  // CLOUD STORAGE UPLOAD / REMOVAL (R2 BUCKETS)
   // ================================================================
   async function uploadFile(file) {
     const payload = { fileName: file.name, fileType: file.type, fileSize: file.size, folder: "products" };
@@ -312,7 +300,7 @@ async function loadProducts() {
   async function deleteFromR2(url) {
     if (!url) return;
     try {
-      const fileKey = url.replace(window.R2_PUBLIC_BASE + "/", "");
+      const fileKey = url.replace(window.APP_CONFIG.r2PublicBase + "/", "");
       if (fileKey === url) return;
       await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
         method: "POST",
@@ -326,9 +314,10 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // FORM STATUS
+  // UX CORE VISUAL STATUS INDICATORS
   // ================================================================
   function setStatus(loading, text, progress = null) {
+    if (!els.submitBtn) return;
     els.submitBtn.disabled = loading;
     els.submitBtn.innerHTML = loading
       ? `<span class="spinner"></span><span>${text}</span>`
@@ -344,16 +333,17 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // VALIDATION
+  // DATA VALIDATION PIPELINE
   // ================================================================
   function validateForm() {
     let valid = true;
     const markError = (el) => {
+      if (!el) return;
       el.classList.add("input-error", "animate-shake");
       setTimeout(() => el.classList.remove("animate-shake"), 400);
       valid = false;
     };
-    const clearError = (el) => el.classList.remove("input-error");
+    const clearError = (el) => el?.classList.remove("input-error");
 
     if (!els.name.value.trim())                          { markError(els.name);     } else { clearError(els.name); }
     if (!els.price.value || isNaN(Number(els.price.value))) { markError(els.price); } else { clearError(els.price); }
@@ -370,9 +360,10 @@ async function loadProducts() {
   }
 
   // ================================================================
-  // RESET FORM
+  // TRANSACTION STAGE CLEAN RESET
   // ================================================================
   window.resetForm = function () {
+    if (!els.formTitle) return;
     els.formTitle.textContent     = "Upload New Product";
     els.cancelEditBtn.classList.add("hidden");
     els.name.value                = "";
@@ -400,7 +391,7 @@ async function loadProducts() {
   };
 
   // ================================================================
-  // VIDEO PREVIEW HELPERS (on window — called from HTML onclick)
+  // MULTIMEDIA CONTEXT MODALS (WINDOW EVENTS)
   // ================================================================
   window.previewYouTube = function () {
     const url = els.youtube.value.trim();
@@ -447,7 +438,7 @@ async function loadProducts() {
   };
 
   // ================================================================
-  // DROP ZONE + FILE INPUT EVENTS
+  // DRAG & DROP AREA CAPTURE HANDLERS
   // ================================================================
   els.dropZone.addEventListener("click",     () => els.images.click());
   els.dropZone.addEventListener("dragover",  e  => { e.preventDefault(); els.dropZone.classList.add("dragover"); });
@@ -464,14 +455,14 @@ async function loadProducts() {
     updateLive();
   });
 
-  // Live-update listeners
+  // Event maps for live rendering synchronization
   ["name", "price", "stock", "discount"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", updateLive);
   });
   quill.on("text-change", updateLive);
 
   // ================================================================
-  // SUBMIT PRODUCT
+  // ENGINE INVENTORY WRITEBACK SUBMISSION
   // ================================================================
   window.submitProduct = async function () {
     if (uploading)       return;
@@ -535,13 +526,13 @@ async function loadProducts() {
       }
       if (error) throw error;
 
-      // Delete old R2 files after successful save
+      // Clean old assets out of cloud bucket safely
       for (const url of filesToDeleteFromR2) await deleteFromR2(url);
       filesToDeleteFromR2 = [];
 
       toast(editingProductId ? "Product updated ✓" : "Product uploaded ✓", "success");
       setStatus(true, "Done!", 100);
-      setTimeout(() => { resetForm(); loadProducts(); }, 800);
+      setTimeout(() => { resetForm(); internalLoadProducts(); }, 800);
 
     } catch (err) {
       console.error("submitProduct error:", err);
@@ -554,20 +545,20 @@ async function loadProducts() {
   };
 
   // ================================================================
-  // TOGGLE HELPERS
+  // REPOSITORY RECORD MANAGEMENT TOGGLES
   // ================================================================
   window.toggleVisible = async function (id, current) {
     const { error } = await supabaseClient.from("products").update({ is_visible: !current }).eq("id", id);
     if (error) return toast("Couldn't update visibility.", "error");
     toast(current ? "Product hidden." : "Product visible ✓", "success");
-    loadProducts();
+    internalLoadProducts();
   };
 
   window.toggleProductFeatured = async function (id, current) {
     const { error } = await supabaseClient.from("products").update({ is_featured: !current }).eq("id", id);
     if (error) return toast("Couldn't update featured status.", "error");
     toast(current ? "Removed from featured." : "Marked as featured ✓", "success");
-    loadProducts();
+    internalLoadProducts();
   };
 
   window.deleteProduct = async function (id) {
@@ -579,17 +570,19 @@ async function loadProducts() {
       const { error } = await supabaseClient.rpc("delete_product_full", { p_id: id });
       if (error) throw error;
       toast("Product deleted ✓", "success");
-      loadProducts();
+      internalLoadProducts();
     } catch (err) {
       toast("Couldn't delete product. Please try again.", "error");
     }
   };
 
   // ================================================================
-  // LOAD PRODUCTS
+  // FETCH & RENDER CORE ENGINE PRODUCTS
   // ================================================================
-  async function loadProducts() {
-    // Skeleton
+  async function internalLoadProducts() {
+    if (!els.productsTableBody || !els.productsMobileContainer) return;
+    
+    // Inject visual loaders
     els.productsTableBody.innerHTML = [1,2,3].map(() => `
       <tr>
         <td><div class="skeleton" style="width:44px;height:44px;border-radius:10px;"></div></td>
@@ -597,6 +590,7 @@ async function loadProducts() {
         <td><div class="skeleton" style="height:30px;width:120px;"></div></td>
         <td><div class="skeleton" style="height:30px;width:140px;"></div></td>
       </tr>`).join("");
+      
     els.productsMobileContainer.innerHTML = [1,2].map(() => `
       <div class="mobile-product-card">
         <div class="skeleton" style="height:72px;width:72px;border-radius:14px;flex-shrink:0;"></div>
@@ -642,7 +636,7 @@ async function loadProducts() {
              </div>`
           : priceFmt;
 
-        // Desktop row
+        // Desktop structural generation
         const tr = document.createElement("tr");
         tr.dataset.id = product.id;
         tr.innerHTML = `
@@ -669,7 +663,7 @@ async function loadProducts() {
           </td>`;
         els.productsTableBody.appendChild(tr);
 
-        // Mobile card
+        // Mobile structural card generation
         const card = document.createElement("div");
         card.className = "mobile-product-card";
         card.dataset.id = product.id;
@@ -699,9 +693,12 @@ async function loadProducts() {
         els.productsMobileContainer.appendChild(card);
       });
 
-      applyTableLayout();
+      // Synchronize viewport responsive visibility tables layouts
+      if (typeof window.applyTableLayout === "function") {
+        window.applyTableLayout();
+      }
 
-      // Pagination
+      // Pagination render loop engine logic
       const paginationWrap = document.getElementById("pagination");
       if (paginationWrap) {
         paginationWrap.innerHTML = "";
@@ -710,7 +707,7 @@ async function loadProducts() {
           const prevBtn = document.createElement("button");
           prevBtn.className = "page-btn"; prevBtn.textContent = "← Prev";
           prevBtn.disabled  = currentPage === 1;
-          prevBtn.onclick   = () => { currentPage--; loadProducts(); };
+          prevBtn.onclick   = () => { currentPage--; internalLoadProducts(); };
           paginationWrap.appendChild(prevBtn);
 
           const pageInd = document.createElement("span");
@@ -721,7 +718,7 @@ async function loadProducts() {
           const nextBtn = document.createElement("button");
           nextBtn.className = "page-btn"; nextBtn.textContent = "Next →";
           nextBtn.disabled  = currentPage >= totalPages;
-          nextBtn.onclick   = () => { currentPage++; loadProducts(); };
+          nextBtn.onclick   = () => { currentPage++; internalLoadProducts(); };
           paginationWrap.appendChild(nextBtn);
         }
       }
@@ -732,21 +729,21 @@ async function loadProducts() {
     }
   }
 
-  // expose for tab switcher reload button
-  window.loadProducts = loadProducts;
+  // Bind references globally for tab loaders or cross-module access maps
+  window.loadProducts = internalLoadProducts;
 
   // ================================================================
-  // SEARCH & FILTER
+  // FILTER INPUT CAPTURE ACTIONS
   // ================================================================
   document.getElementById("searchProducts")?.addEventListener("input", e => {
-    currentSearch = e.target.value.trim(); currentPage = 1; loadProducts();
+    currentSearch = e.target.value.trim(); currentPage = 1; internalLoadProducts();
   });
   document.getElementById("filterVisibility")?.addEventListener("change", e => {
-    currentVisibilityFilter = e.target.value; currentPage = 1; loadProducts();
+    currentVisibilityFilter = e.target.value; currentPage = 1; internalLoadProducts();
   });
 
   // ================================================================
-  // EDIT PRODUCT
+  // ROW FOCUS RECORD EDIT CORRECTION ENGINE
   // ================================================================
   window.editProduct = async function (id) {
     resetForm();
@@ -782,11 +779,12 @@ async function loadProducts() {
   };
 
   // ================================================================
-  // MOVE PRODUCT
+  // RECORD SORT SEQUENCER ADJUSTMENTS
   // ================================================================
   window.moveProduct = async function (id, direction) {
     const isDesktop = window.matchMedia("(min-width: 768px)").matches;
     const container = isDesktop ? els.productsTableBody : els.productsMobileContainer;
+    if (!container) return;
     const rows      = [...container.children];
     const ids       = rows.map(r => r.dataset.id);
     const index     = ids.indexOf(id);
@@ -796,15 +794,16 @@ async function loadProducts() {
     const { error } = await supabaseClient.rpc("reorder_products", { p_ids: ids });
     if (error) { toast("Reorder failed.", "error"); return; }
     toast("Product moved ✓", "success");
-    await loadProducts();
+    await internalLoadProducts();
   };
 
   // ================================================================
-  // INIT
+  // IMMEDIATE VIEW EXECUTION INITIALIZATION
   // ================================================================
   updateLive();
   await loadCategories();
-  await loadProducts();
-  // Ensure global access for tab-loader
+  await internalLoadProducts();
+}
+
+// Make loadProducts globally reachable for tab-loader.js immediately on file execution
 window.loadProducts = loadProducts;
-  
