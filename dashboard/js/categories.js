@@ -18,6 +18,7 @@ const EMOJI_SHORTCUTS = [
 ];
 
 // Module state
+let _catLoaded = false;
 let catEditingId   = null;
 let activeStoreCategoriesCache = []; // raw DB data, never mutated
 let _catSortable   = null;
