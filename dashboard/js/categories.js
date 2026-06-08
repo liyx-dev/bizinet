@@ -9,6 +9,8 @@
 // Friendly language · Global CSS tokens · Search · Premium UX
 // All RPC calls unchanged — only UI layer upgraded
 // ================================================================
+const supabaseClient = window.APP_CLIENT;
+let   runtimeState   = window.APP_RUNTIME.runtimeState;
 
 const EMOJI_SHORTCUTS = [
   "👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
