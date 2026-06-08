@@ -2,7 +2,7 @@
 //  SETTINGS TAB — COMPLETE FIXED JS (PERFECTED MULTI-TENANT SAAS)
 //  Fixes:
 //  1. loadSettings exposed to window scope (reload button)
-//  2. CORS / fetch fix for local editor (R2 upload via supabaseUrl)
+//  2. CORS / fetch fix for local editor (R2 upload via window.APP_CONFIG.supabaseUrl)
 //  3. Quill link popup z-index fix via CSS injection
 //  4. Currencies & countries fetched from Supabase DB
 //  5. Immediate R2 sync on logo/photo/doc remove (no orphans)
@@ -19,13 +19,6 @@ let runtimeState = null;
 let currentSessionToken = null;
 const supabaseClient = window.APP_CLIENT;
 
-async function loadSettings() {
-  await window.APP_RUNTIME_READY;
-  
-  runtimeState = window.APP_RUNTIME.runtimeState;
-  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-  if (!runtimeState) return;
-
 // ── STATE ────────────────────────────────────────────────────────
 let settingsProfileId = null;
 let selectedCurrency  = "₦";
@@ -38,27 +31,18 @@ let bioEditor         = null;
 let _listenersBound   = false;
 let _settingsLoaded   = false; // track first load
 
-
 // ── QUILL LINK POPUP FIX (z-index) ───────────────────────────────
 // Inject CSS to fix Quill tooltip showing below the editor box
 (function fixQuillTooltip() {
+  if (document.getElementById("quill-tooltip-fix-style")) return;
   const style = document.createElement("style");
+  style.id = "quill-tooltip-fix-style";
   style.textContent = `
     .ql-tooltip {
       z-index: 9999 !important;
     }
-
     /* Ensure editor container doesn't clip tooltip */
-    .ql-container {
-      overflow: visible !important;
-    }
-
-    .ql-editor {
-      overflow: visible !important;
-    }
-
-    /* Optional: prevent parent clipping */
-    #st_bio_editor {
+    .ql-container, .ql-editor, #st_bio_editor {
       overflow: visible !important;
     }
   `;
@@ -68,15 +52,19 @@ let _settingsLoaded   = false; // track first load
 // ── HELPERS ──────────────────────────────────────────────────────
 function r2KeyFromUrl(url) {
   if (!url) return null;
-  return url.replace(R2_PUBLIC_BASE + "/", "");
+  const r2Base = window.APP_CONFIG?.R2_PUBLIC_BASE || "";
+  return url.replace(r2Base + "/", "");
 }
 
 /** Upload to R2 via presigned PUT 
  * Matches your secure multi-tenant Edge Function parameters exactly
  */
 async function settingsUploadFile(file, folder) {
+  const sUrl = window.APP_CONFIG?.supabaseUrl;
+  if (!sUrl) throw new Error("Configuration parameter 'supabaseUrl' missing from global layout context.");
+
   // Step 1: Get presigned PUT URL using session token and exact payload match
-  const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
+  const res = await fetch(`${sUrl}/functions/v1/generate-r2-upload-url`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -111,13 +99,17 @@ async function settingsUploadFile(file, folder) {
 async function settingsDeleteFromR2(url) {
   if (!url) return true;
   try {
+    const sUrl = window.APP_CONFIG?.supabaseUrl;
+    const r2Base = window.APP_CONFIG?.R2_PUBLIC_BASE;
+    if (!sUrl || !r2Base) return true;
+
     // Strip public base url prefix to cleanly isolate the direct R2 object storage key path
-    const basePrefix = R2_PUBLIC_BASE + "/";
+    const basePrefix = r2Base + "/";
     const fileKey = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
     
     if (!fileKey || fileKey === url) return true;
     
-    const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
+    const res = await fetch(`${sUrl}/functions/v1/delete-r2-file`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -134,7 +126,7 @@ async function settingsDeleteFromR2(url) {
 
 /** Save profile logo_url column immediately to Supabase */
 async function _syncLogoToSupabase(url) {
-  if (!settingsProfileId) return;
+  if (!settingsProfileId || !runtimeState?.store_id) return;
   await supabaseClient
     .from("profile")
     .update({ logo_url: url || null })
@@ -144,7 +136,7 @@ async function _syncLogoToSupabase(url) {
 
 /** Save store_photos array immediately to Supabase */
 async function _syncPhotosToSupabase() {
-  if (!settingsProfileId) return;
+  if (!settingsProfileId || !runtimeState?.store_id) return;
   const urls = storePhotos.filter(p => p.isSaved).map(p => p.url);
   await supabaseClient
     .from("profile")
@@ -155,7 +147,7 @@ async function _syncPhotosToSupabase() {
 
 /** Save documents array immediately to Supabase */
 async function _syncDocsToSupabase() {
-  if (!settingsProfileId) return;
+  if (!settingsProfileId || !runtimeState?.store_id) return;
   const urls = storeDocs.filter(d => d.isSaved).map(d => d.url);
   await supabaseClient
     .from("profile")
@@ -273,6 +265,7 @@ async function loadCurrencyOptions(selectedSymbol) {
     container.innerHTML = "";
     data.forEach(c => {
       const btn = document.createElement("button");
+      btn.type = "button";
       btn.className = "currency-chip";
       btn.dataset.symbol = c.symbol;
       btn.textContent = `${c.symbol} ${c.name}`;
@@ -294,6 +287,7 @@ async function loadCurrencyOptions(selectedSymbol) {
     container.innerHTML = "";
     fallback.forEach(c => {
       const btn = document.createElement("button");
+      btn.type = "button";
       btn.className = "currency-chip";
       btn.dataset.symbol = c.symbol;
       btn.textContent = `${c.symbol} ${c.name}`;
@@ -321,7 +315,7 @@ async function loadCountryOptions(selectedCode) {
     data.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.name;
-      opt.textContent = `${c.flag} ${c.name}`;
+      opt.textContent = `${c.flag || ""} ${c.name}`;
       if (c.name === selectedCode) opt.selected = true;
       select.appendChild(opt);
     });
@@ -347,13 +341,14 @@ function renderBadges() {
   catBadges.forEach((badge, i) => {
     const chip = document.createElement("span");
     chip.className = "badge-chip";
-    chip.innerHTML = `🛡️ ${badge} <span class="remove-badge" onclick="removeBadge(${i})">×</span>`;
+    chip.innerHTML = `🛡️ ${badge} <span class="remove-badge" onclick="window.removeBadge(${i})">×</span>`;
     list.appendChild(chip);
   });
 }
 
 window.addBadge = function() {
   const input = document.getElementById("newBadgeInput");
+  if (!input) return;
   const val = stripHtml(input.value.trim());
   if (!val) return toast("Type a badge text first.", "info");
   if (catBadges.length >= 8) return toast("Max 8 badges.", "error");
@@ -427,12 +422,11 @@ function renderStorePhotos() {
     } else {
       item.innerHTML = `
         <img src="${photo.url}" alt="Store photo ${i+1}" loading="lazy">
-        <button class="st-photo-remove" onclick="removeStorePhoto(${i})" title="Remove">×</button>`;
+        <button class="st-photo-remove" onclick="window.removeStorePhoto(${i})" title="Remove">×</button>`;
     }
     grid.appendChild(item);
   });
 
-  const count = storePhotos.filter(p => !p.isUploading).length;
   if (countEl) countEl.textContent = `${storePhotos.length} / 5`;
   if (addBtn)  addBtn.style.display = storePhotos.length >= 5 ? "none" : "flex";
 }
@@ -444,7 +438,8 @@ window.removeStorePhoto = async function(i) {
   storePhotos.splice(i, 1);
   renderStorePhotos();
 
-  if (photo.isSaved && photo.url.startsWith(R2_PUBLIC_BASE)) {
+  const r2Base = window.APP_CONFIG?.R2_PUBLIC_BASE || "";
+  if (photo.isSaved && photo.url && photo.url.startsWith(r2Base)) {
     await settingsDeleteFromR2(photo.url);
     await _syncPhotosToSupabase();
   }
@@ -471,12 +466,12 @@ function renderDocs() {
       item.innerHTML = `
         <span class="st-doc-icon">📄</span>
         <span class="st-doc-label">${doc.name || "PDF"}</span>
-        <button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
+        <button class="st-photo-remove" onclick="window.removeDoc(${i})" title="Remove">×</button>`;
     } else {
       item.innerHTML = `
         <img src="${doc.url}" alt="Document ${i+1}" loading="lazy">
         <span class="st-doc-label">${doc.name || "Doc"}</span>
-        <button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
+        <button class="st-photo-remove" onclick="window.removeDoc(${i})" title="Remove">×</button>`;
     }
     if (!doc.isUploading) {
       item.addEventListener("click", (e) => {
@@ -499,7 +494,8 @@ window.removeDoc = async function(i) {
   storeDocs.splice(i, 1);
   renderDocs();
 
-  if (doc.isSaved && doc.url.startsWith(R2_PUBLIC_BASE)) {
+  const r2Base = window.APP_CONFIG?.R2_PUBLIC_BASE || "";
+  if (doc.isSaved && doc.url && doc.url.startsWith(r2Base)) {
     await settingsDeleteFromR2(doc.url);
     await _syncDocsToSupabase();
   }
@@ -508,6 +504,8 @@ window.removeDoc = async function(i) {
 // ── QUILL INIT ────────────────────────────────────────────────────
 function initQuill() {
   if (bioEditor) return;
+  const container = document.getElementById("st_bio_editor");
+  if (!container) return;
   if (typeof Quill === "undefined") { console.warn("Quill not loaded"); return; }
   bioEditor = new Quill("#st_bio_editor", {
     theme: "snow",
@@ -689,7 +687,13 @@ async function loadBusinessTypeOptions(selectedVal) {
 }
 
 // ── LOAD SETTINGS ─────────────────────────────────────────────────
-window.loadSettings = async function() {
+async function loadSettings() {
+  await window.APP_RUNTIME_READY;
+  
+  runtimeState = window.APP_RUNTIME.runtimeState;
+  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+  if (!runtimeState) return;
+
   const reloadBtn = document.querySelector(".st-reload-btn");
   const skeleton  = document.getElementById("settingsSkeleton");
   const form      = document.getElementById("settingsForm");
@@ -790,11 +794,12 @@ window.loadSettings = async function() {
   } finally {
     if (reloadBtn) reloadBtn.classList.remove("spinning");
   }
-};
+}
 
 // ── SAVE SETTINGS ─────────────────────────────────────────────────
 window.saveSettings = async function() {
   const btn = document.getElementById("saveSettingsBtn");
+  if (!btn) return;
   btn.disabled = true;
   btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;vertical-align:middle;"></div>Saving…`;
 
@@ -864,4 +869,5 @@ window.saveSettings = async function() {
   }
 };
 
+// Global Exposure Mounting
 window.loadSettings = loadSettings;
