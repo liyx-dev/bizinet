@@ -113,10 +113,7 @@ function initializeDashboard() {
   if (typeof loadSettings === "function") {
     loadSettings();
   }
-// ── ADDED THIS LINE BELOW TO ACTIVATE YOUR TABS AND SWIPING ──
-  if (typeof window.initTabNavigation === "function") {
-    window.initTabNavigation();
-  }
+
   console.log(
     "✅ Dashboard partials loaded successfully"
   );
