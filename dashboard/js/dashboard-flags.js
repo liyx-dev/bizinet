@@ -7,126 +7,79 @@
 // ================================================
 function applyDashboardFlags(flags){
 
-if(!flags) return;
+    if(!flags) return;
 
-window.APP_RUNTIME.dashboardFlags = flags;
+    window.APP_RUNTIME.dashboardFlags = flags;
 
-/* welcome */
-document.getElementById(
-"welcomeTitle"
-).textContent =
-flags.welcome_title;
+    /* welcome */
+    document.getElementById(
+        "welcomeTitle"
+    ).textContent = flags.welcome_title;
 
-document.getElementById(
-"welcomeMessage"
-).textContent =
-flags.welcome_message;
+    document.getElementById(
+        "welcomeMessage"
+    ).textContent = flags.welcome_message;
 
-/* assistant */
+    /* assistant */
+    document.getElementById(
+        "assistantTitle"
+    ).textContent = flags.assistant_title;
 
-document.getElementById(
-"assistantTitle"
-).textContent =
-flags.assistant_title;
+    document.getElementById(
+        "assistantMessage"
+    ).textContent = flags.assistant_message;
 
-document.getElementById(
-"assistantMessage"
-).textContent =
-flags.assistant_message;
+    /* store */
+    document.getElementById(
+        "storeNameUI"
+    ).textContent = "🏪 " + flags.store_name;
 
-/* store */
+    document.getElementById(
+        "roleUI"
+    ).textContent = "👤 " + flags.role.replace("_"," ");
 
-document.getElementById(
-"storeNameUI"
-).textContent =
-"🏪 " + flags.store_name;
+    /* plan */
+    const badge = document.getElementById("planBadgeUI");
+    badge.textContent = flags.plan.toUpperCase();
+    badge.className = "plan-pill plan-" + flags.plan;
 
-document.getElementById(
-"roleUI"
-).textContent =
-"👤 " +
-flags.role.replace("_"," ");
+    /* countdown */
+    const countdown = document.getElementById("countdownUI");
 
-/* plan */
+    if(flags.is_trial){
+        countdown.textContent = `⏳ ${flags.days_remaining} Days Left`;
+    }
+    else if(flags.is_grace){
+        countdown.textContent = "⚠️ Grace";
+    }
+    else{
+        countdown.textContent = "✅ Active";
+    }
 
-const badge =
-document.getElementById(
-"planBadgeUI"
-);
+    /* billing permissions */
+    const canManageBilling = ["owner","super_admin"].includes(flags.role);
+    const viewPlanBtn = document.getElementById("viewPlanDetailsBtn");
 
-badge.textContent =
-flags.plan.toUpperCase();
+    if(viewPlanBtn){
+        viewPlanBtn.style.display = canManageBilling ? "inline-flex" : "none";
+    }
 
-badge.className =
-"plan-pill plan-" +
-flags.plan;
+    /* future modal button */
+    const upgradeBtn = document.getElementById("upgradePlanBtn");
 
-/* countdown */
+    if(upgradeBtn){
+        upgradeBtn.style.display = (canManageBilling && flags.show_upgrade_cta) ? "inline-flex" : "none";
+    }
 
-const countdown =
-document.getElementById(
-"countdownUI"
-);
-
-if(flags.is_trial){
-
-countdown.textContent =
-`⏳ ${flags.days_remaining} Days Left`;
-
+    /* --- ADDED TOAST LOGIC BELOW --- */
+    if(flags.show_toast && flags.toast_message){
+        showSmartToast(
+            flags.assistant_title,
+            flags.toast_message,
+            flags.toast_type
+        );
 }
-else if(flags.is_grace){
-
-countdown.textContent =
-"⚠️ Grace";
-
-}
-else{
-
-countdown.textContent =
-"✅ Active";
-
-}
-
-/* billing permissions */
-
-const canManageBilling =
-["owner","super_admin"]
-.includes(flags.role);
-
-const viewPlanBtn =
-document.getElementById(
-"viewPlanDetailsBtn"
-);
-
-if(viewPlanBtn){
-
-viewPlanBtn.style.display =
-canManageBilling
-? "inline-flex"
-: "none";
-
-}
-
-/* future modal button */
-
-const upgradeBtn =
-document.getElementById(
-"upgradePlanBtn"
-);
-
-if(upgradeBtn){
-
-upgradeBtn.style.display =
-(
-canManageBilling &&
-flags.show_upgrade_cta
-)
-? "inline-flex"
-: "none";
-
-}
-
-}
+  }
 
 
 
