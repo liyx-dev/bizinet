@@ -255,6 +255,29 @@ background:#FFF0F0;
 color:#FF3B30;
 }
 
+.assistant-box{
+margin-top:14px;
+padding:14px 16px;
+border-radius:16px;
+background:
+linear-gradient(
+135deg,
+rgba(40,164,40,.08),
+rgba(24,119,242,.08)
+);
+border:
+1px solid rgba(40,164,40,.12);
+}
+#assistantTitle{
+font-size:14px;
+font-weight:800;
+margin-bottom:6px;
+}
+#assistantMessage{
+font-size:13px;
+line-height:1.5;
+color:var(--text-secondary);
+}
 
     /* =============================================
        TAB NAVIGATION
