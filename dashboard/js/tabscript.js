@@ -1,5 +1,4 @@
-
-  // =============================
+// =============================
   //  RESPONSIVE TABLE SHOW/HIDE LOGIC
 // ===============================
   // Show table on md+ screens, cards on mobile
@@ -2569,11 +2568,34 @@ function _teardownPreview() {
     wrap.innerHTML = "";
   }
 
+  // CRITICAL: neutralise the CTA button in-place.
+  // #storyPreviewModal stays in the DOM (only hidden via class),
+  // so #previewCta and its live click handler also stay in the DOM —
+  // that is the exact reason it fires on other tabs after closing.
+  // Replace it with a stripped clone (no listeners) and hide it.
+  const ctaEl = document.getElementById("previewCta");
+  if (ctaEl) {
+    const deadCta = ctaEl.cloneNode(false);
+    deadCta.style.display = "none";
+    deadCta.textContent   = "";
+    ctaEl.parentNode.replaceChild(deadCta, ctaEl);
+  }
+
+  // Clear stale title/caption text
+  const titleEl   = document.getElementById("previewTitle");
+  const captionEl = document.getElementById("previewCaption");
+  if (titleEl)   titleEl.textContent   = "";
+  if (captionEl) captionEl.textContent = "";
+
   // Remove orphaned product popup
   document.getElementById("storyProductPreviewPopup")?.remove();
 
   // Remove every tracked listener
   _removeAllPreviewListeners();
+
+  // Empty story list — safety net so any stray reference returns undefined
+  previewStoryList = [];
+  previewIndex     = 0;
 
   // Reset flags
   previewCtaPaused = false;
@@ -4413,3 +4435,4 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab(initialTab);
 });
 });
+
