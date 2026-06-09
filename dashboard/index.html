@@ -81,17 +81,16 @@
                 Loading...
             </h2>
             <p id="welcomeMessage">
-                Loading account information...
-           <div id="assistantBox" class="assistant-box">
+                Loading account information…
+<div id="assistantBox" class="assistant-box">
     <div id="assistantTitle">
         Loading...
     </div>
     <div id="assistantMessage">
         Loading...
     </div>
-           </div>
+</div>
             </p>
-          
             <div class="hero-meta">
                 <span id="storeNameUI">
                     Store
@@ -117,6 +116,28 @@
         </button>
     </div>
 </div>     
+<div
+id="assistantBillboard"
+class="assistant-billboard">
+
+<button
+id="billboardPrev"
+type="button">
+‹
+</button>
+
+<div
+id="billboardMessage">
+Loading...
+</div>
+
+<button
+id="billboardNext"
+type="button">
+›
+</button>
+
+</div>
 
   <!-- ================================================
        TAB NAVIGATION
@@ -141,13 +162,170 @@
 </main>
 
 </div><!-- /admin-wrapper -->
-  
+ 
+<script> 
+let toastTimer = null;
+
+function showSmartToast(
+title,
+message,
+type="info"
+){
+
+const toast =
+document.getElementById(
+"smartToast"
+);
+
+if(!toast) return;
+
+clearTimeout(toastTimer);
+
+const theme =
+TOAST_THEMES[type]
+||
+TOAST_THEMES.info;
+
+toast.style.background =
+theme.bg;
+
+toast.style.color =
+theme.color;
+
+toast.innerHTML = `
+<span class="toast-close">✕</span>
+
+<div class="toast-title">
+${title}
+</div>
+
+<div>
+${message}
+</div>
+`;
+
+toast.style.display =
+"block";
+
+const closeBtn =
+toast.querySelector(
+".toast-close"
+);
+
+closeBtn.onclick = ()=>{
+toast.style.display =
+"none";
+};
+
+if(
+navigator.vibrate
+){
+navigator.vibrate(25);
+}
+
+toastTimer =
+setTimeout(()=>{
+toast.style.display =
+"none";
+},8000);
+
+}
+
+
+ let billboardIndex = 0;
+
+function startBillboard(){
+
+const flags =
+window.APP_RUNTIME
+.dashboardFlags;
+
+if(
+!flags ||
+!flags.billboard_messages
+) return;
+
+const messages =
+flags.billboard_messages;
+
+const text =
+document.getElementById(
+"billboardMessage"
+);
+
+function render(){
+
+text.textContent =
+messages[
+billboardIndex
+];
+
+}
+
+render();
+
+document
+.getElementById(
+"billboardPrev"
+)
+.onclick=()=>{
+
+billboardIndex--;
+
+if(
+billboardIndex < 0
+){
+billboardIndex =
+messages.length - 1;
+}
+
+render();
+
+};
+
+document
+.getElementById(
+"billboardNext"
+)
+.onclick=()=>{
+
+billboardIndex++;
+
+if(
+billboardIndex >= messages.length
+){
+billboardIndex = 0;
+}
+
+render();
+
+};
+
+setInterval(()=>{
+
+billboardIndex++;
+
+if(
+billboardIndex >= messages.length
+){
+billboardIndex = 0;
+}
+
+render();
+
+},15000);
+
+}
+
+</script>
 <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tabscript.js"></script>
 <script src="js/tab-loader.js"></script>
   
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
+<div id="smartToast"></div>
 </body>
 </html>
 
 
+    
