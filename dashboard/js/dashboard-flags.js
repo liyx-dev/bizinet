@@ -9,6 +9,37 @@ let toastTimer = null;
 let billboardIndex = 0;
 let billboardInterval = null;
 let billboardStarted = false;
+// Theme configuration used by showSmartToast
+const TOAST_THEMES = {
+
+success:{
+bg:"linear-gradient(135deg,var(--liyog-green),var(--liyog-deep-green))",
+color:"#fff"
+},
+
+warning:{
+bg:"linear-gradient(135deg,var(--liyog-orange),#ff9432)",
+color:"#fff"
+},
+
+danger:{
+bg:"linear-gradient(135deg,var(--liyog-red),var(--liyog-red-dark))",
+color:"#fff"
+},
+
+premium:{
+bg:"linear-gradient(135deg,var(--liyog-gold),#ffb800)",
+color:"#111"
+},
+
+info:{
+bg:"linear-gradient(135deg,var(--liyog-blue),#3f95ff)",
+color:"#fff"
+}
+
+};
+
+    
 
 function startBillboard(){
 
