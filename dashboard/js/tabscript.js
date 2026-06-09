@@ -1,4 +1,5 @@
-// =============================
+
+  // =============================
   //  RESPONSIVE TABLE SHOW/HIDE LOGIC
 // ===============================
   // Show table on md+ screens, cards on mobile
@@ -2747,39 +2748,33 @@ function _renderPreviewSlide() {
   if (captionEl) captionEl.textContent = s.caption || "";
 
   // ── CTA button
-  // We REPLACE the element entirely each slide so zero old listeners survive.
+  // Clone the existing element (preserves all CSS classes + attributes from your HTML)
+  // then swap it in — this nukes every old event listener without touching styling.
   const ctaOld = document.getElementById("previewCta");
   if (ctaOld) {
-    // Create a brand-new button with the same id
-    const ctaNew = document.createElement("button");
-    ctaNew.id = "previewCta";
+    const ctaNew = ctaOld.cloneNode(false); // false = no children, no listeners
     ctaOld.parentNode.replaceChild(ctaNew, ctaOld);
 
     if (s.cta_text && s.link_type && s.link_type !== "none") {
-      ctaNew.textContent  = s.cta_text;
-      ctaNew.style.display = "block";
+      ctaNew.textContent = s.cta_text;
 
       if (s.link_type === "product") {
         ctaNew.style.cssText = `
           display:block;background:linear-gradient(135deg,#FFD700,#FF7A00);
           color:#111;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-
-        // Named function so we can reference it cleanly
-        const onProductCta = function (e) {
+        ctaNew.addEventListener("click", function (e) {
           e.stopPropagation();
           e.preventDefault();
           showProductPreview(s.product_id, s.product_name);
-        };
-        ctaNew.addEventListener("click", onProductCta);
+        });
 
       } else if (s.link_type === "whatsapp") {
         ctaNew.style.cssText = `
           display:block;background:linear-gradient(135deg,#28A428,#34BF49);
           color:#fff;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-
-        const onWhatsAppCta = function (e) {
+        ctaNew.addEventListener("click", function (e) {
           e.stopPropagation();
           e.preventDefault();
           if (!s.whatsapp_number) return;
@@ -2789,8 +2784,7 @@ function _renderPreviewSlide() {
             "_blank"
           );
           _scheduleVisibilityResume();
-        };
-        ctaNew.addEventListener("click", onWhatsAppCta);
+        });
 
       } else {
         // External link
@@ -2798,16 +2792,14 @@ function _renderPreviewSlide() {
           display:block;background:linear-gradient(135deg,#1877F2,#0d5bbf);
           color:#fff;border:none;border-radius:12px;padding:10px 24px;
           font-weight:800;font-size:14px;cursor:pointer;margin:8px auto;`;
-
-        const onExternalCta = function (e) {
+        ctaNew.addEventListener("click", function (e) {
           e.stopPropagation();
           e.preventDefault();
           if (!s.link_target) return;
           _previewPauseForCta();
           window.open(s.link_target, "_blank");
           _scheduleVisibilityResume();
-        };
-        ctaNew.addEventListener("click", onExternalCta);
+        });
       }
     } else {
       ctaNew.style.display = "none";
