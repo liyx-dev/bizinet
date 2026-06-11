@@ -45,16 +45,36 @@ window.APP_RUNTIME_READY = new Promise(function (resolve) {
     }
 
     // Step 4 — Fetch UI flags
-    const { data: flagData } =
-      await supabaseClient.rpc('get_dashboard_flags');
-    if (flagData && flagData.length > 0) {
-      window.APP_RUNTIME.dashboardFlags = flagData[0];
-      // Apply flags after DOM is ready
+        // ============================================================================
+    // UPDATE STEP 4 INSIDE EXECUTEBOOTGUARD(): INGEST LIVE STORE USAGE MATRICES
+    // ============================================================================
+    
+    // Concurrently fetch global flags and operational metrics to drive real-time logic
+    const [flagResponse, productsCount, storiesCount, teamCount, videosCount] = await Promise.all([
+      supabaseClient.rpc('get_dashboard_flags'),
+      supabaseClient.from('products').select('id', { count: 'exact', head: true }),
+      supabaseClient.from('stories').select('id', { count: 'exact', head: true }),
+      supabaseClient.from('store_members').select('id', { count: 'exact', head: true }),
+      // Checks video counts dynamically if column references exist
+      supabaseClient.from('products').select('id', { count: 'exact', head: true }).not('video_url', 'is', null)
+    ]);
+
+    if (flagResponse.data && flagResponse.data.length > 0) {
+      let unifiedFlags = flagResponse.data[0];
+
+      // Inject dynamically parsed structural live analytics properties
+      unifiedFlags.products_count = productsCount.count ?? 0;
+      unifiedFlags.active_stories_count = storiesCount.count ?? 0;
+      unifiedFlags.staff_count = teamCount.count ?? 0;
+      unifiedFlags.videos_count = videosCount.count ?? 0;
+
+      window.APP_RUNTIME.dashboardFlags = unifiedFlags;
+
+      // Handle DOM application safely based on browser parse speed
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded',
-          () => applyDashboardFlags(flagData[0]));
+        document.addEventListener('DOMContentLoaded', () => applyDashboardFlags(unifiedFlags));
       } else {
-        applyDashboardFlags(flagData[0]);
+        applyDashboardFlags(unifiedFlags);
       }
     }
 
