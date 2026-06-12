@@ -937,31 +937,24 @@ await loadProducts();
 // get_all_stories is the single source of truth for ALL store
 // identity data. Every row carries:
 //   s.store_logo    ← profile.logo_url          (live JOIN)
-//   s.store_name    ← profile.business_name      (live JOIN)
-//   s.store_whatsapp← profile.whatsapp_number    (live JOIN)
-//   s.creator_name  ← store_members.member_name  (live JOIN)
+//   s.store_name    ← profile.business_name     (live JOIN)
+//   s.store_whatsapp← profile.whatsapp_number   (live JOIN)
+//   s.creator_name  ← store_members.member_name (live JOIN)
 //
 // v11 FIXES:
-//   • All CTA event listeners are registered via _addPreviewListener()
-//     and torn down atomically by _teardownPreview() / _teardownCtaListeners()
-//   • previewCtaPaused flag blocks timer, touch, mouse and nav while
-//     a popup or redirect is active
-//   • Product popup has its own controlled open/close so no orphan
-//     handlers survive across slides or tab switches
-//   • closePreview() is fully destructive: pauses+nulls all media,
-//     removes popup, removes every registered listener, resets all flags
-//   • Edit modal close stops and removes all media elements inside it
-//   • Button feedback (spinner overlay) for slow-network resilience
-//     on delete / hide / restore / reorder
-//   • No window.* event listener pollution — every listener is tracked
-//     in a private registry and removed on teardown
-//
-// INTEL HOOKS ADDED (dashboard-flags.js v3.0 integration):
-//   • window.INTEL.trackAction('storyCreated')  — after new story published
-//   • window.INTEL.trackAction('storyCreated')  — after expired story renewed
-//   • window.INTEL.trackAction('storyExpired')  — after story deleted
-//   Safe: all calls are guarded with typeof checks so the app never
-//   breaks if window.INTEL is not yet loaded.
+// • All CTA event listeners are registered via _addPreviewListener()
+//   and torn down atomically by _teardownPreview() / _teardownCtaListeners()
+// • previewCtaPaused flag blocks timer, touch, mouse and nav while
+//   a popup or redirect is active
+// • Product popup has its own controlled open/close so no orphan
+//   handlers survive across slides or tab switches
+// • closePreview() is fully destructive: pauses+nulls all media,
+//   removes popup, removes every registered listener, resets all flags
+// • Edit modal close stops and removes all media elements inside it
+// • Button feedback (spinner overlay) for slow-network resilience
+//   on delete / hide / restore / reorder
+// • No window.* event listener pollution — every listener is tracked
+//   in a private registry and removed on teardown
 // ============================================================
 
 const STORY_R2_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
@@ -996,7 +989,7 @@ let previewTouchStartX = 0;
 let previewTouchStartT = 0;
 
 // ── Listener registry — every listener added during preview lives here
-//    so _teardownPreview() can remove them all without any guesswork
+// so _teardownPreview() can remove them all without any guesswork
 const _previewListeners = []; // [{ target, type, fn, opts }]
 
 // ── Visibility-change cleanup token for WA / external redirect resume
@@ -1019,7 +1012,7 @@ let _visibilityResumeTimer = null;
     @keyframes stScaleIn { from { transform:scale(.92);opacity:0 } to { transform:scale(1);opacity:1 } }
     @keyframes stLoadMorePulse {
       0%,100% { opacity:1; }
-      50%     { opacity:.45; }
+      50%      { opacity:.45; }
     }
     @keyframes stSpinConic { to { transform: rotate(360deg); } }
     @keyframes stBtnSpinner {
@@ -1138,11 +1131,11 @@ async function _syncMediaToSupabase(
     media_url:    mediaUrl,
     media_thumb:  mediaThumb || null,
     type,
-    media_width:  width        || null,
-    media_height: height       || null,
-    aspect_ratio: aspectRatio  || null,
-    file_size:    fileSize     || null,
-    duration:     duration     || null
+    media_width:  width       || null,
+    media_height: height      || null,
+    aspect_ratio: aspectRatio || null,
+    file_size:    fileSize    || null,
+    duration:     duration    || null
   }).eq("id", storyId);
   if (error) throw error;
 }
@@ -1177,15 +1170,15 @@ function computeAspectRatio(w, h) {
 async function compressStoryImage(file) {
   const dims = await getImageDimensions(file);
   return new Promise((resolve, reject) => {
-    const img    = new Image();
+    const img = new Image();
     const reader = new FileReader();
     reader.onload = e => { img.src = e.target.result; };
     reader.onerror = reject;
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const ctx    = canvas.getContext("2d");
-      const maxW   = 1080;
-      const scale  = Math.min(1, maxW / img.width);
+      const ctx = canvas.getContext("2d");
+      const maxW = 1080;
+      const scale = Math.min(1, maxW / img.width);
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -1206,7 +1199,7 @@ async function compressStoryImage(file) {
 async function generateVideoThumbnail(file) {
   return new Promise((resolve) => {
     const video = document.createElement("video");
-    const url   = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
     video.src     = url;
     video.muted   = true;
     video.preload = "metadata";
@@ -1233,7 +1226,7 @@ async function generateVideoThumbnail(file) {
 function getAudioDuration(file) {
   return new Promise((resolve) => {
     const audio = document.createElement("audio");
-    const url   = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
     audio.src = url;
     audio.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Math.round(audio.duration)); };
     audio.onerror          = () => { URL.revokeObjectURL(url); resolve(null); };
@@ -1499,7 +1492,7 @@ function renderStories() {
   if (!grid) return;
 
   const searchInput = document.getElementById("storySearchInput");
-  const keyword     = searchInput ? searchInput.value.toLowerCase().trim() : "";
+  const keyword = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
   if (!currentUserUidCache && allStories.length > 0) {
     supabaseClient.auth.getUser().then(({ data }) => {
@@ -1513,14 +1506,14 @@ function renderStories() {
     const roleSelect  = document.getElementById("storyRoleSelectFilter");
     if (primaryRow.viewer_role === "owner" && ownerPanel && ownerPanel.style.display === "none") {
       ownerPanel.style.display = "flex";
-      const uniqueRoles       = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
-      const currentSelection  = roleSelect ? roleSelect.value : "all";
+      const uniqueRoles      = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
+      const currentSelection = roleSelect ? roleSelect.value : "all";
       if (roleSelect) {
         roleSelect.innerHTML = `<option value="all">All Team Roles</option>`;
         uniqueRoles.forEach(role => {
-          const opt         = document.createElement("option");
-          opt.value         = role;
-          opt.textContent   = role.charAt(0).toUpperCase() + role.slice(1);
+          const opt = document.createElement("option");
+          opt.value       = role;
+          opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
           roleSelect.appendChild(opt);
         });
         roleSelect.value = currentSelection;
@@ -1560,8 +1553,8 @@ function renderStories() {
 // STORY CARD BUILDER
 // ============================================================
 function buildStoryCard(s, idx, list) {
-  const timer     = getTimeRemaining(s.expires_at);
-  const urgent    = isUrgent(s.expires_at);
+  const timer    = getTimeRemaining(s.expires_at);
+  const urgent   = isUrgent(s.expires_at);
   const isExpired = s.status === "expired";
   const isHidden  = s.status === "hidden";
   const thumbSrc  = s.media_thumb || s.media_url;
@@ -1666,6 +1659,7 @@ function buildStoryCard(s, idx, list) {
         padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
       onmouseover="this.style.background='#e2e8f0'"
       onmouseout="this.style.background='#f1f5f9'">▲</button>`;
+
   const downBtn = `
     <button onclick="moveStory('${s.id}',1,this)" ${idx === list.length - 1 ? "disabled" : ""}
       style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;
@@ -1679,9 +1673,9 @@ function buildStoryCard(s, idx, list) {
       <div style="${ribbonStyle}font-size:11px;font-weight:700;padding:3px 10px;
         border-radius:0 0 8px 0;position:absolute;top:0;left:0;z-index:3;">${ribbonLabel}</div>
       ${s.is_featured ? `
-      <div style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;
-        font-size:11px;font-weight:700;padding:3px 10px;
-        border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">⭐ Featured</div>` : ""}
+        <div style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;
+          font-size:11px;font-weight:700;padding:3px 10px;
+          border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">⭐ Featured</div>` : ""}
       ${mediaHtml}
       <div class="st-card-body">
         <div class="st-card-title">${s.title || "Untitled Story"}</div>
@@ -1707,7 +1701,7 @@ function buildStoryCard(s, idx, list) {
           </span>
         </div>
         <div style="display:flex;gap:10px;font-size:12px;color:#64748b;font-weight:600;flex-wrap:wrap;margin-bottom:10px;">
-          <span>👁 ${s.views_count  || 0} views</span>
+          <span>👁 ${s.views_count || 0} views</span>
           <span>👆 ${s.clicks_count || 0} taps</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -1840,7 +1834,7 @@ window.closeStoryModal = function () {
     supabaseClient.from("stories").delete().eq("id", storyDraftId).then(() => {});
     if (storyCurrentMedia?.url)      storyDeleteFromR2(storyCurrentMedia.url);
     if (storyCurrentMedia?.thumbUrl) storyDeleteFromR2(storyCurrentMedia.thumbUrl);
-    storyDraftId      = null;
+    storyDraftId    = null;
     storyCurrentMedia = null;
   }
 };
@@ -1899,9 +1893,9 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
     border-radius:50%;animation:stSpinnerSpin 0.8s linear infinite;z-index:10;`;
   wrap.appendChild(spinner);
 
-  const ratio   = (origWidth && origHeight) ? origWidth / origHeight : null;
-  const maxH    = 240;
-  const dispW   = ratio ? Math.round(maxH * ratio) : null;
+  const ratio  = (origWidth && origHeight) ? origWidth / origHeight : null;
+  const maxH   = 240;
+  const dispW  = ratio ? Math.round(maxH * ratio) : null;
   const sizeStyle = dispW
     ? `width:${Math.min(dispW, 480)}px;max-width:100%;height:${maxH}px;`
     : `width:100%;height:220px;`;
@@ -2028,8 +2022,8 @@ async function _handleStoryMediaChange(e) {
     if (isImage) {
       const { file: compressed, width: w, height: h } = await compressStoryImage(file);
       showProgress(45, "Uploading your image…");
-      mediaUrl = await storyUploadToR2(compressed, "stories");
-      thumbUrl = mediaUrl;
+      mediaUrl  = await storyUploadToR2(compressed, "stories");
+      thumbUrl  = mediaUrl;
       width = w; height = h; fileSize = compressed.size;
     } else if (isVideo) {
       const thumbResult = await generateVideoThumbnail(file);
@@ -2037,8 +2031,8 @@ async function _handleStoryMediaChange(e) {
       height = thumbResult?.height || 0;
       if (thumbResult?.file) { thumbUrl = await storyUploadToR2(thumbResult.file, "stories"); }
       showProgress(60, "Uploading your video…");
-      mediaUrl = await storyUploadToR2(file, "stories");
-      fileSize = file.size;
+      mediaUrl  = await storyUploadToR2(file, "stories");
+      fileSize  = file.size;
     } else if (isAudio) {
       duration = await getAudioDuration(file);
       showProgress(50, "Uploading your audio…");
@@ -2056,13 +2050,13 @@ async function _handleStoryMediaChange(e) {
       if (!storyDraftId) {
         const { data: drafted, error: draftErr } = await supabaseClient.rpc("create_story", {
           p_media_url:    mediaUrl,
-          p_media_thumb:  thumbUrl    || null,
+          p_media_thumb:  thumbUrl   || null,
           p_type:         mediaType,
           p_expires_hours: storySelectedHours,
-          p_file_size:    fileSize    || null,
-          p_duration:     duration    || null,
-          p_media_width:  width       || null,
-          p_media_height: height      || null,
+          p_file_size:    fileSize   || null,
+          p_duration:     duration   || null,
+          p_media_width:  width      || null,
+          p_media_height: height     || null,
           p_aspect_ratio: aspectRatio || null
         });
         if (draftErr) throw draftErr;
@@ -2157,7 +2151,7 @@ async function _loadProductsForPicker() {
       const matched = _storyProductsCache.filter(p => p.name.toLowerCase().includes(term));
       if (matched.length === 0) { sel.innerHTML = `<option value="">No products found</option>`; return; }
       matched.forEach(p => {
-        const o       = document.createElement("option");
+        const o = document.createElement("option");
         o.value       = p.id;
         o.textContent = p.price ? `${p.name} — ${p.price}` : p.name;
         sel.appendChild(o);
@@ -2215,22 +2209,20 @@ window.saveStory = async function () {
   if (txt) txt.textContent = "Publishing…";
 
   try {
-    const title      = document.getElementById("st_story_title")?.value.trim()    || null;
-    const caption    = document.getElementById("st_story_caption")?.value.trim()  || null;
-    const ctaText    = document.getElementById("st_story_cta_text")?.value.trim() || null;
-    const waNum      = document.getElementById("st_story_wa")?.value.trim()       || null;
-    const extUrl     = document.getElementById("st_story_url")?.value.trim()      || null;
+    const title     = document.getElementById("st_story_title")?.value.trim()    || null;
+    const caption   = document.getElementById("st_story_caption")?.value.trim()  || null;
+    const ctaText   = document.getElementById("st_story_cta_text")?.value.trim() || null;
+    const waNum     = document.getElementById("st_story_wa")?.value.trim()       || null;
+    const extUrl    = document.getElementById("st_story_url")?.value.trim()      || null;
     const productSel = document.getElementById("st_story_product");
     const productId  = (storyCtaType === "product" && productSel?.value) ? productSel.value : null;
 
     let linkTarget = null, ctaUrl = null, waNumber = null;
     if (storyCtaType === "product")  { linkTarget = productId; }
     if (storyCtaType === "whatsapp") { waNumber   = waNum; }
-    if (storyCtaType === "external") { ctaUrl     = extUrl; linkTarget = extUrl; }
+    if (storyCtaType === "external") { ctaUrl = extUrl; linkTarget = extUrl; }
 
     let error;
-    const isNewStory = !storyEditingId; // capture before the update clears it
-
     if (storyEditingId) {
       const { error: e } = await supabaseClient.rpc("update_story", {
         p_id:              storyEditingId,
@@ -2260,25 +2252,27 @@ window.saveStory = async function () {
         auto_delete_at:   new Date(Date.now() + (storySelectedHours + 24) * 3600 * 1000).toISOString()
       }).eq("id", storyDraftId);
       error = e;
-      if (!e) storyDraftId = null;
+      if (!e) {
+        // ── INTEL HOOK: new story published ──────────────────────────────
+        // Fires only for brand-new stories (storyDraftId path), never for edits.
+        // INTEL.trackAction already queues its own "📲 Story Posted" toast via
+        // ToastController, so we skip the local toast() below for this path
+        // to avoid showing two success toasts at the same time.
+        if (window.INTEL?.trackAction) window.INTEL.trackAction('storyCreated');
+        // ─────────────────────────────────────────────────────────────────
+        storyDraftId = null;
+      }
     }
 
     if (error) throw error;
 
     storyCurrentMedia = null;
-
-    // ── INTEL HOOK: fire trackAction for new stories only.
-    // Edits don't count as a new story creation — no metrics change.
-    if (isNewStory && typeof window.INTEL?.trackAction === "function") {
-      window.INTEL.trackAction("storyCreated");
+    // For edits: show your local toast as normal.
+    // For new stories: INTEL.trackAction('storyCreated') already queued a toast
+    // above, so we only show the local toast on the edit path.
+    if (storyEditingId) {
+      toast("Story updated! Your audience sees it now ✓", "success");
     }
-
-    toast(
-      storyEditingId
-        ? "Story updated! Your audience sees it now ✓"
-        : "Story is live! Your audience can see it now 🚀",
-      "success"
-    );
     closeStoryModal();
     await loadStories(false);
   } catch (err) {
@@ -2308,13 +2302,10 @@ window.deleteStory = async function (id, btnEl) {
     allStories = allStories.filter(s => s.id !== id);
     renderStories();
     updateStats();
-
-    // ── INTEL HOOK: story removed — signal the intelligence engine
-    if (typeof window.INTEL?.trackAction === "function") {
-      window.INTEL.trackAction("storyExpired");
-    }
-
     toast("Story deleted ✓", "success");
+    // Refresh dashboard metrics (no matching INTEL action for story delete,
+    // so we call refresh() directly to update the stories count on the billboard)
+    if (window.INTEL?.refresh) window.INTEL.refresh();
   } catch (err) {
     _setBtnBusy(btnEl, false);
     toast("Couldn't delete this story. Try again.", "error");
@@ -2349,14 +2340,9 @@ window.restoreStory = async function (id, btnEl) {
   try {
     const { error } = await supabaseClient.rpc("restore_story", { p_id: id, p_hours: 24 });
     if (error) throw error;
-
-    // ── INTEL HOOK: renewing an expired story is equivalent to creating new activity —
-    // fire storyCreated so the billboard / assistant card refreshes its active-story count.
-    if (typeof window.INTEL?.trackAction === "function") {
-      window.INTEL.trackAction("storyCreated");
-    }
-
     toast("Story renewed for another 24 hours! ✓", "success");
+    // Refresh dashboard metrics so active story count updates on the billboard
+    if (window.INTEL?.refresh) window.INTEL.refresh();
     await loadStories(false);
   } catch (err) {
     _setBtnBusy(btnEl, false);
@@ -2371,12 +2357,10 @@ window.moveStory = async function (id, direction, btnEl) {
   const idx    = filtered.findIndex(s => s.id === id);
   const newIdx = idx + direction;
   if (idx < 0 || newIdx < 0 || newIdx >= filtered.length) return;
-
   const idxA = allStories.findIndex(s => s.id === filtered[idx].id);
   const idxB = allStories.findIndex(s => s.id === filtered[newIdx].id);
   [allStories[idxA], allStories[idxB]] = [allStories[idxB], allStories[idxA]];
   renderStories();
-
   _setBtnBusy(btnEl, true);
   try {
     const orderedIds = allStories.map(s => s.id);
@@ -2495,7 +2479,7 @@ window.showProductPreview = async function (productId, productName) {
         ${data.description
           ? `<p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">
               ${data.description.substring(0, 100)}${data.description.length > 100 ? "…" : ""}
-             </p>` : ""}
+            </p>` : ""}
         <div style="background:linear-gradient(135deg,#fff9e6,#fff3cc);
           border:1px solid #FFD700;border-radius:10px;padding:10px 14px;margin-top:8px;">
           <p style="font-size:12px;color:#92400e;font-weight:600;margin:0;">
@@ -2527,18 +2511,17 @@ window._closeProductPreviewPopup = function () {
 // ============================================================
 /**
  * Complete teardown of the preview session:
- *  1. Clear auto-advance timer
- *  2. Cancel any pending visibility-resume listener
- *  3. Pause + nullify all media elements in the wrap
- *  4. Remove the product popup if orphaned
- *  5. Remove ALL registered preview event listeners
- *  6. Reset all preview state flags
- *  7. Restore body scroll
+ * 1. Clear auto-advance timer
+ * 2. Cancel any pending visibility-resume listener
+ * 3. Pause + nullify all media elements in the wrap
+ * 4. Remove the product popup if orphaned
+ * 5. Remove ALL registered preview event listeners
+ * 6. Reset all preview state flags
+ * 7. Restore body scroll
  */
 function _teardownPreview() {
   clearTimeout(previewTimer);
   previewTimer = null;
-
   _cancelVisibilityResume();
 
   // Stop all media
@@ -2688,7 +2671,7 @@ function _renderPreviewSlide() {
   let slideDuration = 5;
 
   if (s.type === "video") {
-    const vid     = document.createElement("video");
+    const vid = document.createElement("video");
     vid.src       = s.media_url;
     vid.autoplay  = true;
     vid.playsInline = true;
@@ -2697,8 +2680,8 @@ function _renderPreviewSlide() {
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
       top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;`;
-    vid.oncontextmenu   = () => false;
-    vid.oncanplay       = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
+    vid.oncontextmenu = () => false;
+    vid.oncanplay     = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     vid.onloadedmetadata = () => {
       slideDuration = vid.duration || 10;
       _startProgressBar(slideDuration);
@@ -2716,21 +2699,19 @@ function _renderPreviewSlide() {
       <span style="font-size:64px;">🎵</span>
       <p style="color:rgba(255,255,255,.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
     wrap.appendChild(ph);
-
-    const aud    = document.createElement("audio");
-    aud.src      = s.media_url;
+    const aud = document.createElement("audio");
+    aud.src     = s.media_url;
     aud.autoplay = true;
     aud.oncanplay = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     aud.onended   = () => { if (!previewCtaPaused && !previewHolding) previewNav(1); };
     wrap.appendChild(aud);
-
     _startProgressBar(slideDuration);
     previewTimer = setTimeout(() => { if (!previewCtaPaused && !previewHolding) previewNav(1); }, slideDuration * 1000);
   } else {
     // Image
-    const img     = document.createElement("img");
-    img.src       = s.media_url;
-    img.alt       = s.title || "Story";
+    const img = document.createElement("img");
+    img.src   = s.media_url;
+    img.alt   = s.title || "Story";
     img.style.cssText = `
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
@@ -2739,7 +2720,6 @@ function _renderPreviewSlide() {
     img.draggable     = false;
     img.onload        = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     wrap.appendChild(img);
-
     _startProgressBar(slideDuration);
     previewTimer = setTimeout(() => { if (!previewCtaPaused && !previewHolding) previewNav(1); }, slideDuration * 1000);
   }
@@ -2821,7 +2801,6 @@ function _renderPreviewSlide() {
  */
 function _scheduleVisibilityResume() {
   _cancelVisibilityResume(); // clear any stale one first
-
   _visibilityResumeFn = function () {
     if (document.visibilityState === "visible") {
       _cancelVisibilityResume();
@@ -2829,7 +2808,6 @@ function _scheduleVisibilityResume() {
     }
   };
   document.addEventListener("visibilitychange", _visibilityResumeFn);
-
   _visibilityResumeTimer = setTimeout(() => {
     _cancelVisibilityResume();
     _previewResumeAfterCta();
@@ -2856,7 +2834,7 @@ function _startProgressBar(durationSecs) {
 function _pauseProgressBar() {
   const fill = document.getElementById("previewProgFill");
   if (!fill) return;
-  const w           = getComputedStyle(fill).width;
+  const w = getComputedStyle(fill).width;
   fill.style.transition = "none";
   fill.style.width      = w;
 }
@@ -2933,8 +2911,7 @@ window.onPreviewTouchStart = onPreviewTouchStart;
 function onPreviewTouchEnd(e, defaultDir) {
   if (previewCtaPaused) return;
   e.preventDefault();
-  previewHolding = false;
-
+  previewHolding   = false;
   const held   = Date.now() - previewTouchStartT;
   const deltaX = (e.changedTouches?.[0]?.clientX || previewTouchStartX) - previewTouchStartX;
   const wrap   = document.getElementById("previewMediaWrap");
@@ -2945,7 +2922,6 @@ function onPreviewTouchEnd(e, defaultDir) {
     if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
     return;
   }
-
   if (Math.abs(deltaX) > 35) { previewNav(deltaX < 0 ? 1 : -1); return; }
   previewNav(defaultDir === "next" ? 1 : -1);
 }
@@ -2954,7 +2930,7 @@ window.onPreviewTouchEnd = onPreviewTouchEnd;
 // ============================================================
 // FILTER HANDLERS
 // ============================================================
-window.handleStorySearchFilter  = function () { renderStories(); };
+window.handleStorySearchFilter = function () { renderStories(); };
 
 window.filterMediaType = function (mediaType, btnElement) {
   currentMediaTypeFilter = mediaType;
@@ -3001,330 +2977,300 @@ window.handleRoleSelectFilter = function (selectElement) {
 // All RPC calls unchanged — only UI layer upgraded
 // ================================================================
 const EMOJI_SHORTCUTS = [
-  "👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
-  "🎒","🏋","🍕","💻","🧴","🎁","👒","🛍","🌸","🎵"
+"👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
+"🎒","🏋","🍕","💻","🧴","🎁","👒","🛍","🌸","🎵"
 ];
-
 // Module state
 let catEditingId = null;
 let activeStoreCategoriesCache = []; // raw DB data, never mutated
 let _catSortable = null;
 let _catSearchTerm = "";
-
 // ── Render emoji picker inside modal
 function renderEmojiPicker() {
-  const picker = document.getElementById("emojiPicker");
-  if (!picker) return;
-  picker.innerHTML = "";
-  EMOJI_SHORTCUTS.forEach(em => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = em;
-    btn.title = `Use ${em} as icon`;
-    btn.style.cssText = `
-      font-size:20px;
-      cursor:pointer;
-      padding:4px;
-      border-radius:7px;
-      border:none;
-      background:transparent;
-      transition:all .15s;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-family:var(--font-body);
-    `;
-    btn.onmouseenter = () => {
-      btn.style.transform = "scale(1.2) translateY(-1px)";
-      btn.style.background = "rgba(40,164,40,.1)";
-    };
-    btn.onmouseleave = () => {
-      btn.style.transform = "scale(1)";
-      btn.style.background = "transparent";
-    };
-    btn.onclick = () => {
-      const emojiEl = document.getElementById("catIconEmoji");
-      const preview = document.getElementById("catIconPreview");
-      emojiEl.textContent = em;
-      // Visual feedback — pulse the preview
-      preview.style.transform = "scale(1.08)";
-      setTimeout(() => preview.style.transform = "scale(1)", 180);
-    };
-    picker.appendChild(btn);
-  });
+const picker = document.getElementById("emojiPicker");
+if (!picker) return;
+picker.innerHTML = "";
+EMOJI_SHORTCUTS.forEach(em => {
+const btn = document.createElement("button");
+btn.type = "button";
+btn.textContent = em;
+btn.title = `Use ${em} as icon`;
+btn.style.cssText = `
+font-size:20px;
+cursor:pointer;
+padding:4px;
+border-radius:7px;
+border:none;
+background:transparent;
+transition:all .15s;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+font-family:var(--font-body);
+`;
+btn.onmouseenter = () => {
+btn.style.transform = "scale(1.2) translateY(-1px)";
+btn.style.background = "rgba(40,164,40,.1)";
+};
+btn.onmouseleave = () => {
+btn.style.transform = "scale(1)";
+btn.style.background = "transparent";
+};
+btn.onclick = () => {
+const emojiEl = document.getElementById("catIconEmoji");
+const preview = document.getElementById("catIconPreview");
+emojiEl.textContent = em;
+// Visual feedback — pulse the preview
+preview.style.transform = "scale(1.08)";
+setTimeout(() => preview.style.transform = "scale(1)", 180);
+};
+picker.appendChild(btn);
+});
 }
-
 // ── Open modal
 window.openCatModal = function (id = null) {
-  catEditingId = id;
-  const nameInput    = document.getElementById("catNameInput");
-  const modalTitle   = document.getElementById("catModalTitle");
-  const modalIcon    = document.getElementById("catModalIcon");
-  const emojiEl      = document.getElementById("catIconEmoji");
-  const auditBox     = document.getElementById("catAuditTrailBox");
-  const saveBtn      = document.getElementById("catSaveBtn");
-
-  // Reset Form
-  nameInput.value = "";
-  nameInput.classList.remove("input-error", "animate-shake");
-  emojiEl.textContent = "🏷";
-  saveBtn.textContent = "Save Category";
-  saveBtn.disabled = false;
-
-  if (id) {
-    const cat = activeStoreCategoriesCache.find(c => c.id === id);
-    if (cat) {
-      nameInput.value = cat.name;
-      modalTitle.textContent = "Edit Category";
-      modalIcon.textContent  = "✏️";
-      // If it contains an icon, render it straight as text safely
-      if (cat.icon && !cat.icon.startsWith("http")) {
-        emojiEl.textContent = cat.icon;
-      } else {
-        emojiEl.textContent = "🏷";
-      }
-      document.getElementById("catAuditCreator").textContent = cat.creator_name || "—";
-      document.getElementById("catAuditUpdater").textContent = cat.updater_name || "—";
-      auditBox.style.display = "block";
-    }
-  } else {
-    modalTitle.textContent = "New Category";
-    modalIcon.textContent  = "➕";
-    auditBox.style.display = "none";
-  }
-
-  renderEmojiPicker();
-  document.getElementById("catModal").classList.add("open");
-  document.body.style.overflow = "hidden";
-  setTimeout(() => nameInput.focus(), 220);
+catEditingId = id;
+const nameInput = document.getElementById("catNameInput");
+const modalTitle = document.getElementById("catModalTitle");
+const modalIcon = document.getElementById("catModalIcon");
+const emojiEl = document.getElementById("catIconEmoji");
+const auditBox = document.getElementById("catAuditTrailBox");
+const saveBtn = document.getElementById("catSaveBtn");
+// Reset Form
+nameInput.value = "";
+nameInput.classList.remove("input-error", "animate-shake");
+emojiEl.textContent = "🏷";
+saveBtn.textContent = "Save Category";
+saveBtn.disabled = false;
+if (id) {
+const cat = activeStoreCategoriesCache.find(c => c.id === id);
+if (cat) {
+nameInput.value = cat.name;
+modalTitle.textContent = "Edit Category";
+modalIcon.textContent = "✏️";
+// If it contains an icon, render it straight as text safely
+if (cat.icon && !cat.icon.startsWith("http")) {
+emojiEl.textContent = cat.icon;
+} else {
+emojiEl.textContent = "🏷";
+}
+document.getElementById("catAuditCreator").textContent = cat.creator_name || "—";
+document.getElementById("catAuditUpdater").textContent = cat.updater_name || "—";
+auditBox.style.display = "block";
+}
+} else {
+modalTitle.textContent = "New Category";
+modalIcon.textContent = "➕";
+auditBox.style.display = "none";
+}
+renderEmojiPicker();
+document.getElementById("catModal").classList.add("open");
+document.body.style.overflow = "hidden";
+setTimeout(() => nameInput.focus(), 220);
 };
-
 // ── Close modal
 window.closeCatModal = function () {
-  document.getElementById("catModal").classList.remove("open");
-  document.body.style.overflow = "";
+document.getElementById("catModal").classList.remove("open");
+document.body.style.overflow = "";
 };
-
 // Backdrop click closes modal
 document.getElementById("catModal").addEventListener("click", function (e) {
-  if (e.target === this) window.closeCatModal();
+if (e.target === this) window.closeCatModal();
 });
-
 // ── Save / update category
 window.saveCategory = async function () {
-  const nameInput = document.getElementById("catNameInput");
-  const name = nameInput.value.trim();
-  if (!name) {
-    nameInput.classList.add("input-error", "animate-shake");
-    setTimeout(() => nameInput.classList.remove("animate-shake"), 400);
-    toast("Please enter a category name.", "error");
-    return;
-  }
-
-  const saveBtn = document.getElementById("catSaveBtn");
-  saveBtn.disabled = true;
-  saveBtn.innerHTML = `<span style="display:flex;align-items:center;gap:8px;justify-content:center;">
-    <span style="display:inline-block;animation:cat-spin .7s linear infinite;">⏳</span> Saving…
-  </span>`;
-
-  try {
-    let finalIconValue = document.getElementById("catIconEmoji").textContent;
-    // Security Fallback validation: Ensure we don't send broken values or plain placeholder text
-    if (!finalIconValue || finalIconValue === "🏷") {
-      // Extract the absolute first character typed into the name input box (safely checks for emojis
-      // via string splitting iterator)
-      const segments = [...name];
-      finalIconValue = segments[0] || "📦";
-    }
-
-    if (catEditingId) {
-      const { error } = await supabaseClient.rpc("update_category", {
-        p_id:   catEditingId,
-        p_name: name,
-        p_icon: finalIconValue
-      });
-      if (error) throw error;
-      toast("Category updated successfully ✓", "success");
-    } else {
-      const { error } = await supabaseClient.rpc("create_category", {
-        p_name: name,
-        p_icon: finalIconValue
-      });
-      if (error) throw error;
-      toast("Category created! ✓", "success");
-      // ── INTEL HOOK: fire after successful category creation
-      if (window.INTEL && typeof window.INTEL.trackAction === "function") {
-        window.INTEL.trackAction("categoryAdded");
-      }
-    }
-
-    window.closeCatModal();
-    await loadCategoriesTab();
-    if (typeof loadCategories === "function") await loadCategories();
-
-  } catch (err) {
-    console.error("Category save error:", err);
-    toast(err.message || "Couldn't save category. Please try again.", "error");
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "Save Category";
-  }
+const nameInput = document.getElementById("catNameInput");
+const name = nameInput.value.trim();
+if (!name) {
+nameInput.classList.add("input-error", "animate-shake");
+setTimeout(() => nameInput.classList.remove("animate-shake"), 400);
+toast("Please enter a category name.", "error");
+return;
+}
+const saveBtn = document.getElementById("catSaveBtn");
+saveBtn.disabled = true;
+saveBtn.innerHTML = `<span
+style="display:flex;align-items:center;gap:8px;justify-content:center;">
+<span style="display:inline-block;animation:cat-spin .7s linear infinite;">⏳</span> Saving…
+</span>`;
+try {
+let finalIconValue = document.getElementById("catIconEmoji").textContent;
+// Security Fallback validation: Ensure we don't send broken values or plain placeholder text
+if (!finalIconValue || finalIconValue === "🏷") {
+// Extract the absolute first character typed into the name input box (safely checks for emojis
+// via string splitting iterator)
+const segments = [...name];
+finalIconValue = segments[0] || "📦";
+}
+if (catEditingId) {
+const { error } = await supabaseClient.rpc("update_category", {
+p_id: catEditingId,
+p_name: name,
+p_icon: finalIconValue
+});
+if (error) throw error;
+toast("Category updated successfully ✓", "success");
+// ── INTEL HOOK: notify intelligence engine after category update
+if (window.INTEL) window.INTEL.trackAction('categoryAdded');
+} else {
+const { error } = await supabaseClient.rpc("create_category", {
+p_name: name,
+p_icon: finalIconValue
+});
+if (error) throw error;
+toast("Category created! ✓", "success");
+// ── INTEL HOOK: notify intelligence engine after category creation
+if (window.INTEL) window.INTEL.trackAction('categoryAdded');
+}
+window.closeCatModal();
+await loadCategoriesTab();
+if (typeof loadCategories === "function") await loadCategories();
+} catch (err) {
+console.error("Category save error:", err);
+toast(err.message || "Couldn't save category. Please try again.", "error");
+} finally {
+saveBtn.disabled = false;
+saveBtn.textContent = "Save Category";
+}
 };
-
 // ── Delete category
 window.deleteCategory = async function (id, name) {
-  if (!confirm(`Delete "${name}"?\n\nProducts in this category will become uncategorised.`)) return;
-
-  try {
-    const { error } = await supabaseClient.rpc("delete_category_secure", { p_id: id });
-    if (error) throw error;
-    toast("Category deleted ✓", "success");
-    await loadCategoriesTab();
-    if (typeof loadCategories === "function") await loadCategories();
-  } catch (err) {
-    console.error("Category delete error:", err);
-    toast(err.message || "Couldn't delete category. Try again.", "error");
-  }
+if (!confirm(`Delete "${name}"?\n\nProducts in this category will become uncategorised.`))
+return;
+try {
+const { error } = await supabaseClient.rpc("delete_category_secure", { p_id: id });
+if (error) throw error;
+toast("Category deleted ✓", "success");
+// ── INTEL HOOK: notify intelligence engine after category deletion
+if (window.INTEL) window.INTEL.trackAction('categoryAdded');
+await loadCategoriesTab();
+if (typeof loadCategories === "function") await loadCategories();
+} catch (err) {
+console.error("Category delete error:", err);
+toast(err.message || "Couldn't delete category. Try again.", "error");
+}
 };
-
 // ── Client-side search / filter
 window.filterCatGrid = function (term) {
-  _catSearchTerm = term.toLowerCase().trim();
-  _renderCatGrid();
+_catSearchTerm = term.toLowerCase().trim();
+_renderCatGrid();
 };
-
 // ── Build a single pill element
 function _buildCatPill(cat) {
-  const pill = document.createElement("div");
-  pill.className = "cat-pill";
-  pill.dataset.id = cat.id;
-
-  // Render text emoji safely, fall back instantly if old data has a URL asset lingering
-  const displayIcon = (cat.icon && !cat.icon.startsWith("http")) ? cat.icon : "📦";
-  const iconMarkup  = `<div class="cat-pill-icon">${displayIcon}</div>`;
-  const safeName    = (cat.name || "").replace(/'/g, "\\'");
-
-  pill.innerHTML = `
-    ${iconMarkup}
-    <div class="cat-pill-name">${cat.name || "Untitled"}</div>
-    <div class="cat-pill-actions">
-      <button class="cat-pill-btn cat-edit-btn"
-        onclick="window.openCatModal('${cat.id}')"
-        title="Edit">✏️</button>
-      <button class="cat-pill-btn cat-delete-btn"
-        onclick="window.deleteCategory('${cat.id}','${safeName}')"
-        title="Delete">🗑</button>
-    </div>`;
-
-  return pill;
+const pill = document.createElement("div");
+pill.className = "cat-pill";
+pill.dataset.id = cat.id;
+// Render text emoji safely, fall back instantly if old data has a URL asset lingering
+const displayIcon = (cat.icon && !cat.icon.startsWith("http")) ? cat.icon : "📦";
+const iconMarkup = `<div class="cat-pill-icon">${displayIcon}</div>`;
+const safeName = (cat.name || "").replace(/'/g, "\\'");
+pill.innerHTML = `
+${iconMarkup}
+<div class="cat-pill-name">${cat.name || "Untitled"}</div>
+<div class="cat-pill-actions">
+<button class="cat-pill-btn cat-edit-btn"
+onclick="window.openCatModal('${cat.id}')"
+title="Edit">✏️</button>
+<button class="cat-pill-btn cat-delete-btn"
+onclick="window.deleteCategory('${cat.id}','${safeName}')"
+title="Delete">🗑</button>
+</div>`;
+return pill;
 }
-
 // ── Render grid from cache (applies search filter)
 function _renderCatGrid() {
-  const grid = document.getElementById("catGrid");
-  if (!grid) return;
-
-  if (_catSortable) { _catSortable.destroy(); _catSortable = null; }
-  grid.innerHTML = "";
-
-  const visible = _catSearchTerm
-    ? activeStoreCategoriesCache.filter(c =>
-        (c.name || "").toLowerCase().includes(_catSearchTerm))
-    : activeStoreCategoriesCache;
-
-  if (activeStoreCategoriesCache.length === 0) {
-    grid.innerHTML = `
-      <div class="cat-empty-state">
-        <div class="cat-empty-icon">🗂</div>
-        <div class="cat-empty-title">No categories yet</div>
-        <div class="cat-empty-sub">Tap "New Category" to get started</div>
-      </div>`;
-    return;
-  }
-
-  if (visible.length === 0) {
-    grid.innerHTML = `
-      <div class="cat-no-results">
-        No categories match "<strong>${_catSearchTerm}</strong>"
-      </div>`;
-    return;
-  }
-
-  visible.forEach(cat => grid.appendChild(_buildCatPill(cat)));
-
-  if (!_catSearchTerm) {
-    _catSortable = Sortable.create(grid, {
-      animation: 200,
-      ghostClass: "sortable-ghost",
-      chosenClass: "sortable-chosen",
-      delay: 120,
-      delayOnTouchOnly: true,
-      onEnd: async () => {
-        const updatedIds = Array.from(grid.querySelectorAll(".cat-pill"))
-          .map(el => el.dataset.id)
-          .filter(Boolean);
-        toast("Saving order…", "info", 1000);
-        const { error } = await supabaseClient.rpc("reorder_categories", {
-          p_ids: updatedIds
-        });
-        if (error) {
-          console.error("Reorder error:", error);
-          toast("Couldn't save new order. Please try again.", "error");
-          await loadCategoriesTab();
-        } else {
-          toast("Order saved ✓", "success");
-          const idOrder = updatedIds;
-          activeStoreCategoriesCache.sort((a, b) =>
-            idOrder.indexOf(a.id) - idOrder.indexOf(b.id)
-          );
-        }
-      }
-    });
-  }
+const grid = document.getElementById("catGrid");
+if (!grid) return;
+if (_catSortable) { _catSortable.destroy(); _catSortable = null; }
+grid.innerHTML = "";
+const visible = _catSearchTerm
+? activeStoreCategoriesCache.filter(c =>
+(c.name || "").toLowerCase().includes(_catSearchTerm))
+: activeStoreCategoriesCache;
+if (activeStoreCategoriesCache.length === 0) {
+grid.innerHTML = `
+<div class="cat-empty-state">
+<div class="cat-empty-icon">🗂</div>
+<div class="cat-empty-title">No categories yet</div>
+<div class="cat-empty-sub">Tap "New Category" to get started</div>
+</div>`;
+return;
 }
-
+if (visible.length === 0) {
+grid.innerHTML = `
+<div class="cat-no-results">
+No categories match "<strong>${_catSearchTerm}</strong>"
+</div>`;
+return;
+}
+visible.forEach(cat => grid.appendChild(_buildCatPill(cat)));
+if (!_catSearchTerm) {
+_catSortable = Sortable.create(grid, {
+animation: 200,
+ghostClass: "sortable-ghost",
+chosenClass: "sortable-chosen",
+delay: 120,
+delayOnTouchOnly: true,
+onEnd: async () => {
+const updatedIds = Array.from(grid.querySelectorAll(".cat-pill"))
+.map(el => el.dataset.id)
+.filter(Boolean);
+toast("Saving order…", "info", 1000);
+const { error } = await supabaseClient.rpc("reorder_categories", {
+p_ids: updatedIds
+});
+if (error) {
+console.error("Reorder error:", error);
+toast("Couldn't save new order. Please try again.", "error");
+await loadCategoriesTab();
+} else {
+toast("Order saved ✓", "success");
+const idOrder = updatedIds;
+activeStoreCategoriesCache.sort((a, b) =>
+idOrder.indexOf(a.id) - idOrder.indexOf(b.id)
+);
+}
+}
+});
+}
+}
 // ── Load + render categories from DB
 async function loadCategoriesTab() {
-  const grid      = document.getElementById("catGrid");
-  const reloadBtn = document.getElementById("catReloadBtn");
-  if (!grid) return;
-
-  if (reloadBtn) reloadBtn.classList.add("spinning");
-  grid.innerHTML = [1, 2, 3, 4].map(() => `
-    <div class="cat-pill" style="pointer-events:none;opacity:.7;">
-      <div class="cat-skel-icon"></div>
-      <div class="cat-skel-text" style="width:65%;margin-top:4px;"></div>
-    </div>`).join("");
-
-  try {
-    const { data, error } = await supabaseClient.rpc("get_store_categories_v2");
-    if (error) throw error;
-    activeStoreCategoriesCache = data || [];
-
-    const badge = document.getElementById("catCountBadge");
-    if (badge) {
-      const n = activeStoreCategoriesCache.length;
-      badge.textContent = `${n} categor${n === 1 ? "y" : "ies"}`;
-    }
-
-    const searchInput = document.getElementById("catSearchInput");
-    if (searchInput) { searchInput.value = ""; _catSearchTerm = ""; }
-
-    _renderCatGrid();
-  } catch (err) {
-    console.error("Categories load error:", err);
-    grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid rgba(255,59,48,.2);">
-        <div style="font-size:36px;margin-bottom:10px;">😕</div>
-        <p style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">Couldn't load categories</p>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Check your connection and try again</p>
-        <button onclick="loadCategoriesTab()"
-          style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
-      </div>`;
-    toast("Couldn't load categories. Please try again.", "error");
-  } finally {
-    if (reloadBtn) reloadBtn.classList.remove("spinning");
-  }
+const grid = document.getElementById("catGrid");
+const reloadBtn = document.getElementById("catReloadBtn");
+if (!grid) return;
+if (reloadBtn) reloadBtn.classList.add("spinning");
+grid.innerHTML = [1, 2, 3, 4].map(() => `
+<div class="cat-pill" style="pointer-events:none;opacity:.7;">
+<div class="cat-skel-icon"></div>
+<div class="cat-skel-text" style="width:65%;margin-top:4px;"></div>
+</div>`).join("");
+try {
+const { data, error } = await supabaseClient.rpc("get_store_categories_v2");
+if (error) throw error;
+activeStoreCategoriesCache = data || [];
+const badge = document.getElementById("catCountBadge");
+if (badge) {
+const n = activeStoreCategoriesCache.length;
+badge.textContent = `${n} categor${n === 1 ? "y" : "ies"}`;
+}
+const searchInput = document.getElementById("catSearchInput");
+if (searchInput) { searchInput.value = ""; _catSearchTerm = ""; }
+_renderCatGrid();
+} catch (err) {
+console.error("Categories load error:", err);
+grid.innerHTML = `
+<div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid rgba(255,59,48,.2);">
+<div style="font-size:36px;margin-bottom:10px;">😕</div>
+<p style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">Couldn't load categories</p>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Check your connection and try again</p>
+<button onclick="loadCategoriesTab()"
+style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
+</div>`;
+toast("Couldn't load categories. Please try again.", "error");
+} finally {
+if (reloadBtn) reloadBtn.classList.remove("spinning");
+}
 }
 
 window.loadCategoriesTab = loadCategoriesTab;
@@ -3340,807 +3286,765 @@ window.loadCategoriesTab = loadCategoriesTab;
 // 6. Listeners bound once after DOM ready
 // 7. Resolved RPC 404 & Edge 400 by adhering to existing API signatures
 // ================================================================
-
-// ── STATE ────────────────────────────────────────────────────────
-let settingsProfileId  = null;
-let selectedCurrency   = "₦";
-let catBadges          = [];
-let storePhotos        = []; // {url, isNew, file?, isSaved}
-let storeDocs          = []; // {url, isNew, file?, isPdf, name, isSaved}
-let _pendingLogoFile   = null;
-let _existingLogoUrl   = null;
-let bioEditor          = null;
-let _listenersBound    = false;
-let _settingsLoaded    = false; // track first load
-
+// ── STATE
+────────────────────────────────────────────────────────
+let settingsProfileId = null;
+let selectedCurrency = "₦";
+let catBadges = [];
+let storePhotos = []; // {url, isNew, file?, isSaved}
+let storeDocs = []; // {url, isNew, file?, isPdf, name, isSaved}
+let _pendingLogoFile = null;
+let _existingLogoUrl = null;
+let bioEditor = null;
+let _listenersBound = false;
+let _settingsLoaded = false; // track first load
 const R2_PUBLIC_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
-
 // ── QUILL LINK POPUP FIX (z-index) ───────────────────────────────
 // Inject CSS to fix Quill tooltip showing below the editor box
 (function fixQuillTooltip() {
-  const style = document.createElement("style");
-  style.textContent = `
-    .ql-tooltip {
-      z-index: 9999 !important;
-    }
-    /* Ensure editor container doesn't clip tooltip */
-    .ql-container {
-      overflow: visible !important;
-    }
-    .ql-editor {
-      overflow: visible !important;
-    }
-    /* Optional: prevent parent clipping */
-    #st_bio_editor {
-      overflow: visible !important;
-    }
-  `;
-  document.head.appendChild(style);
+const style = document.createElement("style");
+style.textContent = `
+.ql-tooltip {
+z-index: 9999 !important;
+}
+/* Ensure editor container doesn't clip tooltip */
+.ql-container {
+overflow: visible !important;
+}
+.ql-editor {
+overflow: visible !important;
+}
+/* Optional: prevent parent clipping */
+#st_bio_editor {
+overflow: visible !important;
+}
+`;
+document.head.appendChild(style);
 })();
-
-// ── HELPERS ──────────────────────────────────────────────────────
+// ── HELPERS
+──────────────────────────────────────────────────────
 function r2KeyFromUrl(url) {
-  if (!url) return null;
-  return url.replace(R2_PUBLIC_BASE + "/", "");
+if (!url) return null;
+return url.replace(R2_PUBLIC_BASE + "/", "");
 }
-
 /** Upload to R2 via presigned PUT
- * Matches your secure multi-tenant Edge Function parameters exactly
- */
+* Matches your secure multi-tenant Edge Function parameters exactly
+*/
 async function settingsUploadFile(file, folder) {
-  // Step 1: Get presigned PUT URL using session token and exact payload match
-  const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${currentSessionToken}` // Authenticates your secure edge functions
-    },
-    body: JSON.stringify({
-      fileName: file.name,
-      fileType: file.type,
-      folder:   folder,
-      fileSize: file.size // <-- FIXED: Added to satisfy edge size-limit validation rules!
-    })
-  });
-  const result = await res.json();
-  if (!res.ok) throw new Error(result.error || "Failed to get upload URL");
-
-  // Step 2: PUT file directly to R2
-  const upload = await fetch(result.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file
-  });
-  if (!upload.ok) throw new Error("Storage upload failed");
-
-  // Step 3: Return public URL
-  return result.publicUrl;
+// Step 1: Get presigned PUT URL using session token and exact payload match
+const res = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": `Bearer ${currentSessionToken}` // Authenticates your secure edge functions
+},
+body: JSON.stringify({
+fileName: file.name,
+fileType: file.type,
+folder: folder,
+fileSize: file.size // <-- FIXED: Added to satisfy edge size-limit validation rules!
+})
+});
+const result = await res.json();
+if (!res.ok) throw new Error(result.error || "Failed to get upload URL");
+// Step 2: PUT file directly to R2
+const upload = await fetch(result.uploadUrl, {
+method: "PUT",
+headers: { "Content-Type": file.type },
+body: file
+});
+if (!upload.ok) throw new Error("Storage upload failed");
+// Step 3: Return public URL
+return result.publicUrl;
 }
-
 /** Delete from R2 immediately
- * Cleaned up path formatting to avoid duplicate slash artifacts
- */
+* Cleaned up path formatting to avoid duplicate slash artifacts
+*/
 async function settingsDeleteFromR2(url) {
-  if (!url) return true;
-  try {
-    // Strip public base url prefix to cleanly isolate the direct R2 object storage key path
-    const basePrefix = R2_PUBLIC_BASE + "/";
-    const fileKey    = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
-    if (!fileKey || fileKey === url) return true;
-    const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentSessionToken}`
-      },
-      body: JSON.stringify({ fileKey })
-    });
-    return res.ok;
-  } catch (e) {
-    console.error("Storage delete error:", e);
-    return false;
-  }
+if (!url) return true;
+try {
+// Strip public base url prefix to cleanly isolate the direct R2 object storage key path
+const basePrefix = R2_PUBLIC_BASE + "/";
+const fileKey = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
+if (!fileKey || fileKey === url) return true;
+const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": `Bearer ${currentSessionToken}`
+},
+body: JSON.stringify({ fileKey })
+});
+return res.ok;
+} catch (e) {
+console.error("Storage delete error:", e);
+return false;
 }
-
+}
 /** Save profile logo_url column immediately to Supabase */
 async function _syncLogoToSupabase(url) {
-  if (!settingsProfileId) return;
-  await supabaseClient
-    .from("profile")
-    .update({ logo_url: url || null })
-    .eq("id", settingsProfileId)
-    .eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
+if (!settingsProfileId) return;
+await supabaseClient
+.from("profile")
+.update({ logo_url: url || null })
+.eq("id", settingsProfileId)
+.eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
 }
-
 /** Save store_photos array immediately to Supabase */
 async function _syncPhotosToSupabase() {
-  if (!settingsProfileId) return;
-  const urls = storePhotos.filter(p => p.isSaved).map(p => p.url);
-  await supabaseClient
-    .from("profile")
-    .update({ store_photos: urls })
-    .eq("id", settingsProfileId)
-    .eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
+if (!settingsProfileId) return;
+const urls = storePhotos.filter(p => p.isSaved).map(p => p.url);
+await supabaseClient
+.from("profile")
+.update({ store_photos: urls })
+.eq("id", settingsProfileId)
+.eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
 }
-
 /** Save documents array immediately to Supabase */
 async function _syncDocsToSupabase() {
-  if (!settingsProfileId) return;
-  const urls = storeDocs.filter(d => d.isSaved).map(d => d.url);
-  await supabaseClient
-    .from("profile")
-    .update({ documents: urls })
-    .eq("id", settingsProfileId)
-    .eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
+if (!settingsProfileId) return;
+const urls = storeDocs.filter(d => d.isSaved).map(d => d.url);
+await supabaseClient
+.from("profile")
+.update({ documents: urls })
+.eq("id", settingsProfileId)
+.eq("store_id", runtimeState.store_id); // Multi-tenant isolated layer check
 }
-
 /** Compress image */
 async function compressForSettings(file) {
-  if (typeof optimizeImage === "function") {
-    try { return await optimizeImage(file); } catch(e) {}
-  }
-  return new Promise((resolve, reject) => {
-    const img    = new Image();
-    const reader = new FileReader();
-    reader.onload = e => { img.src = e.target.result; };
-    reader.onerror = reject;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx    = canvas.getContext("2d");
-      const maxW   = 1200;
-      const scale  = Math.min(1, maxW / img.width);
-      canvas.width  = Math.round(img.width  * scale);
-      canvas.height = Math.round(img.height * scale);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => {
-        if (!blob) return reject("Compression failed");
-        resolve(new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }));
-      }, "image/webp", 0.72);
-    };
-    img.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+if (typeof optimizeImage === "function") {
+try { return await optimizeImage(file); } catch(e) {}
 }
-
+return new Promise((resolve, reject) => {
+const img = new Image();
+const reader = new FileReader();
+reader.onload = e => { img.src = e.target.result; };
+reader.onerror = reject;
+img.onload = () => {
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+const maxW = 1200;
+const scale = Math.min(1, maxW / img.width);
+canvas.width = Math.round(img.width * scale);
+canvas.height = Math.round(img.height * scale);
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+canvas.toBlob(blob => {
+if (!blob) return reject("Compression failed");
+resolve(new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }));
+}, "image/webp", 0.72);
+};
+img.onerror = reject;
+reader.readAsDataURL(file);
+});
+}
 function sanitizeHtml(html) {
-  if (typeof DOMPurify !== "undefined") {
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: ["p","br","b","i","u","s","strong","em","h1","h2","h3","ul","ol","li","a","span","blockquote"],
-      ALLOWED_ATTR: ["href","target","rel","class","style"]
-    });
-  }
-  return html;
+if (typeof DOMPurify !== "undefined") {
+return DOMPurify.sanitize(html, {
+ALLOWED_TAGS:
+["p","br","b","i","u","s","strong","em","h1","h2","h3","ul","ol","li","a","span","blockquote"],
+ALLOWED_ATTR: ["href","target","rel","class","style"]
+});
 }
-
+return html;
+}
 function stripHtml(str) {
-  if (!str) return "";
-  const div = document.createElement("div");
-  div.innerHTML = str;
-  return div.textContent || div.innerText || "";
+if (!str) return "";
+const div = document.createElement("div");
+div.innerHTML = str;
+return div.textContent || div.innerText || "";
 }
-
 function lockTextField(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener("input", () => {
-    const clean = stripHtml(el.value);
-    if (el.value !== clean) el.value = clean;
-  });
-  el.addEventListener("paste", (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData("text/plain");
-    const pos  = el.selectionStart;
-    el.value   = el.value.slice(0, pos) + text + el.value.slice(el.selectionEnd);
-  });
+const el = document.getElementById(id);
+if (!el) return;
+el.addEventListener("input", () => {
+const clean = stripHtml(el.value);
+if (el.value !== clean) el.value = clean;
+});
+el.addEventListener("paste", (e) => {
+e.preventDefault();
+const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+const pos = el.selectionStart;
+el.value = el.value.slice(0, pos) + text + el.value.slice(el.selectionEnd);
+});
 }
-
 function lockUrlField(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener("paste", (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData("text/plain").trim();
-    el.value = text;
-  });
+const el = document.getElementById(id);
+if (!el) return;
+el.addEventListener("paste", (e) => {
+e.preventDefault();
+const text = (e.clipboardData || window.clipboardData).getData("text/plain").trim();
+el.value = text;
+});
 }
-
 function setVal(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
+const el = document.getElementById(id);
+if (el) el.value = val;
 }
-
 function setSelectVal(id, val) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  for (let i = 0; i < el.options.length; i++) {
-    if (el.options[i].value === val) { el.selectedIndex = i; break; }
-  }
+const el = document.getElementById(id);
+if (!el) return;
+for (let i = 0; i < el.options.length; i++) {
+if (el.options[i].value === val) { el.selectedIndex = i; break; }
 }
-
+}
 function getVal(id) {
-  const el = document.getElementById(id);
-  return el ? stripHtml(el.value.trim()) : "";
+const el = document.getElementById(id);
+return el ? stripHtml(el.value.trim()) : "";
 }
-
 function getUrlVal(id) {
-  const el = document.getElementById(id);
-  if (!el) return "";
-  const val = el.value.trim();
-  if (val && !val.startsWith("http")) return "";
-  return val;
+const el = document.getElementById(id);
+if (!el) return "";
+const val = el.value.trim();
+if (val && !val.startsWith("http")) return "";
+return val;
 }
-
-// ── FETCH CURRENCIES FROM DB ──────────────────────────────────────
+// ── FETCH CURRENCIES FROM DB
+──────────────────────────────────────
 async function loadCurrencyOptions(selectedSymbol) {
-  const container = document.getElementById("currencyOptions");
-  const label     = document.getElementById("selectedCurrencyLabel");
-  if (!container) return;
-  try {
-    const { data, error } = await supabaseClient.rpc("get_currencies");
-    if (error) throw error;
-    container.innerHTML = "";
-    data.forEach(c => {
-      const btn = document.createElement("button");
-      btn.className       = "currency-chip";
-      btn.dataset.symbol  = c.symbol;
-      btn.textContent     = `${c.symbol} ${c.name}`;
-      btn.onclick         = function() { window.selectCurrency(this); };
-      if (c.symbol === selectedSymbol) {
-        btn.classList.add("active");
-        if (label) label.textContent = btn.textContent;
-        selectedCurrency = c.symbol;
-      }
-      container.appendChild(btn);
-    });
-  } catch(e) {
-    console.warn("Currencies DB failed, using fallback", e);
-    const fallback = [
-      {symbol:"₦",name:"Naira"},{symbol:"£",name:"Pound"},
-      {symbol:"$",name:"Dollar"},{symbol:"R",name:"Rand"},
-      {symbol:"€",name:"Euro"},{symbol:"GH₵",name:"Cedi"}
-    ];
-    container.innerHTML = "";
-    fallback.forEach(c => {
-      const btn = document.createElement("button");
-      btn.className      = "currency-chip";
-      btn.dataset.symbol = c.symbol;
-      btn.textContent    = `${c.symbol} ${c.name}`;
-      btn.onclick        = function() { window.selectCurrency(this); };
-      if (c.symbol === selectedSymbol) {
-        btn.classList.add("active");
-        if (label) label.textContent = btn.textContent;
-        selectedCurrency = c.symbol;
-      }
-      container.appendChild(btn);
-    });
-  }
+const container = document.getElementById("currencyOptions");
+const label = document.getElementById("selectedCurrencyLabel");
+if (!container) return;
+try {
+const { data, error } = await supabaseClient.rpc("get_currencies");
+if (error) throw error;
+container.innerHTML = "";
+data.forEach(c => {
+const btn = document.createElement("button");
+btn.className = "currency-chip";
+btn.dataset.symbol = c.symbol;
+btn.textContent = `${c.symbol} ${c.name}`;
+btn.onclick = function() { window.selectCurrency(this); };
+if (c.symbol === selectedSymbol) {
+btn.classList.add("active");
+if (label) label.textContent = btn.textContent;
+selectedCurrency = c.symbol;
 }
-
-// ── FETCH COUNTRIES FROM DB ───────────────────────────────────────
+container.appendChild(btn);
+});
+} catch(e) {
+console.warn("Currencies DB failed, using fallback", e);
+const fallback = [
+{symbol:"₦",name:"Naira"},{symbol:"£",name:"Pound"},
+{symbol:"$",name:"Dollar"},{symbol:"R",name:"Rand"},
+{symbol:"€",name:"Euro"},{symbol:"GH₵",name:"Cedi"}
+];
+container.innerHTML = "";
+fallback.forEach(c => {
+const btn = document.createElement("button");
+btn.className = "currency-chip";
+btn.dataset.symbol = c.symbol;
+btn.textContent = `${c.symbol} ${c.name}`;
+btn.onclick = function() { window.selectCurrency(this); };
+if (c.symbol === selectedSymbol) {
+btn.classList.add("active");
+if (label) label.textContent = btn.textContent;
+selectedCurrency = c.symbol;
+}
+container.appendChild(btn);
+});
+}
+}
+// ── FETCH COUNTRIES FROM DB
+───────────────────────────────────────
 async function loadCountryOptions(selectedCode) {
-  const select = document.getElementById("st_country");
-  if (!select) return;
-  try {
-    const { data, error } = await supabaseClient.rpc("get_countries");
-    if (error) throw error;
-    select.innerHTML = `<option value="">Select country...</option>`;
-    data.forEach(c => {
-      const opt     = document.createElement("option");
-      opt.value     = c.name;
-      opt.textContent = `${c.flag} ${c.name}`;
-      if (c.name === selectedCode) opt.selected = true;
-      select.appendChild(opt);
-    });
-  } catch(e) {
-    console.warn("Countries DB failed, using fallback", e);
-  }
+const select = document.getElementById("st_country");
+if (!select) return;
+try {
+const { data, error } = await supabaseClient.rpc("get_countries");
+if (error) throw error;
+select.innerHTML = `<option value="">Select country...</option>`;
+data.forEach(c => {
+const opt = document.createElement("option");
+opt.value = c.name;
+opt.textContent = `${c.flag} ${c.name}`;
+if (c.name === selectedCode) opt.selected = true;
+select.appendChild(opt);
+});
+} catch(e) {
+console.warn("Countries DB failed, using fallback", e);
 }
-
-// ── CURRENCY PICKER ───────────────────────────────────────────────
+}
+// ── CURRENCY PICKER
+───────────────────────────────────────────────
 window.selectCurrency = function(btn) {
-  document.querySelectorAll(".currency-chip").forEach(c => c.classList.remove("active"));
-  btn.classList.add("active");
-  selectedCurrency = btn.dataset.symbol;
-  const label = document.getElementById("selectedCurrencyLabel");
-  if (label) label.textContent = btn.textContent;
+document.querySelectorAll(".currency-chip").forEach(c => c.classList.remove("active"));
+btn.classList.add("active");
+selectedCurrency = btn.dataset.symbol;
+const label = document.getElementById("selectedCurrencyLabel");
+if (label) label.textContent = btn.textContent;
 };
-
-// ── TRUST BADGES ──────────────────────────────────────────────────
+// ── TRUST BADGES
+──────────────────────────────────────────────────
 function renderBadges() {
-  const list = document.getElementById("badgeList");
-  if (!list) return;
-  list.innerHTML = "";
-  catBadges.forEach((badge, i) => {
-    const chip = document.createElement("span");
-    chip.className = "badge-chip";
-    chip.innerHTML = `🛡 ${badge} <span class="remove-badge" onclick="removeBadge(${i})">×</span>`;
-    list.appendChild(chip);
-  });
+const list = document.getElementById("badgeList");
+if (!list) return;
+list.innerHTML = "";
+catBadges.forEach((badge, i) => {
+const chip = document.createElement("span");
+chip.className = "badge-chip";
+chip.innerHTML = `🛡 ${badge} <span class="remove-badge" onclick="removeBadge(${i})">×</span>`;
+list.appendChild(chip);
+});
 }
-
 window.addBadge = function() {
-  const input = document.getElementById("newBadgeInput");
-  const val   = stripHtml(input.value.trim());
-  if (!val) return toast("Type a badge text first.", "info");
-  if (catBadges.length >= 8) return toast("Max 8 badges.", "error");
-  catBadges.push(val);
-  input.value = "";
-  renderBadges();
+const input = document.getElementById("newBadgeInput");
+const val = stripHtml(input.value.trim());
+if (!val) return toast("Type a badge text first.", "info");
+if (catBadges.length >= 8) return toast("Max 8 badges.", "error");
+catBadges.push(val);
+input.value = "";
+renderBadges();
 };
-
 window.removeBadge = function(i) {
-  catBadges.splice(i, 1);
-  renderBadges();
+catBadges.splice(i, 1);
+renderBadges();
 };
-
-// ── LOGO ──────────────────────────────────────────────────────────
+// ── LOGO
+──────────────────────────────────────────────────────────
 function showLogoPreview(url) {
-  const img         = document.getElementById("logoPreviewImg");
-  const placeholder = document.getElementById("logoPlaceholder");
-  const actions     = document.getElementById("logoActions");
-  if (img)         { img.src = url; img.style.display = "block"; }
-  if (placeholder) placeholder.style.display = "none";
-  if (actions)     actions.style.display = "flex";
+const img = document.getElementById("logoPreviewImg");
+const placeholder = document.getElementById("logoPlaceholder");
+const actions = document.getElementById("logoActions");
+if (img) { img.src = url; img.style.display = "block"; }
+if (placeholder) placeholder.style.display = "none";
+if (actions) actions.style.display = "flex";
 }
-
 function clearLogoPreview() {
-  const img         = document.getElementById("logoPreviewImg");
-  const placeholder = document.getElementById("logoPlaceholder");
-  const actions     = document.getElementById("logoActions");
-  if (img)         { img.src = ""; img.style.display = "none"; }
-  if (placeholder) placeholder.style.display = "flex";
-  if (actions)     actions.style.display = "none";
+const img = document.getElementById("logoPreviewImg");
+const placeholder = document.getElementById("logoPlaceholder");
+const actions = document.getElementById("logoActions");
+if (img) { img.src = ""; img.style.display = "none"; }
+if (placeholder) placeholder.style.display = "flex";
+if (actions) actions.style.display = "none";
 }
-
 window.removeLogo = async function() {
-  const btn = document.getElementById("removeLogoBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "Removing…"; }
-  try {
-    const urlToDelete = _existingLogoUrl;
-    _existingLogoUrl  = null;
-    _pendingLogoFile  = null;
-    clearLogoPreview();
-    if (urlToDelete) {
-      await settingsDeleteFromR2(urlToDelete);
-      await _syncLogoToSupabase(null);
-    }
-    toast("Logo removed ✓", "success");
-  } catch(e) {
-    toast("Could not remove logo. Try again.", "error");
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "✕ Remove Logo"; }
-  }
+const btn = document.getElementById("removeLogoBtn");
+if (btn) { btn.disabled = true; btn.textContent = "Removing…"; }
+try {
+const urlToDelete = _existingLogoUrl;
+_existingLogoUrl = null;
+_pendingLogoFile = null;
+clearLogoPreview();
+if (urlToDelete) {
+await settingsDeleteFromR2(urlToDelete);
+await _syncLogoToSupabase(null);
+}
+toast("Logo removed ✓", "success");
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+} catch(e) {
+toast("Could not remove logo. Try again.", "error");
+} finally {
+if (btn) { btn.disabled = false; btn.textContent = "✕ Remove Logo"; }
+}
 };
-
-// ── STORE PHOTOS ──────────────────────────────────────────────────
+// ── STORE PHOTOS
+──────────────────────────────────────────────────
 function renderStorePhotos() {
-  const grid    = document.getElementById("storePhotosGrid");
-  const addBtn  = document.getElementById("storePhotosAddBtn");
-  const countEl = document.getElementById("storePhotosCount");
-  if (!grid) return;
-  grid.innerHTML = "";
-  storePhotos.forEach((photo, i) => {
-    const item = document.createElement("div");
-    item.className = "st-photo-item";
-    if (photo.isUploading) {
-      item.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f1f5f9;">
-          <div class="spinner" style="width:24px;height:24px;"></div>
-        </div>`;
-    } else {
-      item.innerHTML = `
-        <img src="${photo.url}" alt="Store photo ${i+1}" loading="lazy">
-        <button class="st-photo-remove" onclick="removeStorePhoto(${i})" title="Remove">×</button>`;
-    }
-    grid.appendChild(item);
-  });
-  const count = storePhotos.filter(p => !p.isUploading).length;
-  if (countEl) countEl.textContent = `${storePhotos.length} / 5`;
-  if (addBtn)  addBtn.style.display = storePhotos.length >= 5 ? "none" : "flex";
+const grid = document.getElementById("storePhotosGrid");
+const addBtn = document.getElementById("storePhotosAddBtn");
+const countEl = document.getElementById("storePhotosCount");
+if (!grid) return;
+grid.innerHTML = "";
+storePhotos.forEach((photo, i) => {
+const item = document.createElement("div");
+item.className = "st-photo-item";
+if (photo.isUploading) {
+item.innerHTML = `
+<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f1f5f9;">
+<div class="spinner" style="width:24px;height:24px;"></div>
+</div>`;
+} else {
+item.innerHTML = `
+<img src="${photo.url}" alt="Store photo ${i+1}" loading="lazy">
+<button class="st-photo-remove" onclick="removeStorePhoto(${i})" title="Remove">×</button>`;
 }
-
+grid.appendChild(item);
+});
+const count = storePhotos.filter(p => !p.isUploading).length;
+if (countEl) countEl.textContent = `${storePhotos.length} / 5`;
+if (addBtn) addBtn.style.display = storePhotos.length >= 5 ? "none" : "flex";
+}
 window.removeStorePhoto = async function(i) {
-  const photo = storePhotos[i];
-  if (!photo) return;
-  storePhotos.splice(i, 1);
-  renderStorePhotos();
-  if (photo.isSaved && photo.url.startsWith(R2_PUBLIC_BASE)) {
-    await settingsDeleteFromR2(photo.url);
-    await _syncPhotosToSupabase();
-  }
+const photo = storePhotos[i];
+if (!photo) return;
+storePhotos.splice(i, 1);
+renderStorePhotos();
+if (photo.isSaved && photo.url.startsWith(R2_PUBLIC_BASE)) {
+await settingsDeleteFromR2(photo.url);
+await _syncPhotosToSupabase();
+}
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
 };
-
-// ── DOCUMENTS ─────────────────────────────────────────────────────
+// ── DOCUMENTS
+─────────────────────────────────────────────────────
 function renderDocs() {
-  const grid    = document.getElementById("docsGrid");
-  const addBtn  = document.getElementById("docsAddBtn");
-  const countEl = document.getElementById("docsCount");
-  if (!grid) return;
-  grid.innerHTML = "";
-  storeDocs.forEach((doc, i) => {
-    const item = document.createElement("div");
-    item.className = "st-doc-item";
-    item.title = doc.name || "Document";
-    if (doc.isUploading) {
-      item.innerHTML = `
-        <span class="st-doc-icon">⏳</span>
-        <span class="st-doc-label">Uploading…</span>`;
-    } else if (doc.isPdf) {
-      item.innerHTML = `
-        <span class="st-doc-icon">📄</span>
-        <span class="st-doc-label">${doc.name || "PDF"}</span>
-        <button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
-    } else {
-      item.innerHTML = `
-        <img src="${doc.url}" alt="Document ${i+1}" loading="lazy">
-        <span class="st-doc-label">${doc.name || "Doc"}</span>
-        <button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
-    }
-    if (!doc.isUploading) {
-      item.addEventListener("click", (e) => {
-        if (e.target.classList.contains("st-photo-remove")) return;
-        window.open(doc.url, "_blank");
-      });
-    }
-    grid.appendChild(item);
-  });
-  const count = storeDocs.length;
-  if (countEl) countEl.textContent = `${count} / 3`;
-  if (addBtn)  addBtn.style.display = count >= 3 ? "none" : "flex";
+const grid = document.getElementById("docsGrid");
+const addBtn = document.getElementById("docsAddBtn");
+const countEl = document.getElementById("docsCount");
+if (!grid) return;
+grid.innerHTML = "";
+storeDocs.forEach((doc, i) => {
+const item = document.createElement("div");
+item.className = "st-doc-item";
+item.title = doc.name || "Document";
+if (doc.isUploading) {
+item.innerHTML = `
+<span class="st-doc-icon">⏳</span>
+<span class="st-doc-label">Uploading…</span>`;
+} else if (doc.isPdf) {
+item.innerHTML = `
+<span class="st-doc-icon">📄</span>
+<span class="st-doc-label">${doc.name || "PDF"}</span>
+<button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
+} else {
+item.innerHTML = `
+<img src="${doc.url}" alt="Document ${i+1}" loading="lazy">
+<span class="st-doc-label">${doc.name || "Doc"}</span>
+<button class="st-photo-remove" onclick="removeDoc(${i})" title="Remove">×</button>`;
 }
-
+if (!doc.isUploading) {
+item.addEventListener("click", (e) => {
+if (e.target.classList.contains("st-photo-remove")) return;
+window.open(doc.url, "_blank");
+});
+}
+grid.appendChild(item);
+});
+const count = storeDocs.length;
+if (countEl) countEl.textContent = `${count} / 3`;
+if (addBtn) addBtn.style.display = count >= 3 ? "none" : "flex";
+}
 window.removeDoc = async function(i) {
-  const doc = storeDocs[i];
-  if (!doc) return;
-  storeDocs.splice(i, 1);
-  renderDocs();
-  if (doc.isSaved && doc.url.startsWith(R2_PUBLIC_BASE)) {
-    await settingsDeleteFromR2(doc.url);
-    await _syncDocsToSupabase();
-  }
-};
-
-// ── QUILL INIT ────────────────────────────────────────────────────
-function initQuill() {
-  if (bioEditor) return;
-  if (typeof Quill === "undefined") { console.warn("Quill not loaded"); return; }
-  bioEditor = new Quill("#st_bio_editor", {
-    theme: "snow",
-    placeholder: "Tell customers about your store — your story, values, what makes you special...",
-    modules: {
-      toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline", "strike"],
-        [{ color: [] }, { background: [] }],
-        [{ align: [] }],
-        [{ list: "ordered" }, { list: "bullet" }],
-        ["link"],
-        ["clean"]
-      ]
-    }
-  });
+const doc = storeDocs[i];
+if (!doc) return;
+storeDocs.splice(i, 1);
+renderDocs();
+if (doc.isSaved && doc.url.startsWith(R2_PUBLIC_BASE)) {
+await settingsDeleteFromR2(doc.url);
+await _syncDocsToSupabase();
 }
-
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+};
+// ── QUILL INIT
+────────────────────────────────────────────────────
+function initQuill() {
+if (bioEditor) return;
+if (typeof Quill === "undefined") { console.warn("Quill not loaded"); return; }
+bioEditor = new Quill("#st_bio_editor", {
+theme: "snow",
+placeholder: "Tell customers about your store — your story, values, what makes you special...",
+modules: {
+toolbar: [
+[{ header: [1, 2, 3, false] }],
+["bold", "italic", "underline", "strike"],
+[{ color: [] }, { background: [] }],
+[{ align: [] }],
+[{ list: "ordered" }, { list: "bullet" }],
+["link"],
+["clean"]
+]
+}
+});
+}
 // ── BIND ALL LISTENERS (once, after form visible) ─────────────────
 function _bindSettingsListeners() {
-  if (_listenersBound) return;
-  _listenersBound = true;
-
-  document.getElementById("newBadgeInput")?.addEventListener("keydown", e => {
-    if (e.key === "Enter") { e.preventDefault(); window.addBadge(); }
-  });
-
-  // ── LOGO INPUT ──────────────────────────────────────────────────
-  document.getElementById("logoFileInput")?.addEventListener("change", async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    this.value = "";
-    const oldUrl     = _existingLogoUrl;
-    const previewUrl = URL.createObjectURL(file);
-    showLogoPreview(previewUrl);
-    try {
-      const compressed = await compressForSettings(file);
-      toast("Uploading logo…", "info");
-      const newUrl = await settingsUploadFile(compressed, "logos");
-      await _syncLogoToSupabase(newUrl);
-      if (oldUrl) await settingsDeleteFromR2(oldUrl);
-      _existingLogoUrl = newUrl;
-      _pendingLogoFile = null;
-      showLogoPreview(newUrl);
-      URL.revokeObjectURL(previewUrl);
-      toast("Logo saved ✓", "success");
-    } catch(err) {
-      clearLogoPreview();
-      if (oldUrl) showLogoPreview(oldUrl);
-      _existingLogoUrl = oldUrl;
-      toast("Logo upload failed. Try again.", "error");
-    }
-  });
-
-  // ── STORE PHOTOS INPUT ──────────────────────────────────────────
-  document.getElementById("storePhotosInput")?.addEventListener("change", async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    this.value = "";
-    if (storePhotos.length >= 5) return toast("Max 5 store photos.", "error");
-    const placeholder = { url: "", isUploading: true, isSaved: false };
-    storePhotos.push(placeholder);
-    renderStorePhotos();
-    try {
-      const compressed  = await compressForSettings(file);
-      const uploadedUrl = await settingsUploadFile(compressed, "store-photos");
-      const idx = storePhotos.indexOf(placeholder);
-      if (idx > -1) {
-        storePhotos[idx] = { url: uploadedUrl, isUploading: false, isSaved: true };
-      }
-      await _syncPhotosToSupabase();
-      renderStorePhotos();
-      toast("Photo added ✓", "success");
-    } catch(err) {
-      const idx = storePhotos.indexOf(placeholder);
-      if (idx > -1) storePhotos.splice(idx, 1);
-      renderStorePhotos();
-      toast("Photo upload failed. Try again.", "error");
-    }
-  });
-
-  // ── DOCS INPUT ──────────────────────────────────────────────────
-  document.getElementById("docsInput")?.addEventListener("change", async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    this.value = "";
-    if (storeDocs.length >= 3) return toast("Max 3 documents.", "error");
-    const isPdf       = file.type === "application/pdf";
-    const placeholder = { url: "", isUploading: true, isSaved: false, isPdf, name: file.name };
-    storeDocs.push(placeholder);
-    renderDocs();
-    try {
-      let processedFile = file;
-      if (!isPdf) {
-        try { processedFile = await compressForSettings(file); } catch(e) {}
-      }
-      const uploadedUrl = await settingsUploadFile(processedFile, "documents");
-      const idx = storeDocs.indexOf(placeholder);
-      if (idx > -1) {
-        storeDocs[idx] = {
-          url: uploadedUrl, isUploading: false, isSaved: true,
-          isPdf, name: file.name
-        };
-      }
-      await _syncDocsToSupabase();
-      renderDocs();
-      toast("Document added ✓", "success");
-    } catch(err) {
-      const idx = storeDocs.indexOf(placeholder);
-      if (idx > -1) storeDocs.splice(idx, 1);
-      renderDocs();
-      toast("Document upload failed. Try again.", "error");
-    }
-  });
-
-  // Lock text fields from HTML injection
-  [
-    "st_business_name","st_tagline","st_whatsapp","st_phone",
-    "st_year_est","st_address","st_city","st_response_time",
-    "st_wa_message","st_delivery_info","st_return_policy","newBadgeInput"
-  ].forEach(lockTextField);
-
-  // Lock URL fields
-  ["st_facebook","st_instagram","st_twitter","st_tiktok","st_youtube","st_website"]
-    .forEach(lockUrlField);
+if (_listenersBound) return;
+_listenersBound = true;
+document.getElementById("newBadgeInput")?.addEventListener("keydown", e => {
+if (e.key === "Enter") { e.preventDefault(); window.addBadge(); }
+});
+// ── LOGO INPUT
+──────────────────────────────────────────────────
+document.getElementById("logoFileInput")?.addEventListener("change", async function(e) {
+const file = e.target.files[0];
+if (!file) return;
+this.value = "";
+const oldUrl = _existingLogoUrl;
+const previewUrl = URL.createObjectURL(file);
+showLogoPreview(previewUrl);
+try {
+const compressed = await compressForSettings(file);
+toast("Uploading logo…", "info");
+const newUrl = await settingsUploadFile(compressed, "logos");
+await _syncLogoToSupabase(newUrl);
+if (oldUrl) await settingsDeleteFromR2(oldUrl);
+_existingLogoUrl = newUrl;
+_pendingLogoFile = null;
+showLogoPreview(newUrl);
+URL.revokeObjectURL(previewUrl);
+toast("Logo saved ✓", "success");
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+} catch(err) {
+clearLogoPreview();
+if (oldUrl) showLogoPreview(oldUrl);
+_existingLogoUrl = oldUrl;
+toast("Logo upload failed. Try again.", "error");
 }
-
-async function loadBusinessTypeOptions(selectedVal) {
-  const select = document.getElementById("st_business_type");
-  if (!select) return;
-  try {
-    const { data, error } = await supabaseClient.rpc("get_business_types");
-    if (error) throw error;
-    select.innerHTML = `<option value="">Select business type...</option>`;
-    data.forEach(b => {
-      const opt     = document.createElement("option");
-      opt.value     = b.name;
-      opt.textContent = b.name;
-      if (b.name === selectedVal) opt.selected = true;
-      select.appendChild(opt);
-    });
-  } catch (e) {
-    console.warn("Business types DB failed, using fallback", e);
-    const fallback = [
-      "Retail Store", "Wholesaler", "Manufacturer", "Service Provider",
-      "Digital Products", "Food & Restaurant", "Fashion & Clothing",
-      "Electronics", "Health & Beauty"
-    ];
-    select.innerHTML = `<option value="">Select business type...</option>`;
-    fallback.forEach(name => {
-      const opt       = document.createElement("option");
-      opt.value       = name;
-      opt.textContent = name;
-      if (name === selectedVal) opt.selected = true;
-      select.appendChild(opt);
-    });
-  }
+});
+// ── STORE PHOTOS INPUT
+──────────────────────────────────────────
+document.getElementById("storePhotosInput")?.addEventListener("change", async function(e) {
+const file = e.target.files[0];
+if (!file) return;
+this.value = "";
+if (storePhotos.length >= 5) return toast("Max 5 store photos.", "error");
+const placeholder = { url: "", isUploading: true, isSaved: false };
+storePhotos.push(placeholder);
+renderStorePhotos();
+try {
+const compressed = await compressForSettings(file);
+const uploadedUrl = await settingsUploadFile(compressed, "store-photos");
+const idx = storePhotos.indexOf(placeholder);
+if (idx > -1) {
+storePhotos[idx] = { url: uploadedUrl, isUploading: false, isSaved: true };
 }
-
-// ── LOAD SETTINGS ─────────────────────────────────────────────────
-window.loadSettings = async function() {
-  const reloadBtn = document.querySelector(".st-reload-btn");
-  const skeleton  = document.getElementById("settingsSkeleton");
-  const form      = document.getElementById("settingsForm");
-
-  if (reloadBtn) reloadBtn.classList.add("spinning");
-  if (skeleton)  { skeleton.style.display = "grid"; }
-  if (form)      { form.style.display = "none"; }
-
-  try {
-    const { data, error } = await supabaseClient
-      .from("profile")
-      .select("*")
-      .eq("store_id", runtimeState.store_id) // Isolated tenancy security lookup
-      .limit(1)
-      .single();
-
-    if (error && error.code !== "PGRST116") throw error;
-
-    if (data) {
-      settingsProfileId = data.id;
-
-      setVal("st_business_name", data.business_name || "");
-      setVal("st_tagline",       data.tagline        || "");
-      setVal("st_whatsapp",      data.whatsapp_number || "");
-      setVal("st_phone",         data.phone_number    || "");
-      setVal("st_address",       data.store_address   || "");
-      setVal("st_city",          data.store_city      || "");
-      setVal("st_wa_message",    data.wa_message      || "Hi, I want to buy [Product Name]");
-      setVal("st_response_time", data.response_time   || "");
-      setVal("st_delivery_info", data.delivery_info   || "");
-      setVal("st_return_policy", data.return_policy   || "");
-      setVal("st_year_est",      data.year_established || "");
-      setSelectVal("st_business_type", data.business_type || "");
-
-      await Promise.all([
-        loadCurrencyOptions(data.currency_symbol || "₦"),
-        loadCountryOptions(data.store_country    || ""),
-        loadBusinessTypeOptions(data.business_type || "")
-      ]);
-
-      setVal("st_facebook",  data.social_facebook  || "");
-      setVal("st_instagram", data.social_instagram || "");
-      setVal("st_twitter",   data.social_twitter   || "");
-      setVal("st_tiktok",    data.social_tiktok    || "");
-      setVal("st_youtube",   data.social_youtube   || "");
-      setVal("st_website",   data.social_website   || "");
-
-      catBadges = Array.isArray(data.trust_badges) ? data.trust_badges : [];
-      renderBadges();
-
-      _existingLogoUrl = data.logo_url || null;
-      _existingLogoUrl ? showLogoPreview(_existingLogoUrl) : clearLogoPreview();
-
-      initQuill();
-      if (bioEditor) {
-        bioEditor.root.innerHTML = sanitizeHtml(data.bio || "");
-      }
-
-      const rawPhotos = Array.isArray(data.store_photos) ? data.store_photos : [];
-      storePhotos = rawPhotos.map(url => ({ url, isUploading: false, isSaved: true }));
-      renderStorePhotos();
-
-      const rawDocs = Array.isArray(data.documents) ? data.documents : [];
-      storeDocs = rawDocs.map(url => ({
-        url, isUploading: false, isSaved: true,
-        isPdf: url.toLowerCase().endsWith(".pdf"),
-        name:  decodeURIComponent(url.split("/").pop())
-      }));
-      renderDocs();
-
-    } else {
-      settingsProfileId = null;
-      initQuill();
-      await Promise.all([
-        loadCurrencyOptions("₦"),
-        loadCountryOptions(""),
-        loadBusinessTypeOptions("")
-      ]);
-      storePhotos = [];
-      storeDocs   = [];
-      renderStorePhotos();
-      renderDocs();
-      clearLogoPreview();
-    }
-
-    if (skeleton) skeleton.style.display = "none";
-    if (form)     form.style.display = "block";
-    _bindSettingsListeners();
-
-  } catch (err) {
-    console.error("loadSettings error:", err);
-    if (skeleton) skeleton.style.display = "none";
-    if (form)     form.style.display = "block";
-    initQuill();
-    _bindSettingsListeners();
-    toast("Could not load settings.", "info");
-  } finally {
-    if (reloadBtn) reloadBtn.classList.remove("spinning");
-  }
+await _syncPhotosToSupabase();
+renderStorePhotos();
+toast("Photo added ✓", "success");
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+} catch(err) {
+const idx = storePhotos.indexOf(placeholder);
+if (idx > -1) storePhotos.splice(idx, 1);
+renderStorePhotos();
+toast("Photo upload failed. Try again.", "error");
+}
+});
+// ── DOCS INPUT
+──────────────────────────────────────────────────
+document.getElementById("docsInput")?.addEventListener("change", async function(e) {
+const file = e.target.files[0];
+if (!file) return;
+this.value = "";
+if (storeDocs.length >= 3) return toast("Max 3 documents.", "error");
+const isPdf = file.type === "application/pdf";
+const placeholder = { url: "", isUploading: true, isSaved: false, isPdf, name: file.name };
+storeDocs.push(placeholder);
+renderDocs();
+try {
+let processedFile = file;
+if (!isPdf) {
+try { processedFile = await compressForSettings(file); } catch(e) {}
+}
+const uploadedUrl = await settingsUploadFile(processedFile, "documents");
+const idx = storeDocs.indexOf(placeholder);
+if (idx > -1) {
+storeDocs[idx] = {
+url: uploadedUrl, isUploading: false, isSaved: true,
+isPdf, name: file.name
 };
-
-// ── SAVE SETTINGS ─────────────────────────────────────────────────
+}
+await _syncDocsToSupabase();
+renderDocs();
+toast("Document added ✓", "success");
+// ── INTEL HOOK: profile changed, sync live metrics
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+} catch(err) {
+const idx = storeDocs.indexOf(placeholder);
+if (idx > -1) storeDocs.splice(idx, 1);
+renderDocs();
+toast("Document upload failed. Try again.", "error");
+}
+});
+// Lock text fields from HTML injection
+[
+"st_business_name","st_tagline","st_whatsapp","st_phone",
+"st_year_est","st_address","st_city","st_response_time",
+"st_wa_message","st_delivery_info","st_return_policy","newBadgeInput"
+].forEach(lockTextField);
+// Lock URL fields
+["st_facebook","st_instagram","st_twitter","st_tiktok","st_youtube","st_website"]
+.forEach(lockUrlField);
+}
+async function loadBusinessTypeOptions(selectedVal) {
+const select = document.getElementById("st_business_type");
+if (!select) return;
+try {
+const { data, error } = await supabaseClient.rpc("get_business_types");
+if (error) throw error;
+select.innerHTML = `<option value="">Select business type...</option>`;
+data.forEach(b => {
+const opt = document.createElement("option");
+opt.value = b.name;
+opt.textContent = b.name;
+if (b.name === selectedVal) opt.selected = true;
+select.appendChild(opt);
+});
+} catch (e) {
+console.warn("Business types DB failed, using fallback", e);
+const fallback = [
+"Retail Store", "Wholesaler", "Manufacturer", "Service Provider",
+"Digital Products", "Food & Restaurant", "Fashion & Clothing",
+"Electronics", "Health & Beauty"
+];
+select.innerHTML = `<option value="">Select business type...</option>`;
+fallback.forEach(name => {
+const opt = document.createElement("option");
+opt.value = name;
+opt.textContent = name;
+if (name === selectedVal) opt.selected = true;
+select.appendChild(opt);
+});
+}
+}
+// ── LOAD SETTINGS
+─────────────────────────────────────────────────
+window.loadSettings = async function() {
+const reloadBtn = document.querySelector(".st-reload-btn");
+const skeleton = document.getElementById("settingsSkeleton");
+const form = document.getElementById("settingsForm");
+if (reloadBtn) reloadBtn.classList.add("spinning");
+if (skeleton) { skeleton.style.display = "grid"; }
+if (form) { form.style.display = "none"; }
+try {
+const { data, error } = await supabaseClient
+.from("profile")
+.select("*")
+.eq("store_id", runtimeState.store_id) // Isolated tenancy security lookup
+.limit(1)
+.single();
+if (error && error.code !== "PGRST116") throw error;
+if (data) {
+settingsProfileId = data.id;
+setVal("st_business_name", data.business_name || "");
+setVal("st_tagline", data.tagline || "");
+setVal("st_whatsapp", data.whatsapp_number || "");
+setVal("st_phone", data.phone_number || "");
+setVal("st_address", data.store_address || "");
+setVal("st_city", data.store_city || "");
+setVal("st_wa_message", data.wa_message || "Hi, I want to buy [Product Name]");
+setVal("st_response_time", data.response_time || "");
+setVal("st_delivery_info", data.delivery_info || "");
+setVal("st_return_policy", data.return_policy || "");
+setVal("st_year_est", data.year_established || "");
+setSelectVal("st_business_type", data.business_type || "");
+await Promise.all([
+loadCurrencyOptions(data.currency_symbol || "₦"),
+loadCountryOptions(data.store_country || ""),
+loadBusinessTypeOptions(data.business_type || "")
+]);
+setVal("st_facebook", data.social_facebook || "");
+setVal("st_instagram", data.social_instagram || "");
+setVal("st_twitter", data.social_twitter || "");
+setVal("st_tiktok", data.social_tiktok || "");
+setVal("st_youtube", data.social_youtube || "");
+setVal("st_website", data.social_website || "");
+catBadges = Array.isArray(data.trust_badges) ? data.trust_badges : [];
+renderBadges();
+_existingLogoUrl = data.logo_url || null;
+_existingLogoUrl ? showLogoPreview(_existingLogoUrl) : clearLogoPreview();
+initQuill();
+if (bioEditor) {
+bioEditor.root.innerHTML = sanitizeHtml(data.bio || "");
+}
+const rawPhotos = Array.isArray(data.store_photos) ? data.store_photos : [];
+storePhotos = rawPhotos.map(url => ({ url, isUploading: false, isSaved: true }));
+renderStorePhotos();
+const rawDocs = Array.isArray(data.documents) ? data.documents : [];
+storeDocs = rawDocs.map(url => ({
+url, isUploading: false, isSaved: true,
+isPdf: url.toLowerCase().endsWith(".pdf"),
+name: decodeURIComponent(url.split("/").pop())
+}));
+renderDocs();
+} else {
+settingsProfileId = null;
+initQuill();
+await Promise.all([
+loadCurrencyOptions("₦"),
+loadCountryOptions(""),
+loadBusinessTypeOptions("")
+]);
+storePhotos = [];
+storeDocs = [];
+renderStorePhotos();
+renderDocs();
+clearLogoPreview();
+}
+if (skeleton) skeleton.style.display = "none";
+if (form) form.style.display = "block";
+_bindSettingsListeners();
+} catch (err) {
+console.error("loadSettings error:", err);
+if (skeleton) skeleton.style.display = "none";
+if (form) form.style.display = "block";
+initQuill();
+_bindSettingsListeners();
+toast("Could not load settings.", "info");
+} finally {
+if (reloadBtn) reloadBtn.classList.remove("spinning");
+}
+};
+// ── SAVE SETTINGS
+─────────────────────────────────────────────────
 window.saveSettings = async function() {
-  const btn = document.getElementById("saveSettingsBtn");
-  btn.disabled  = true;
-  btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;vertical-align:middle;"></div>Saving…`;
-
-  try {
-    let bioHtml = "";
-    if (bioEditor) {
-      const raw = bioEditor.root.innerHTML;
-      bioHtml   = sanitizeHtml(raw);
-      if (bioHtml === "<p><br></p>") bioHtml = "";
-    }
-
-    const finalPhotos = storePhotos.filter(p => p.isSaved).map(p => p.url);
-    const finalDocs   = storeDocs.filter(d => d.isSaved).map(d => d.url);
-
-    // RESTORED SIGNATURE: Removed p_store_id parameter so it perfectly maps your current RPC signature
-    const payload = {
-      p_id:              settingsProfileId,
-      p_business_name:   getVal("st_business_name"),
-      p_tagline:         getVal("st_tagline"),
-      p_whatsapp_number: getVal("st_whatsapp"),
-      p_bio:             bioHtml,
-      p_phone_number:    getVal("st_phone"),
-      p_store_address:   getVal("st_address"),
-      p_store_city:      getVal("st_city"),
-      p_store_country:   getVal("st_country"),
-      p_wa_message:      getVal("st_wa_message"),
-      p_response_time:   getVal("st_response_time"),
-      p_delivery_info:   getVal("st_delivery_info"),
-      p_currency_symbol: selectedCurrency,
-      p_trust_badges:    catBadges,
-      p_logo_url:        _existingLogoUrl || null,
-      p_social_facebook: getUrlVal("st_facebook"),
-      p_social_instagram:getUrlVal("st_instagram"),
-      p_social_twitter:  getUrlVal("st_twitter"),
-      p_social_tiktok:   getUrlVal("st_tiktok"),
-      p_social_youtube:  getUrlVal("st_youtube"),
-      p_social_website:  getUrlVal("st_website"),
-      p_store_photos:    finalPhotos,
-      p_documents:       finalDocs,
-      p_return_policy:   getVal("st_return_policy"),
-      p_year_established:getVal("st_year_est"),
-      p_business_type:   getVal("st_business_type")
-    };
-
-    const { data: saved, error } = await supabaseClient.rpc("upsert_profile", payload);
-    if (error) throw error;
-
-    if (saved && saved.length > 0 && saved[0].id) {
-      settingsProfileId = saved[0].id;
-      storePhotos.forEach(p => p.isSaved = true);
-      storeDocs.forEach(d => d.isSaved   = true);
-    }
-
-    // ── INTEL HOOK: fire after successful settings save
-    if (window.INTEL && typeof window.INTEL.trackAction === "function") {
-      window.INTEL.trackAction("profileUpdated");
-    }
-
-    const savedTag = document.getElementById("settingsSavedTag");
-    if (savedTag) {
-      savedTag.classList.add("show");
-      setTimeout(() => savedTag.classList.remove("show"), 3000);
-    }
-
-    toast("Settings saved ✓", "success");
-
-  } catch (err) {
-    console.error("saveSettings error:", err);
-    toast(err.message || "Failed to save settings.", "error");
-  } finally {
-    btn.disabled  = false;
-    btn.innerHTML = "Save All Settings";
-  }
+const btn = document.getElementById("saveSettingsBtn");
+btn.disabled = true;
+btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;vertical-align:middle;"></div>Saving…`;
+try {
+let bioHtml = "";
+if (bioEditor) {
+const raw = bioEditor.root.innerHTML;
+bioHtml = sanitizeHtml(raw);
+if (bioHtml === "<p><br></p>") bioHtml = "";
+}
+const finalPhotos = storePhotos.filter(p => p.isSaved).map(p => p.url);
+const finalDocs = storeDocs.filter(d => d.isSaved).map(d => d.url);
+// RESTORED SIGNATURE: Removed p_store_id parameter so it perfectly maps your current RPC signature
+const payload = {
+p_id: settingsProfileId,
+p_business_name: getVal("st_business_name"),
+p_tagline: getVal("st_tagline"),
+p_whatsapp_number: getVal("st_whatsapp"),
+p_bio: bioHtml,
+p_phone_number: getVal("st_phone"),
+p_store_address: getVal("st_address"),
+p_store_city: getVal("st_city"),
+p_store_country: getVal("st_country"),
+p_wa_message: getVal("st_wa_message"),
+p_response_time: getVal("st_response_time"),
+p_delivery_info: getVal("st_delivery_info"),
+p_currency_symbol: selectedCurrency,
+p_trust_badges: catBadges,
+p_logo_url: _existingLogoUrl || null,
+p_social_facebook: getUrlVal("st_facebook"),
+p_social_instagram: getUrlVal("st_instagram"),
+p_social_twitter: getUrlVal("st_twitter"),
+p_social_tiktok: getUrlVal("st_tiktok"),
+p_social_youtube: getUrlVal("st_youtube"),
+p_social_website: getUrlVal("st_website"),
+p_store_photos: finalPhotos,
+p_documents: finalDocs,
+p_return_policy: getVal("st_return_policy"),
+p_year_established: getVal("st_year_est"),
+p_business_type: getVal("st_business_type")
+};
+const { data: saved, error } = await supabaseClient.rpc("upsert_profile", payload);
+if (error) throw error;
+if (saved && saved.length > 0 && saved[0].id) {
+settingsProfileId = saved[0].id;
+storePhotos.forEach(p => p.isSaved = true);
+storeDocs.forEach(d => d.isSaved = true);
+}
+const savedTag = document.getElementById("settingsSavedTag");
+if (savedTag) {
+savedTag.classList.add("show");
+setTimeout(() => savedTag.classList.remove("show"), 3000);
+}
+toast("Settings saved ✓", "success");
+// ── INTEL HOOK: profile saved, sync live metrics + refresh profile completeness bar
+if (window.INTEL) window.INTEL.trackAction('profileUpdated');
+} catch (err) {
+console.error("saveSettings error:", err);
+toast(err.message || "Failed to save settings.", "error");
+} finally {
+btn.disabled = false;
+btn.innerHTML = "Save All Settings";
+}
 };
 
 // =============================================
@@ -4371,5 +4275,3 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab(initialTab);
 });
 });
-
-
