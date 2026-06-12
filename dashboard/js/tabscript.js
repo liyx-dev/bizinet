@@ -22,954 +22,908 @@ window.addEventListener("orientationchange", applyTableLayout);
 document.addEventListener("DOMContentLoaded", applyTableLayout);
 
 // ================================================
-//  BiziNet · Main Application Script
-//  dashboard/js/tabscript.js
+// BiziNet · Main Application Script
+// dashboard/js/tabscript.js
 // ================================================
-
 // ==========================================================
-//  BiziNet · Main Application Script (Refactored for Runtime Engine)
-//  dashboard/js/tabscript.js
+// BiziNet · Main Application Script (Refactored for Runtime Engine)
+// dashboard/js/tabscript.js
 // ==========================================================
-
 // 1. Direct pointers to our unified shared instances
-const supabaseUrl    = window.APP_CONFIG.supabaseUrl;
-const renderUrl      = window.APP_CONFIG.renderUrl;
+const supabaseUrl = window.APP_CONFIG.supabaseUrl;
+const renderUrl = window.APP_CONFIG.renderUrl;
 const supabaseClient = window.APP_CLIENT; // Safely reuse the global instance
-
 // 2. Reference variables mapped explicitly to the global runtime state
-let runtimeState        = null;
+let runtimeState = null;
 let currentSessionToken = null;
-
 let els = {};
 let quill;
-
 // 3. Listen for DOM Content Ready
 document.addEventListener("DOMContentLoaded", async () => {
-  
-  // ─── CRITICAL CRASH GUARD ───
-  // We pause execution here until runtime.js completes its auth verification,
-  // network redirects, and populates the shared window context.
-  await window.APP_RUNTIME_READY;
-
-  // Sync our local convenience variables safely with the verified global state
-  runtimeState        = window.APP_RUNTIME.runtimeState;
-  currentSessionToken = window.APP_RUNTIME.currentSessionToken;
-
-  // If the boot guard failed or redirected out, stop executing script logics safely
-  if (!runtimeState) return;
-
-  // Initialize your application layout maps 
- els = {
-    formTitle: document.getElementById("formTitle"),
-    cancelEditBtn: document.getElementById("cancelEditBtn"),
-    name: document.getElementById("name"),
-    price: document.getElementById("price"),
-    stock: document.getElementById("stock"),
-    category: document.getElementById("category"),
-    tags: document.getElementById("tags"),
-    discount: document.getElementById("discount"),
-    discountPreview: document.getElementById("discountPreview"),
-    isVisible: document.getElementById("isVisible"),
-    isFeatured: document.getElementById("isFeatured"),
-    whatsapp: document.getElementById("whatsapp"),
-    youtube: document.getElementById("youtube"),
-    description: document.getElementById("description"),
-    images: document.getElementById("images"),
-    video: document.getElementById("video"),
-    existingVideoBanner: document.getElementById("existingVideoBanner"),
-    dropZone: document.getElementById("dropZone"),
-    preview: document.getElementById("preview"),
-    liveImage: document.getElementById("liveImage"),
-    liveName: document.getElementById("liveName"),
-    livePrice: document.getElementById("livePrice"),
-    liveDesc: document.getElementById("liveDesc"),
-    submitBtn: document.getElementById("submitBtn"),
-    statusText: document.getElementById("statusText"),
-    progressContainer: document.getElementById("progressContainer"),
-    progressBar: document.getElementById("progressBar"),
-    previewVideoBtn: document.getElementById("previewVideoBtn"),
-    mediaModal: document.getElementById("mediaModal"),
-    modalContent: document.getElementById("modalContent"),
-    productsTableBody: document.getElementById("productsTableBody"),
-    productsMobileContainer: document.getElementById("productsMobileContainer")
-  };
-
+// ─── CRITICAL CRASH GUARD ───
+// We pause execution here until runtime.js completes its auth verification,
+// network redirects, and populates the shared window context.
+await window.APP_RUNTIME_READY;
+// Sync our local convenience variables safely with the verified global state
+runtimeState = window.APP_RUNTIME.runtimeState;
+currentSessionToken = window.APP_RUNTIME.currentSessionToken;
+// If the boot guard failed or redirected out, stop executing script logics safely
+if (!runtimeState) return;
+// Initialize your application layout maps
+els = {
+formTitle: document.getElementById("formTitle"),
+cancelEditBtn: document.getElementById("cancelEditBtn"),
+name: document.getElementById("name"),
+price: document.getElementById("price"),
+stock: document.getElementById("stock"),
+category: document.getElementById("category"),
+tags: document.getElementById("tags"),
+discount: document.getElementById("discount"),
+discountPreview: document.getElementById("discountPreview"),
+isVisible: document.getElementById("isVisible"),
+isFeatured: document.getElementById("isFeatured"),
+whatsapp: document.getElementById("whatsapp"),
+youtube: document.getElementById("youtube"),
+description: document.getElementById("description"),
+images: document.getElementById("images"),
+video: document.getElementById("video"),
+existingVideoBanner: document.getElementById("existingVideoBanner"),
+dropZone: document.getElementById("dropZone"),
+preview: document.getElementById("preview"),
+liveImage: document.getElementById("liveImage"),
+liveName: document.getElementById("liveName"),
+livePrice: document.getElementById("livePrice"),
+liveDesc: document.getElementById("liveDesc"),
+submitBtn: document.getElementById("submitBtn"),
+statusText: document.getElementById("statusText"),
+progressContainer: document.getElementById("progressContainer"),
+progressBar: document.getElementById("progressBar"),
+previewVideoBtn: document.getElementById("previewVideoBtn"),
+mediaModal: document.getElementById("mediaModal"),
+modalContent: document.getElementById("modalContent"),
+productsTableBody: document.getElementById("productsTableBody"),
+productsMobileContainer: document.getElementById("productsMobileContainer")
+};
 quill = new Quill('#editor', {
-  theme: 'snow',
-  placeholder: 'Write detailed product description...',
-  modules: {
-    toolbar: [
-      [{ color: [] }, { background: [] }],
-    [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ align: [] }],
-      [{ list: "ordered" }, { list: "bullet" }],
-      ["link"],
-      ["clean"]
-    ]
-  }
-});
-
-// Prevents overflow for quill on screens 
-setTimeout(() => {
-  document.querySelectorAll('.ql-picker').forEach(picker => {
-    picker.addEventListener('click', () => {
-      const options = picker.querySelector('.ql-picker-options');
-      if (!options) return;
-      const rect = options.getBoundingClientRect();
-      if (rect.right > window.innerWidth) {
-        options.style.left = 'auto';
-        options.style.right = '0';
-      }
-      if (rect.left < 0) {
-        options.style.left = '0';
-        options.style.right = 'auto';
-      }
-    });
-  });
-}, 500);
-
-  // STATE
-  let selectedImages = [];
-  let uploading = false;
-  let editingProductId = null;
-  let currentEditingProduct = null;
-  let filesToDeleteFromR2 = [];
-
-  let currentSearch = "";
-  let currentVisibilityFilter = "";
-  let currentPage = 1;
-  const PAGE_SIZE = 10;
-
-  // SORTABLE — image previews
-  Sortable.create(els.preview, {
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    onEnd: function (evt) {
-      const item = selectedImages.splice(evt.oldIndex, 1)[0];
-      selectedImages.splice(evt.newIndex, 0, item);
-      updateLive();
-    }
-  });
-
-  // SORTABLE — desktop table
-  Sortable.create(els.productsTableBody, {
-    animation: 150,
-    handle: '.drag-handle',
-    onEnd: async () => {
-      const ids = [...els.productsTableBody.children].map(x => x.dataset.id);
-      await supabaseClient.rpc("reorder_products", { p_ids: ids });
-      toast("Desktop order updated", "success");
-      loadProducts();
-    }
-  });
-
-  // SORTABLE — mobile cards
-  Sortable.create(els.productsMobileContainer, {
-    animation: 150,
-    handle: '.drag-handle',
-    onEnd: async () => {
-      const ids = [...els.productsMobileContainer.children].map(x => x.dataset.id);
-      await supabaseClient.rpc("reorder_products", { p_ids: ids });
-      toast("Mobile order updated", "success");
-      loadProducts();
-    }
-  });
-
-  // TOAST
-  function toast(msg, type = "success", duration = 4000) {
-    const div = document.createElement("div");
-    div.className = `toast ${type}`;
-    div.textContent = msg;
-    document.body.appendChild(div);
-    requestAnimationFrame(() => div.classList.add("show"));
-    setTimeout(() => {
-      div.classList.remove("show");
-      setTimeout(() => div.remove(), 300);
-    }, duration);
-  }
-
-  // LIVE PREVIEW UPDATER
-  function updateLive() {
-    els.liveName.textContent = els.name.value.trim() || "Product Name";
-    const rawPrice = els.price.value;
-    els.livePrice.textContent = rawPrice ? `${Number(rawPrice).toLocaleString()}` : "0";
-    const descHTML = quill.root.innerHTML.trim();
-
-if (
-  descHTML &&
-  descHTML !== "<p><br></p>"
-) {
-  els.liveDesc.innerHTML = descHTML;
-} else {
-  els.liveDesc.innerHTML =
-    "<span style='color:var(--text-muted)'>Description preview will appear here...</span>";
+theme: 'snow',
+placeholder: 'Write detailed product description...',
+modules: {
+toolbar: [
+[{ color: [] }, { background: [] }],
+[{ header: [1, 2, 3, false] }],
+["bold", "italic", "underline", "strike"],
+[{ align: [] }],
+[{ list: "ordered" }, { list: "bullet" }],
+["link"],
+["clean"]
+]
 }
-    if (selectedImages.length > 0) {
-      els.liveImage.src = selectedImages[0].url;
-    } else {
-      els.liveImage.src = "https://placehold.co/600x400?text=Image+Preview";
-    }
-    // update mini stats
-    const imgCount = document.getElementById("previewImgCount");
-    const stockCount = document.getElementById("previewStockCount");
-    const videoStatus = document.getElementById("previewVideoStatus");
-    if (imgCount) imgCount.textContent = selectedImages.length;
-    if (stockCount) stockCount.textContent = els.stock.value || 1;
-    if (videoStatus) videoStatus.textContent = (els.video.files && els.video.files.length > 0) ? "✓" : (currentEditingProduct?.video_url ? "✓" : "—");
-
+});
+// Prevents overflow for quill on screens
+setTimeout(() => {
+document.querySelectorAll('.ql-picker').forEach(picker => {
+picker.addEventListener('click', () => {
+const options = picker.querySelector('.ql-picker-options');
+if (!options) return;
+const rect = options.getBoundingClientRect();
+if (rect.right > window.innerWidth) {
+options.style.left = 'auto';
+options.style.right = '0';
+}
+if (rect.left < 0) {
+options.style.left = '0';
+options.style.right = 'auto';
+}
+});
+});
+}, 500);
+// STATE
+let selectedImages = [];
+let uploading = false;
+let editingProductId = null;
+let currentEditingProduct = null;
+let filesToDeleteFromR2 = [];
+let currentSearch = "";
+let currentVisibilityFilter = "";
+let currentPage = 1;
+const PAGE_SIZE = 10;
+// SORTABLE — image previews
+Sortable.create(els.preview, {
+animation: 150,
+ghostClass: 'sortable-ghost',
+onEnd: function (evt) {
+const item = selectedImages.splice(evt.oldIndex, 1)[0];
+selectedImages.splice(evt.newIndex, 0, item);
+updateLive();
+}
+});
+// SORTABLE — desktop table
+Sortable.create(els.productsTableBody, {
+animation: 150,
+handle: '.drag-handle',
+onEnd: async () => {
+const ids = [...els.productsTableBody.children].map(x => x.dataset.id);
+await supabaseClient.rpc("reorder_products", { p_ids: ids });
+toast("Desktop order updated", "success");
+loadProducts();
+}
+});
+// SORTABLE — mobile cards
+Sortable.create(els.productsMobileContainer, {
+animation: 150,
+handle: '.drag-handle',
+onEnd: async () => {
+const ids = [...els.productsMobileContainer.children].map(x => x.dataset.id);
+await supabaseClient.rpc("reorder_products", { p_ids: ids });
+toast("Mobile order updated", "success");
+loadProducts();
+}
+});
+// TOAST
+function toast(msg, type = "success", duration = 4000) {
+const div = document.createElement("div");
+div.className = `toast ${type}`;
+div.textContent = msg;
+document.body.appendChild(div);
+requestAnimationFrame(() => div.classList.add("show"));
+setTimeout(() => {
+div.classList.remove("show");
+setTimeout(() => div.remove(), 300);
+}, duration);
+}
+// LIVE PREVIEW UPDATER
+function updateLive() {
+els.liveName.textContent = els.name.value.trim() || "Product Name";
+const rawPrice = els.price.value;
+els.livePrice.textContent = rawPrice ? `${Number(rawPrice).toLocaleString()}` : "0";
+const descHTML = quill.root.innerHTML.trim();
+if (
+descHTML &&
+descHTML !== "<p><br></p>"
+) {
+els.liveDesc.innerHTML = descHTML;
+} else {
+els.liveDesc.innerHTML =
+"<span style='color:var(--text-muted)'>Description preview will appear here...</span>";
+}
+if (selectedImages.length > 0) {
+els.liveImage.src = selectedImages[0].url;
+} else {
+els.liveImage.src = "https://placehold.co/600x400?text=Image+Preview";
+}
+// update mini stats
+const imgCount = document.getElementById("previewImgCount");
+const stockCount = document.getElementById("previewStockCount");
+const videoStatus = document.getElementById("previewVideoStatus");
+if (imgCount) imgCount.textContent = selectedImages.length;
+if (stockCount) stockCount.textContent = els.stock.value || 1;
+if (videoStatus) videoStatus.textContent = (els.video.files && els.video.files.length > 0) ? "✓" :
+(currentEditingProduct?.video_url ? "✓" : "—");
 const price = Number(els.price.value || 0);
 const discount = Number(els.discount.value || 0);
-
 if (discount > 0 && price > 0) {
-  const original = Math.round(price / (1 - (discount / 100)));
-
-  els.discountPreview.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:4px;">
-      <span style="color:var(--liyog-red);">
-        ${discount}% OFF
-      </span>
-
-      <span style="text-decoration:line-through;color:var(--text-muted);">
-        ₦${original.toLocaleString()}
-      </span>
-
-      <span style="font-size:15px;color:var(--liyog-green);">
-        Now: ₦${price.toLocaleString()}
-      </span>
-    </div>
-  `;
+const original = Math.round(price / (1 - (discount / 100)));
+els.discountPreview.innerHTML = `
+<div style="display:flex;flex-direction:column;gap:4px;">
+<span style="color:var(--liyog-red);">
+${discount}% OFF
+</span>
+<span style="text-decoration:line-through;color:var(--text-muted);">
+₦${original.toLocaleString()}
+</span>
+<span style="font-size:15px;color:var(--liyog-green);">
+Now: ₦${price.toLocaleString()}
+</span>
+</div>
+`;
 } else {
-  els.discountPreview.textContent = "No discount applied";
+els.discountPreview.textContent = "No discount applied";
 }
-  }
-
+}
 async function loadCategories() {
-  try {
-    els.category.innerHTML = `<option>Loading...</option>`;
-    
-    // UPGRADED: Added explicit store_id filter for strict SaaS isolation
-    const { data, error } = await supabaseClient
-      .from("categories")
-      .select("id,name")
-      .eq("store_id", runtimeState.store_id) 
-      .order("name");
-      
-    if (error) throw error;
-    
-    els.category.innerHTML = `<option value="">Select a category</option>`;
-    
-    data.forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat.id; 
-      option.textContent = cat.name;
-      els.category.appendChild(option);
-    });
-    
-  } catch (err) { 
-    toast("Failed to load categories.", "error"); 
-  }
+try {
+els.category.innerHTML = `<option>Loading...</option>`;
+// UPGRADED: Added explicit store_id filter for strict SaaS isolation
+const { data, error } = await supabaseClient
+.from("categories")
+.select("id,name")
+.eq("store_id", runtimeState.store_id)
+.order("name");
+if (error) throw error;
+els.category.innerHTML = `<option value="">Select a category</option>`;
+data.forEach(cat => {
+const option = document.createElement("option");
+option.value = cat.id;
+option.textContent = cat.name;
+els.category.appendChild(option);
+});
+} catch (err) {
+toast("Failed to load categories.", "error");
 }
-
-  // IMAGE OPTIMISE
-  async function optimizeImage(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image(); const reader = new FileReader();
-      reader.onload = e => { img.src = e.target.result; }; reader.onerror = reject;
-      img.onload = () => {
-        const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d");
-        const maxWidth = 1200; const scale = Math.min(1, maxWidth / img.width);
-        canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(blob => {
-          if (!blob) return reject("Processing failed");
-          resolve(new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }));
-        }, "image/webp", 0.70);
-      };
-      img.onerror = reject; reader.readAsDataURL(file);
-    });
-  }
-
-  function renderPreviews() {
-    els.preview.innerHTML = "";
-    selectedImages.forEach((imageObj) => {
-      const div = document.createElement("div");
-      div.className = "preview-item"; div.setAttribute("data-id", imageObj.id);
-      const img = document.createElement("img"); img.src = imageObj.url;
-      const btn = document.createElement("div"); btn.className = "remove-btn"; btn.innerHTML = "&times;";
-      btn.onclick = (e) => { e.stopPropagation(); removeImage(imageObj.id); };
-      div.appendChild(img); div.appendChild(btn); els.preview.appendChild(div);
-    });
-    updateLive();
-  }
-
-  function removeImage(id) {
-    const imgToRemove = selectedImages.find(img => img.id === id);
-    if (imgToRemove) {
-      if (!imgToRemove.existing) URL.revokeObjectURL(imgToRemove.url);
-      else filesToDeleteFromR2.push(imgToRemove.url);
-    }
-    selectedImages = selectedImages.filter(img => img.id !== id);
-    renderPreviews();
-  }
-
-  async function handleFiles(fileList) {
-    const files = Array.from(fileList).filter(file => file.type.startsWith("image/"));
-    if (selectedImages.length + files.length > 10) return toast("Maximum 10 images allowed.", "error");
-    els.dropZone.style.opacity = "0.6";
-    for (let file of files) {
-      try {
-        const optimized = await optimizeImage(file);
-        selectedImages.push({ id: crypto.randomUUID(), file: optimized, url: URL.createObjectURL(optimized), existing: false });
-      } catch { toast(`Failed to process ${file.name}`, "error"); }
-    }
-    els.dropZone.style.opacity = "1"; renderPreviews(); els.images.value = "";
-  }
-
+}
+// IMAGE OPTIMISE
+async function optimizeImage(file) {
+return new Promise((resolve, reject) => {
+const img = new Image(); const reader = new FileReader();
+reader.onload = e => { img.src = e.target.result; }; reader.onerror = reject;
+img.onload = () => {
+const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d");
+const maxWidth = 1200; const scale = Math.min(1, maxWidth / img.width);
+canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height *
+scale);
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+canvas.toBlob(blob => {
+if (!blob) return reject("Processing failed");
+resolve(new File([blob], file.name.replace(/\.\w+$/, ".webp"), { type: "image/webp" }));
+}, "image/webp", 0.70);
+};
+img.onerror = reject; reader.readAsDataURL(file);
+});
+}
+function renderPreviews() {
+els.preview.innerHTML = "";
+selectedImages.forEach((imageObj) => {
+const div = document.createElement("div");
+div.className = "preview-item"; div.setAttribute("data-id", imageObj.id);
+const img = document.createElement("img"); img.src = imageObj.url;
+const btn = document.createElement("div"); btn.className = "remove-btn"; btn.innerHTML
+= "&times;";
+btn.onclick = (e) => { e.stopPropagation(); removeImage(imageObj.id); };
+div.appendChild(img); div.appendChild(btn); els.preview.appendChild(div);
+});
+updateLive();
+}
+function removeImage(id) {
+const imgToRemove = selectedImages.find(img => img.id === id);
+if (imgToRemove) {
+if (!imgToRemove.existing) URL.revokeObjectURL(imgToRemove.url);
+else filesToDeleteFromR2.push(imgToRemove.url);
+}
+selectedImages = selectedImages.filter(img => img.id !== id);
+renderPreviews();
+}
+async function handleFiles(fileList) {
+const files = Array.from(fileList).filter(file => file.type.startsWith("image/"));
+if (selectedImages.length + files.length > 10) return toast("Maximum 10 images allowed.",
+"error");
+els.dropZone.style.opacity = "0.6";
+for (let file of files) {
+try {
+const optimized = await optimizeImage(file);
+selectedImages.push({ id: crypto.randomUUID(), file: optimized, url:
+URL.createObjectURL(optimized), existing: false });
+} catch { toast(`Failed to process ${file.name}`, "error"); }
+}
+els.dropZone.style.opacity = "1"; renderPreviews(); els.images.value = "";
+}
 function validateVideo(file) {
-  return new Promise((resolve) => {
-    const MAX_SIZE_MB = 50;
-
-    // Convert MB to bytes
-    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-    // 1. File size check
-    if (file.size > MAX_SIZE_BYTES) {
-      toast(
-        `Video is too large. Please upload a file under ${MAX_SIZE_MB}MB.`,
-        "error"
-      );
-      return resolve(false);
-    }
-
-    // 2. Basic file validation
-    const video = document.createElement("video");
-    const videoURL = URL.createObjectURL(file);
-
-    video.src = videoURL;
-
-    video.onloadeddata = () => {
-      URL.revokeObjectURL(videoURL);
-      resolve(true);
-    };
-
-    video.onerror = () => {
-      URL.revokeObjectURL(videoURL);
-      toast(
-        "We couldn’t process this video. Please upload a valid video file.",
-        "error"
-      );
-      resolve(false);
-    };
-  });
+return new Promise((resolve) => {
+const MAX_SIZE_MB = 50;
+// Convert MB to bytes
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+// 1. File size check
+if (file.size > MAX_SIZE_BYTES) {
+toast(
+`Video is too large. Please upload a file under ${MAX_SIZE_MB}MB.`,
+"error"
+);
+return resolve(false);
 }
-
-  async function uploadFile(file) {
-  // Step 1: Get presigned PUT URL using session token
-  const response = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json", 
-      "Authorization": `Bearer ${currentSessionToken}` // UPGRADED: Using session token
-    },
-    body: JSON.stringify({ 
-    fileName: file.name, 
-    fileType: file.type, 
-    folder: "products",
-    fileSize: file.size // <-- FIX: Added to pass Edge Function validation
-  })
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Failed to get upload URL");
-  // Step 2: PUT file directly to R2
-  const upload = await fetch(result.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file
-  });
-  if (!upload.ok) throw new Error("Direct upload to Storage failed");
-
-  // Step 3: Return public URL
-  return result.publicUrl;
+// 2. Basic file validation
+const video = document.createElement("video");
+const videoURL = URL.createObjectURL(file);
+video.src = videoURL;
+video.onloadeddata = () => {
+URL.revokeObjectURL(videoURL);
+resolve(true);
+};
+video.onerror = () => {
+URL.revokeObjectURL(videoURL);
+toast(
+"We couldn't process this video. Please upload a valid video file.",
+"error"
+);
+resolve(false);
+};
+});
 }
-
-  /** * Upgraded Delete functions using currentSessionToken 
- */
+async function uploadFile(file) {
+// Step 1: Get presigned PUT URL using session token
+const response = await fetch(`${supabaseUrl}/functions/v1/generate-r2-upload-url`, {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": `Bearer ${currentSessionToken}` // UPGRADED: Using session token
+},
+body: JSON.stringify({
+fileName: file.name,
+fileType: file.type,
+folder: "products",
+fileSize: file.size // <-- FIX: Added to pass Edge Function validation
+})
+});
+const result = await response.json();
+if (!response.ok) throw new Error(result.error || "Failed to get upload URL");
+// Step 2: PUT file directly to R2
+const upload = await fetch(result.uploadUrl, {
+method: "PUT",
+headers: { "Content-Type": file.type },
+body: file
+});
+if (!upload.ok) throw new Error("Direct upload to Storage failed");
+// Step 3: Return public URL
+return result.publicUrl;
+}
+/** * Upgraded Delete functions using currentSessionToken
+*/
 async function deleteFromR2(url) {
-  try {
-    const fileKey = url.replace("https://pub-0fc5736899f3449d987d356eafdca873.r2.dev/", "");
-    const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentSessionToken}` // UPGRADED
-      },
-      body: JSON.stringify({ fileKey })
-    });
-    if (!res.ok) throw new Error("Store delete failed");
-    return true;
-  } catch (err) {
-    console.error("Store Cleanup error", err);
-    return false;
-  }
+try {
+const fileKey = url.replace("https://pub-0fc5736899f3449d987d356eafdca873.r2.dev/", "");
+const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": `Bearer ${currentSessionToken}` // UPGRADED
+},
+body: JSON.stringify({ fileKey })
+});
+if (!res.ok) throw new Error("Store delete failed");
+return true;
+} catch (err) {
+console.error("Store Cleanup error", err);
+return false;
 }
-
-  function setStatus(loading, text = "", progress = 0) {
-    if (loading) {
-      els.submitBtn.disabled = true;
-      els.submitBtn.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
-      els.statusText.classList.remove("hidden"); els.statusText.textContent = text;
-      els.progressContainer.style.display = "block"; els.progressBar.style.width = `${progress}%`;
-    } else {
-      els.submitBtn.disabled = false;
-      els.submitBtn.innerHTML = `<span>${editingProductId ? "Update Product" : "Upload Product"}</span>`;
-      els.statusText.classList.add("hidden"); els.progressContainer.style.display = "none";
-    }
-  }
-
-  function updateStatus(text, isWarning = false) {
-    els.statusText.textContent = text;
-    els.statusText.style.color = isWarning ? "var(--liyog-orange)" : "var(--text-muted)";
-  }
-
-  window.resetForm = function () {
-    ["name", "price", "stock", "tags", "whatsapp", "youtube", "discount"].forEach(id => els[id].value = "");
+}
+function setStatus(loading, text = "", progress = 0) {
+if (loading) {
+els.submitBtn.disabled = true;
+els.submitBtn.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
+els.statusText.classList.remove("hidden"); els.statusText.textContent = text;
+els.progressContainer.style.display = "block"; els.progressBar.style.width = `${progress}%`;
+} else {
+els.submitBtn.disabled = false;
+els.submitBtn.innerHTML = `<span>${editingProductId ? "Update Product" : "Upload
+Product"}</span>`;
+els.statusText.classList.add("hidden"); els.progressContainer.style.display = "none";
+}
+}
+function updateStatus(text, isWarning = false) {
+els.statusText.textContent = text;
+els.statusText.style.color = isWarning ? "var(--liyog-orange)" : "var(--text-muted)";
+}
+window.resetForm = function () {
+["name", "price", "stock", "tags", "whatsapp", "youtube", "discount"].forEach(id => els[id].value
+= "");
 quill.setText("");
 els.isVisible.checked = true;
 els.isFeatured.checked = false;
 els.discountPreview.textContent = "No discount applied";
-
-    els.stock.value = "1"; els.category.value = ""; els.video.value = "";
-    els.previewVideoBtn.classList.add("hidden"); els.existingVideoBanner.classList.add("hidden");
-    selectedImages.forEach(img => { if (!img.existing) URL.revokeObjectURL(img.url); });
-    selectedImages = []; filesToDeleteFromR2 = [];
-    editingProductId = null; currentEditingProduct = null;
-    els.formTitle.textContent = "Upload New Product";
-    els.cancelEditBtn.classList.add("hidden");
-    els.submitBtn.innerHTML = `<span>Upload Product</span>`;
-    renderPreviews(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function validateForm() {
-    document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
-    let isValid = true;
-    const markInvalid = (el) => {
-      el.classList.add("input-error", "animate-shake");
-      setTimeout(() => el.classList.remove("animate-shake"), 400);
-    }
-    if (!els.name.value.trim()) { markInvalid(els.name); isValid = false; }
-    if (!els.price.value.trim() || isNaN(els.price.value) || Number(els.price.value) < 0) { markInvalid(els.price); isValid = false; }
-    const waVal = els.whatsapp.value.replace(/\s+/g, '');
-    if (!waVal || !/^[0-9]{10,15}$/.test(waVal)) { markInvalid(els.whatsapp); isValid = false; toast("WhatsApp: 10–15 digits, no spaces.", "error"); }
-    if (els.youtube.value && !/^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/.test(els.youtube.value)) { markInvalid(els.youtube); isValid = false; }
-    if (selectedImages.length === 0) { markInvalid(els.dropZone); isValid = false; toast("Add at least 1 image.", "error"); }
-    return isValid;
-  }
-
-  window.previewYouTube = () => {
-    const url = els.youtube.value.trim(); if (!url) return toast("Enter a YouTube URL first.", "info");
-    let videoId = url.includes("youtu.be/") ? url.split("youtu.be/")[1]?.split("?")[0] : (url.includes("watch?v=") ? url.split("watch?v=")[1]?.split("&")[0] : "");
-    if (!videoId) return toast("Invalid YouTube URL format.", "error");
-    els.modalContent.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" style="width:100%;height:100%;" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.previewLocalVideo = () => {
-    const file = els.video.files[0]; if (!file) return;
-    els.modalContent.innerHTML = `<video src="${URL.createObjectURL(file)}" style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.previewExistingVideo = () => {
-    if (!currentEditingProduct || !currentEditingProduct.video_url) return;
-    els.modalContent.innerHTML = `<video src="${currentEditingProduct.video_url}" style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
-    els.mediaModal.classList.add("active");
-  };
-
-  window.removeExistingVideo = () => {
-    if (currentEditingProduct && currentEditingProduct.video_url) {
-      filesToDeleteFromR2.push(currentEditingProduct.video_url);
-      currentEditingProduct.video_url = null;
-    }
-    els.existingVideoBanner.classList.add("hidden");
-    toast("Attached video removed.", "info");
-    updateLive();
-  };
-
-  window.closeModal = () => {
-    els.mediaModal.classList.remove("active");
-    setTimeout(() => { els.modalContent.innerHTML = ""; }, 300);
-  };
-  els.mediaModal.addEventListener("click", (e) => { if (e.target === els.mediaModal) closeModal(); });
-
-  // LISTENERS
-  els.dropZone.addEventListener("click", () => els.images.click());
-  els.dropZone.addEventListener("dragover", e => { e.preventDefault(); els.dropZone.classList.add("dragover"); });
-  els.dropZone.addEventListener("dragleave", () => els.dropZone.classList.remove("dragover"));
-  els.dropZone.addEventListener("drop", e => { e.preventDefault(); els.dropZone.classList.remove("dragover"); handleFiles(e.dataTransfer.files); });
-  els.images.addEventListener("change", e => handleFiles(e.target.files));
-  els.video.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) els.previewVideoBtn.classList.remove("hidden");
-    else els.previewVideoBtn.classList.add("hidden");
-    updateLive();
-  });
-  ["name", "price", "stock", "discount"].forEach(id => { els[id].addEventListener("input", updateLive); });
+els.stock.value = "1"; els.category.value = ""; els.video.value = "";
+els.previewVideoBtn.classList.add("hidden"); els.existingVideoBanner.classList.add("hidden");
+selectedImages.forEach(img => { if (!img.existing) URL.revokeObjectURL(img.url); });
+selectedImages = []; filesToDeleteFromR2 = [];
+editingProductId = null; currentEditingProduct = null;
+els.formTitle.textContent = "Upload New Product";
+els.cancelEditBtn.classList.add("hidden");
+els.submitBtn.innerHTML = `<span>Upload Product</span>`;
+renderPreviews(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function validateForm() {
+document.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
+let isValid = true;
+const markInvalid = (el) => {
+el.classList.add("input-error", "animate-shake");
+setTimeout(() => el.classList.remove("animate-shake"), 400);
+}
+if (!els.name.value.trim()) { markInvalid(els.name); isValid = false; }
+if (!els.price.value.trim() || isNaN(els.price.value) || Number(els.price.value) < 0) {
+markInvalid(els.price); isValid = false; }
+const waVal = els.whatsapp.value.replace(/\s+/g, '');
+if (!waVal || !/^[0-9]{10,15}$/.test(waVal)) { markInvalid(els.whatsapp); isValid = false;
+toast("WhatsApp: 10–15 digits, no spaces.", "error"); }
+if (els.youtube.value &&
+!/^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/.test(els.youtube.value)) {
+markInvalid(els.youtube); isValid = false; }
+if (selectedImages.length === 0) { markInvalid(els.dropZone); isValid = false; toast("Add at
+least 1 image.", "error"); }
+return isValid;
+}
+window.previewYouTube = () => {
+const url = els.youtube.value.trim(); if (!url) return toast("Enter a YouTube URL first.", "info");
+let videoId = url.includes("youtu.be/") ? url.split("youtu.be/")[1]?.split("?")[0] :
+(url.includes("watch?v=") ? url.split("watch?v=")[1]?.split("&")[0] : "");
+if (!videoId) return toast("Invalid YouTube URL format.", "error");
+els.modalContent.innerHTML = `<iframe
+src="https://www.youtube.com/embed/${videoId}?autoplay=1" style="width:100%;height:100%;"
+frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
+els.mediaModal.classList.add("active");
+};
+window.previewLocalVideo = () => {
+const file = els.video.files[0]; if (!file) return;
+els.modalContent.innerHTML = `<video src="${URL.createObjectURL(file)}"
+style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
+els.mediaModal.classList.add("active");
+};
+window.previewExistingVideo = () => {
+if (!currentEditingProduct || !currentEditingProduct.video_url) return;
+els.modalContent.innerHTML = `<video src="${currentEditingProduct.video_url}"
+style="width:100%;height:100%;object-fit:contain;" controls autoplay></video>`;
+els.mediaModal.classList.add("active");
+};
+window.removeExistingVideo = () => {
+if (currentEditingProduct && currentEditingProduct.video_url) {
+filesToDeleteFromR2.push(currentEditingProduct.video_url);
+currentEditingProduct.video_url = null;
+}
+els.existingVideoBanner.classList.add("hidden");
+toast("Attached video removed.", "info");
+updateLive();
+};
+window.closeModal = () => {
+els.mediaModal.classList.remove("active");
+setTimeout(() => { els.modalContent.innerHTML = ""; }, 300);
+};
+els.mediaModal.addEventListener("click", (e) => { if (e.target === els.mediaModal)
+closeModal(); });
+// LISTENERS
+els.dropZone.addEventListener("click", () => els.images.click());
+els.dropZone.addEventListener("dragover", e => { e.preventDefault();
+els.dropZone.classList.add("dragover"); });
+els.dropZone.addEventListener("dragleave", () => els.dropZone.classList.remove("dragover"));
+els.dropZone.addEventListener("drop", e => { e.preventDefault();
+els.dropZone.classList.remove("dragover"); handleFiles(e.dataTransfer.files); });
+els.images.addEventListener("change", e => handleFiles(e.target.files));
+els.video.addEventListener("change", (e) => {
+// ── INTEL: Check video permission before accepting the file ──
+if (e.target.files.length > 0) {
+const ctx = window.INTEL?.getContext();
+if (ctx && !ctx.canVideo) {
+els.video.value = "";
+window.INTEL.showLimitWall('video');
+return;
+}
+els.previewVideoBtn.classList.remove("hidden");
+} else {
+els.previewVideoBtn.classList.add("hidden");
+}
+updateLive();
+});
+["name", "price", "stock", "discount"].forEach(id => { els[id].addEventListener("input",
+updateLive); });
 quill.on('text-change', updateLive);
+window.submitProduct = async function () {
+if (uploading) return;
 
- window.submitProduct = async function () {
-  if (uploading) return;
-  if (!validateForm()) return toast("Please fix the highlighted errors.", "error");
-  uploading = true; setStatus(true, "Initializing...", 5);
-  try {
-    const imageUrls = []; const totalImages = selectedImages.length;
-    for (let i = 0; i < totalImages; i++) {
-      let pct = 5 + ((i / totalImages) * 40);
-      setStatus(true, `Uploading image ${i + 1}/${totalImages}...`, pct);
-      if (selectedImages[i].existing) imageUrls.push(selectedImages[i].url);
-      else imageUrls.push(await uploadFile(selectedImages[i].file));
-    }
+// ── INTEL: Plan limit check before doing anything ──
+if (!editingProductId) {
+// Only check limit on NEW product creation, not edits
+const ctx = window.INTEL?.getContext();
+if (ctx && ctx.productsLeft === 0) {
+window.INTEL.showLimitWall('products');
+return;
+}
+}
 
-    let finalVideoUrl = currentEditingProduct ? currentEditingProduct.video_url : null;
-    const newVideoFile = els.video.files[0];
+if (!validateForm()) return toast("Please fix the highlighted errors.", "error");
+uploading = true; setStatus(true, "Initializing...", 5);
+try {
+const imageUrls = []; const totalImages = selectedImages.length;
+for (let i = 0; i < totalImages; i++) {
+let pct = 5 + ((i / totalImages) * 40);
+setStatus(true, `Uploading image ${i + 1}/${totalImages}...`, pct);
+if (selectedImages[i].existing) imageUrls.push(selectedImages[i].url);
+else imageUrls.push(await uploadFile(selectedImages[i].file));
+}
+let finalVideoUrl = currentEditingProduct ? currentEditingProduct.video_url : null;
+const newVideoFile = els.video.files[0];
 
-    if (newVideoFile) {
-      // Validate before anything else
-      const isValid = await validateVideo(newVideoFile);
-      if (!isValid) {
-        uploading = false; setStatus(false);
-        return; // Stop — updateStatus already showed the error
-      }
-
-      setStatus(true, "Uploading video...", 60);
-      if (finalVideoUrl) filesToDeleteFromR2.push(finalVideoUrl);
-      finalVideoUrl = await uploadFile(newVideoFile); // Direct upload, no compression
-    }
-
-    setStatus(true, editingProductId ? "Updating Product Details..." : "Creating product...", 90);
-    let response;
-    if (editingProductId) {
-      response = await supabaseClient.rpc("update_product", {
-        p_id: editingProductId, p_name: els.name.value.trim(), p_price: String(els.price.value),
-        p_image_urls: imageUrls, p_description: quill.root.innerHTML,
-        p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
-        p_category_id: els.category.value || null, p_tags: els.tags.value.trim(),
-        p_video_url: finalVideoUrl, p_youtube_url: els.youtube.value.trim() || null,
-        p_stock_quantity: parseInt(els.stock.value) || 0,
+// ── INTEL: Double-check video permission server-side before upload ──
+if (newVideoFile) {
+const ctx = window.INTEL?.getContext();
+if (ctx && !ctx.canVideo) {
+uploading = false; setStatus(false);
+window.INTEL.showLimitWall('video');
+return;
+}
+// Validate before anything else
+const isValid = await validateVideo(newVideoFile);
+if (!isValid) {
+uploading = false; setStatus(false);
+return; // Stop — updateStatus already showed the error
+}
+setStatus(true, "Uploading video...", 60);
+if (finalVideoUrl) filesToDeleteFromR2.push(finalVideoUrl);
+finalVideoUrl = await uploadFile(newVideoFile); // Direct upload, no compression
+}
+setStatus(true, editingProductId ? "Updating Product Details..." : "Creating product...", 90);
+let response;
+if (editingProductId) {
+response = await supabaseClient.rpc("update_product", {
+p_id: editingProductId, p_name: els.name.value.trim(), p_price: String(els.price.value),
+p_image_urls: imageUrls, p_description: quill.root.innerHTML,
+p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
+p_category_id: els.category.value || null, p_tags: els.tags.value.trim(),
+p_video_url: finalVideoUrl, p_youtube_url: els.youtube.value.trim() || null,
+p_stock_quantity: parseInt(els.stock.value) || 0,
 p_is_visible: els.isVisible.checked,
 p_is_featured: els.isFeatured.checked,
 p_discount_percentage: parseFloat(els.discount.value) || 0,
-      });
-      if (response.error) throw response.error;
-      for (let url of filesToDeleteFromR2) { await deleteFromR2(url); }
-      toast("Product updated successfully! ✓", "success");
-    } else {
-      response = await supabaseClient.rpc("create_product", {
-  p_name: els.name.value.trim(),
-  p_price: String(els.price.value),
-  p_image_urls: imageUrls,
-  p_description: quill.root.innerHTML,
-  p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
-  p_category_id: els.category.value || null,
-  p_tags: els.tags.value.trim(),
-  p_video_url: finalVideoUrl,
-  p_youtube_url: els.youtube.value.trim() || null,
-  p_sort_order: 0,
-  p_stock_quantity: parseInt(els.stock.value) || 0,
-  p_is_visible: els.isVisible.checked,
-  p_is_featured: els.isFeatured.checked,
-  p_discount_percentage: parseFloat(els.discount.value) || 0
 });
-
-      if (response.error) throw response.error;
-      toast("Product listed successfully! ✓", "success");
-    }
-    await loadProducts();
-    setTimeout(() => { resetForm(); }, 500);
-  } catch (error) {
-    console.error(error);
-    toast(error.message || "Action failed", "error");
-  } finally {
-    uploading = false; setStatus(false);
-  }
-};
- 
-  window.toggleVisible = async function (id, current) {
-    const { error } = await supabaseClient.from("products").update({ is_visible: !current }).eq("id", id);
-    if (error) return toast("Failed to update visibility.", "error");
-    loadProducts();
-  };
-  window.toggleProductFeatured = async function (id, current) {
-    const newValue = current === true || current === 'true' ? false : true;
-    const { error } = await supabaseClient.from("products").update({ is_featured: newValue }).eq("id", id);
-    if (error) {
-        console.error(error);
-        return toast(error.message || "Failed to update featured.", "error");
-    }
-    loadProducts();
-};
-
-  window.deleteProduct = async function (id) {
-  if (!confirm("Delete this product permanently?")) return;
-
-  // Step 1: Fetch file URLs first without deleting Supabase yet
-  const { data: product, error: fetchError } = await supabaseClient
-    .from("products")
-    .select("image_urls, video_url")
-    .eq("id", id)
-    .single();
-
-  if (fetchError) return toast("Delete failed.", "error");
-
-  // Step 2: Delete all files from R2 first
-  const files = [...(product.image_urls || []), product.video_url].filter(Boolean);
-  const r2Results = await Promise.all(files.map(url => deleteFromR2(url)));
-  const allR2Deleted = r2Results.every(result => result === true);
-
-  if (!allR2Deleted) {
-    // R2 failed — Supabase record still safe, user can retry
-    return toast("Delete failed. Please try again.", "error");
-  }
-
-  // Step 3: Only delete from Supabase AFTER R2 is confirmed deleted
-  const { error } = await supabaseClient.rpc("delete_product_full", { p_id: id });
-  if (error) return toast("Files deleted but database error. Contact support.", "error");
-
-  toast("Product deleted. ✓", "success");
-  loadProducts();
-};
-
-  // LOAD PRODUCTS
-  async function loadProducts() {
-    // Skeleton
-    els.productsTableBody.innerHTML = `<tr><td colspan="5" style="padding:16px;"><div class="skeleton" style="height:52px;width:100%;"></div></td></tr><tr><td colspan="5" style="padding:8px 16px;"><div class="skeleton" style="height:52px;width:100%;"></div></td></tr>`;
-    els.productsMobileContainer.innerHTML = `<div class="skeleton" style="height:110px;width:100%;"></div><div class="skeleton" style="height:110px;width:100%;margin-top:12px;"></div>`;
-
-    // FETCH RAW PRODUCTS TABLE AND FILTER STRICTLY BY THE RUNTIME STORE CONTEXT
-    let query = supabaseClient
-      .from("products")
-      .select("*, categories(name)", { count: "exact" })
-      .eq("store_id", runtimeState.store_id) // Isolated directly here!
-      .order("sort_order", { ascending: true });
-
-    if (currentSearch) query = query.ilike("name", `%${currentSearch}%`);
-    if (currentVisibilityFilter === "visible") query = query.eq("is_visible", true);
-    if (currentVisibilityFilter === "hidden") query = query.eq("is_visible", false);
-if (currentVisibilityFilter === "featured")
-  query = query.eq("is_featured", true);
-    query = query.range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      els.productsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load products</td></tr>`;
-      els.productsMobileContainer.innerHTML = `<p style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load products</p>`;
-      return toast("Failed to load products", "error");
-    }
-
-    els.productsTableBody.innerHTML = "";
-    els.productsMobileContainer.innerHTML = "";
-
-    if (data.length === 0) {
-      els.productsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:40px;font-size:15px;">No products found</td></tr>`;
-      els.productsMobileContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px 0;font-size:15px;font-weight:600;">No products found</div>`;
-    }
-
-    data.forEach(product => {
-      const finalPrice = Number(product.price || 0);
-const discount = Number(product.discount_percentage || 0);
-
-let originalPrice = finalPrice;
-
-if(discount > 0){
-  originalPrice = Math.round(
-    finalPrice / (1 - discount / 100)
-  );
+if (response.error) throw response.error;
+for (let url of filesToDeleteFromR2) { await deleteFromR2(url); }
+toast("Product updated successfully! ✓", "success");
+// ── INTEL: Track product update + video if a new one was uploaded ──
+window.INTEL?.trackAction('productAdded'); // reuses same refresh logic
+if (newVideoFile && finalVideoUrl) window.INTEL?.trackAction('videoUploaded');
+} else {
+response = await supabaseClient.rpc("create_product", {
+p_name: els.name.value.trim(),
+p_price: String(els.price.value),
+p_image_urls: imageUrls,
+p_description: quill.root.innerHTML,
+p_whatsapp_number: els.whatsapp.value.replace(/\s+/g, ''),
+p_category_id: els.category.value || null,
+p_tags: els.tags.value.trim(),
+p_video_url: finalVideoUrl,
+p_youtube_url: els.youtube.value.trim() || null,
+p_sort_order: 0,
+p_stock_quantity: parseInt(els.stock.value) || 0,
+p_is_visible: els.isVisible.checked,
+p_is_featured: els.isFeatured.checked,
+p_discount_percentage: parseFloat(els.discount.value) || 0
+});
+if (response.error) throw response.error;
+toast("Product listed successfully! ✓", "success");
+// ── INTEL: Track new product creation + video if uploaded ──
+window.INTEL?.trackAction('productAdded');
+if (newVideoFile && finalVideoUrl) window.INTEL?.trackAction('videoUploaded');
 }
-
+await loadProducts();
+setTimeout(() => { resetForm(); }, 500);
+} catch (error) {
+console.error(error);
+toast(error.message || "Action failed", "error");
+} finally {
+uploading = false; setStatus(false);
+}
+};
+window.toggleVisible = async function (id, current) {
+const { error } = await supabaseClient.from("products").update({ is_visible: !current }).eq("id",
+id);
+if (error) return toast("Failed to update visibility.", "error");
+loadProducts();
+};
+window.toggleProductFeatured = async function (id, current) {
+const newValue = current === true || current === 'true' ? false : true;
+const { error } = await supabaseClient.from("products").update({ is_featured: newValue
+}).eq("id", id);
+if (error) {
+console.error(error);
+return toast(error.message || "Failed to update featured.", "error");
+}
+// ── INTEL: Track featured toggle ──
+window.INTEL?.trackAction('productFeatured');
+loadProducts();
+};
+window.deleteProduct = async function (id) {
+if (!confirm("Delete this product permanently?")) return;
+// Step 1: Fetch file URLs first without deleting Supabase yet
+const { data: product, error: fetchError } = await supabaseClient
+.from("products")
+.select("image_urls, video_url")
+.eq("id", id)
+.single();
+if (fetchError) return toast("Delete failed.", "error");
+// Step 2: Delete all files from R2 first
+const files = [...(product.image_urls || []), product.video_url].filter(Boolean);
+const r2Results = await Promise.all(files.map(url => deleteFromR2(url)));
+const allR2Deleted = r2Results.every(result => result === true);
+if (!allR2Deleted) {
+// R2 failed — Supabase record still safe, user can retry
+return toast("Delete failed. Please try again.", "error");
+}
+// Step 3: Only delete from Supabase AFTER R2 is confirmed deleted
+const { error } = await supabaseClient.rpc("delete_product_full", { p_id: id });
+if (error) return toast("Files deleted but database error. Contact support.", "error");
+toast("Product deleted. ✓", "success");
+// ── INTEL: Track deletion ──
+window.INTEL?.trackAction('productDeleted');
+loadProducts();
+};
+// LOAD PRODUCTS
+async function loadProducts() {
+// Skeleton
+els.productsTableBody.innerHTML = `<tr><td colspan="5" style="padding:16px;"><div
+class="skeleton" style="height:52px;width:100%;"></div></td></tr><tr><td colspan="5"
+style="padding:8px 16px;"><div class="skeleton"
+style="height:52px;width:100%;"></div></td></tr>`;
+els.productsMobileContainer.innerHTML = `<div class="skeleton"
+style="height:110px;width:100%;"></div><div class="skeleton"
+style="height:110px;width:100%;margin-top:12px;"></div>`;
+// FETCH RAW PRODUCTS TABLE AND FILTER STRICTLY BY THE RUNTIME STORE CONTEXT
+let query = supabaseClient
+.from("products")
+.select("*, categories(name)", { count: "exact" })
+.eq("store_id", runtimeState.store_id) // Isolated directly here!
+.order("sort_order", { ascending: true });
+if (currentSearch) query = query.ilike("name", `%${currentSearch}%`);
+if (currentVisibilityFilter === "visible") query = query.eq("is_visible", true);
+if (currentVisibilityFilter === "hidden") query = query.eq("is_visible", false);
+if (currentVisibilityFilter === "featured")
+query = query.eq("is_featured", true);
+query = query.range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
+const { data, error, count } = await query;
+if (error) {
+els.productsTableBody.innerHTML = `<tr><td colspan="5"
+style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load
+products</td></tr>`;
+els.productsMobileContainer.innerHTML = `<p
+style="text-align:center;color:var(--liyog-red);padding:24px;font-weight:600;">Failed to load
+products</p>`;
+return toast("Failed to load products", "error");
+}
+els.productsTableBody.innerHTML = "";
+els.productsMobileContainer.innerHTML = "";
+if (data.length === 0) {
+els.productsTableBody.innerHTML = `<tr><td colspan="5"
+style="text-align:center;color:var(--text-muted);padding:40px;font-size:15px;">No products
+found</td></tr>`;
+els.productsMobileContainer.innerHTML = `<div
+style="text-align:center;color:var(--text-muted);padding:40px
+0;font-size:15px;font-weight:600;">No products found</div>`;
+}
+data.forEach(product => {
+const finalPrice = Number(product.price || 0);
+const discount = Number(product.discount_percentage || 0);
+let originalPrice = finalPrice;
+if(discount > 0){
+originalPrice = Math.round(
+finalPrice / (1 - discount / 100)
+);
+}
 const priceFmt = finalPrice.toLocaleString();
 const originalFmt = originalPrice.toLocaleString();
-
-      const imgUrl = product.image_urls?.[0] || 'https://placehold.co/100x100';
-      const catName = product.categories?.name || 'Uncategorized';
-
-      // DESKTOP ROW
-      const tr = document.createElement("tr");
-      tr.dataset.id = product.id;
-      tr.innerHTML = `
-        <td><span class="drag-handle">☰</span></td>
-        <td><img src="${imgUrl}" class="product-thumb" alt="${product.name}"></td>
-        <td>
-          <div class="prod-name">${product.name || "Unnamed"}</div>
-          <div class="prod-price">
-
-  ${
-    discount > 0
-    ? `
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <span style="
-          text-decoration:line-through;
-          color:var(--text-muted);
-          font-size:12px;
-        ">
-          ${originalFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-green);
-          font-weight:700;
-        ">
-          ${priceFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-red);
-          font-size:11px;
-          font-weight:700;
-        ">
-          ${discount}% OFF
-        </span>
-      </div>
-    `
-    : `${priceFmt}`
-  }
-
+const imgUrl = product.image_urls?.[0] || 'https://placehold.co/100x100';
+const catName = product.categories?.name || 'Uncategorized';
+// DESKTOP ROW
+const tr = document.createElement("tr");
+tr.dataset.id = product.id;
+tr.innerHTML = `
+<td><span class="drag-handle">☰</span></td>
+<td><img src="${imgUrl}" class="product-thumb" alt="${product.name}"></td>
+<td>
+<div class="prod-name">${product.name || "Unnamed"}</div>
+<div class="prod-price">
+${
+discount > 0
+? `
+<div style="display:flex;flex-direction:column;gap:2px;">
+<span style="
+text-decoration:line-through;
+color:var(--text-muted);
+font-size:12px;
+">
+${originalFmt}
+</span>
+<span style="
+color:var(--liyog-green);
+font-weight:700;
+">
+${priceFmt}
+</span>
+<span style="
+color:var(--liyog-red);
+font-size:11px;
+font-weight:700;
+">
+${discount}% OFF
+</span>
 </div>
-          <div class="prod-meta">${catName} · Stock: ${product.stock_quantity || 0}</div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="toggle-btn ${product.is_visible ? 'active' : ''}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
-            <button class="toggle-btn ${product.is_featured ? 'featured active' : ''}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
-          </div>
-        </td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-       <button class="action-btn"
-onclick="moveProduct('${product.id}','up')">⬆️</button>
-
+`
+: `${priceFmt}`
+}
+</div>
+<div class="prod-meta">${catName} · Stock: ${product.stock_quantity || 0}</div>
+</td>
+<td>
+<div style="display:flex;gap:6px;flex-wrap:wrap;">
+<button class="toggle-btn ${product.is_visible ? 'active' : ''}"
+onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
+<button class="toggle-btn ${product.is_featured ? 'featured active' : ''}"
+onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
+</div>
+</td>
+<td>
+<div style="display:flex;gap:6px;flex-wrap:wrap;">
 <button class="action-btn"
-onclick="moveProduct('${product.id}','down')">⬇️</button>     
-<button class="action-btn edit-btn" onclick="editProduct('${product.id}')">✏️ Edit</button>
-            <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
-          </div>
-        </td>
-      `;
-      els.productsTableBody.appendChild(tr);
-
-      // MOBILE CARD
-      const card = document.createElement("div");
-      card.className = "mobile-product-card";
-      card.dataset.id = product.id;
-      card.innerHTML = `
-        <div class="mobile-card-top">
-          <span class="mobile-card-drag drag-handle">☰</span>
-          <img src="${imgUrl}" class="mobile-card-img" alt="${product.name}">
-          <div class="mobile-card-info">
-            <div class="mobile-card-name">${product.name || "Unnamed"}</div>
-            
-<div class="mobile-card-price">
-
-  ${
-    discount > 0
-    ? `
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <span style="
-          text-decoration:line-through;
-          color:var(--text-muted);
-          font-size:12px;
-        ">
-          ${originalFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-green);
-          font-weight:700;
-        ">
-          ${priceFmt}
-        </span>
-
-        <span style="
-          color:var(--liyog-red);
-          font-size:11px;
-          font-weight:700;
-        ">
-          ${discount}% OFF
-        </span>
-      </div>
-    `
-    : `${priceFmt}`
-  }
-
-</div>
-
-            <div class="mobile-card-cat">${catName}</div>
-            <div class="mobile-card-stock">Stock: ${product.stock_quantity || 0}</div>
-          </div>
-        </div>
-        <div class="mobile-card-footer">
-          <div class="mobile-card-toggles">
-            <button class="toggle-btn ${product.is_visible ? 'active' : ''}" onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
-            <button class="toggle-btn ${product.is_featured ? 'featured active' : ''}" onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
-          </div>
-          <div class="mobile-card-actions">
-     <button class="action-btn"
 onclick="moveProduct('${product.id}','up')">⬆️</button>
-
 <button class="action-btn"
 onclick="moveProduct('${product.id}','down')">⬇️</button>
-       
+<button class="action-btn edit-btn" onclick="editProduct('${product.id}')">✏️ Edit</button>
+<button class="action-btn delete-btn"
+onclick="deleteProduct('${product.id}')">🗑</button>
+</div>
+</td>
+`;
+els.productsTableBody.appendChild(tr);
+// MOBILE CARD
+const card = document.createElement("div");
+card.className = "mobile-product-card";
+card.dataset.id = product.id;
+card.innerHTML = `
+<div class="mobile-card-top">
+<span class="mobile-card-drag drag-handle">☰</span>
+<img src="${imgUrl}" class="mobile-card-img" alt="${product.name}">
+<div class="mobile-card-info">
+<div class="mobile-card-name">${product.name || "Unnamed"}</div>
+<div class="mobile-card-price">
+${
+discount > 0
+? `
+<div style="display:flex;flex-direction:column;gap:2px;">
+<span style="
+text-decoration:line-through;
+color:var(--text-muted);
+font-size:12px;
+">
+${originalFmt}
+</span>
+<span style="
+color:var(--liyog-green);
+font-weight:700;
+">
+${priceFmt}
+</span>
+<span style="
+color:var(--liyog-red);
+font-size:11px;
+font-weight:700;
+">
+${discount}% OFF
+</span>
+</div>
+`
+: `${priceFmt}`
+}
+</div>
+<div class="mobile-card-cat">${catName}</div>
+<div class="mobile-card-stock">Stock: ${product.stock_quantity || 0}</div>
+</div>
+</div>
+<div class="mobile-card-footer">
+<div class="mobile-card-toggles">
+<button class="toggle-btn ${product.is_visible ? 'active' : ''}"
+onclick="toggleVisible('${product.id}', ${product.is_visible})">👁 Visible</button>
+<button class="toggle-btn ${product.is_featured ? 'featured active' : ''}"
+onclick="toggleProductFeatured('${product.id}', ${product.is_featured})">⭐ Featured</button>
+</div>
+<div class="mobile-card-actions">
+<button class="action-btn"
+onclick="moveProduct('${product.id}','up')">⬆️</button>
+<button class="action-btn"
+onclick="moveProduct('${product.id}','down')">⬇️</button>
 <button class="action-btn edit-btn" onclick="editProduct('${product.id}')">✏️</button>
-            <button class="action-btn delete-btn" onclick="deleteProduct('${product.id}')">🗑</button>
-          </div>
-        </div>
-      `;
-      els.productsMobileContainer.appendChild(card);
-    });
-
-    applyTableLayout();
-
-    // PAGINATION
-    const paginationWrap = document.getElementById("pagination");
-    paginationWrap.innerHTML = "";
-    const totalPages = Math.ceil((count || 0) / PAGE_SIZE);
-    if (totalPages > 1) {
-      const prevBtn = document.createElement("button");
-      prevBtn.className = "page-btn"; prevBtn.textContent = "← Prev";
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.onclick = () => { currentPage--; loadProducts(); };
-      paginationWrap.appendChild(prevBtn);
-
-      const pageInd = document.createElement("span");
-      pageInd.className = "page-indicator";
-      pageInd.textContent = `${currentPage} / ${totalPages}`;
-      paginationWrap.appendChild(pageInd);
-
-      const nextBtn = document.createElement("button");
-      nextBtn.className = "page-btn"; nextBtn.textContent = "Next →";
-      nextBtn.disabled = currentPage >= totalPages;
-      nextBtn.onclick = () => { currentPage++; loadProducts(); };
-      paginationWrap.appendChild(nextBtn);
-    }
-  }
-
-  // SEARCH & FILTER
-  document.getElementById("searchProducts").addEventListener("input", e => { currentSearch = e.target.value.trim(); currentPage = 1; loadProducts(); });
-  document.getElementById("filterVisibility").addEventListener("change", e => { currentVisibilityFilter = e.target.value; currentPage = 1; loadProducts(); });
-
-  // EDIT PRODUCT
-  window.editProduct = async function (id) {
-    resetForm();
-    toast("Loading product details...", "info", 2000);
-    const { data, error } = await supabaseClient.from("products").select("*").eq("id", id).single();
-    if (error) return toast("Failed to load product.", "error");
-
-    editingProductId = id;
-    currentEditingProduct = data;
-
-    els.formTitle.textContent = "Edit Product";
-    els.cancelEditBtn.classList.remove("hidden");
-    els.name.value = data.name || "";
-    els.price.value = data.price || "";
-    els.stock.value = data.stock_quantity || "0";
+<button class="action-btn delete-btn"
+onclick="deleteProduct('${product.id}')">🗑</button>
+</div>
+</div>
+`;
+els.productsMobileContainer.appendChild(card);
+});
+applyTableLayout();
+// PAGINATION
+const paginationWrap = document.getElementById("pagination");
+paginationWrap.innerHTML = "";
+const totalPages = Math.ceil((count || 0) / PAGE_SIZE);
+if (totalPages > 1) {
+const prevBtn = document.createElement("button");
+prevBtn.className = "page-btn"; prevBtn.textContent = "← Prev";
+prevBtn.disabled = currentPage === 1;
+prevBtn.onclick = () => { currentPage--; loadProducts(); };
+paginationWrap.appendChild(prevBtn);
+const pageInd = document.createElement("span");
+pageInd.className = "page-indicator";
+pageInd.textContent = `${currentPage} / ${totalPages}`;
+paginationWrap.appendChild(pageInd);
+const nextBtn = document.createElement("button");
+nextBtn.className = "page-btn"; nextBtn.textContent = "Next →";
+nextBtn.disabled = currentPage >= totalPages;
+nextBtn.onclick = () => { currentPage++; loadProducts(); };
+paginationWrap.appendChild(nextBtn);
+}
+}
+// SEARCH & FILTER
+document.getElementById("searchProducts").addEventListener("input", e => { currentSearch =
+e.target.value.trim(); currentPage = 1; loadProducts(); });
+document.getElementById("filterVisibility").addEventListener("change", e => {
+currentVisibilityFilter = e.target.value; currentPage = 1; loadProducts(); });
+// EDIT PRODUCT
+window.editProduct = async function (id) {
+resetForm();
+toast("Loading product details...", "info", 2000);
+const { data, error } = await supabaseClient.from("products").select("*").eq("id", id).single();
+if (error) return toast("Failed to load product.", "error");
+editingProductId = id;
+currentEditingProduct = data;
+els.formTitle.textContent = "Edit Product";
+els.cancelEditBtn.classList.remove("hidden");
+els.name.value = data.name || "";
+els.price.value = data.price || "";
+els.stock.value = data.stock_quantity || "0";
 els.discount.value = data.discount_percentage || 0;
-
 els.isVisible.checked = data.is_visible ?? true;
 els.isFeatured.checked = data.is_featured ?? false;
-
-    quill.root.innerHTML = data.description || "";
-    els.whatsapp.value = data.whatsapp_number || "";
-    els.category.value = data.category_id || "";
-    els.tags.value = data.tags ? (Array.isArray(data.tags) ? data.tags.join(",") : data.tags) : "";
-    els.youtube.value = data.youtube_url || "";
-
-    if (data.video_url) els.existingVideoBanner.classList.remove("hidden");
-
-    selectedImages = (data.image_urls || []).map(url => ({
-      id: crypto.randomUUID(), file: null, url, existing: true
-    }));
-
-    renderPreviews();
-    els.submitBtn.innerHTML = `<span>Update Product</span>`;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    document.querySelector('[data-tab="uploadTab"]').click();
-  };
-
+quill.root.innerHTML = data.description || "";
+els.whatsapp.value = data.whatsapp_number || "";
+els.category.value = data.category_id || "";
+els.tags.value = data.tags ? (Array.isArray(data.tags) ? data.tags.join(",") : data.tags) : "";
+els.youtube.value = data.youtube_url || "";
+if (data.video_url) els.existingVideoBanner.classList.remove("hidden");
+selectedImages = (data.image_urls || []).map(url => ({
+id: crypto.randomUUID(), file: null, url, existing: true
+}));
+renderPreviews();
+els.submitBtn.innerHTML = `<span>Update Product</span>`;
+window.scrollTo({ top: 0, behavior: "smooth" });
+document.querySelector('[data-tab="uploadTab"]').click();
+};
 window.moveProduct = async function(id, direction){
-  const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-  const container = isDesktop
-    ? els.productsTableBody
-    : els.productsMobileContainer;
-
-  const rows = [...container.children];
-  const ids = rows.map(r => r.dataset.id);
-  const index = ids.indexOf(id);
-
-  if(index === -1) return;
-
-  if(direction === 'up' && index > 0){
-    [ids[index - 1], ids[index]] =
-      [ids[index], ids[index - 1]];
-  }
-
-  if(direction === 'down' && index < ids.length - 1){
-    [ids[index + 1], ids[index]] =
-      [ids[index], ids[index + 1]];
-  }
-
-  const { error } = await supabaseClient.rpc(
-    "reorder_products",
-    { p_ids: ids }
-  );
-
-  if(error){
-    console.error(error);
-    toast("Reorder failed","error");
-    return;
-  }
-
-  toast("Product moved","success");
-  await loadProducts();
+const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+const container = isDesktop
+? els.productsTableBody
+: els.productsMobileContainer;
+const rows = [...container.children];
+const ids = rows.map(r => r.dataset.id);
+const index = ids.indexOf(id);
+if(index === -1) return;
+if(direction === 'up' && index > 0){
+[ids[index - 1], ids[index]] =
+[ids[index], ids[index - 1]];
 }
-
-  // TAB SWITCHER
-  let _catLoaded = false;
+if(direction === 'down' && index < ids.length - 1){
+[ids[index + 1], ids[index]] =
+[ids[index], ids[index + 1]];
+}
+const { error } = await supabaseClient.rpc(
+"reorder_products",
+{ p_ids: ids }
+);
+if(error){
+console.error(error);
+toast("Reorder failed","error");
+return;
+}
+toast("Product moved","success");
+await loadProducts();
+}
+// TAB SWITCHER
+let _catLoaded = false;
 let _storiesLoaded = false;
-
 // TAB SWITCHER
 document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-
-    document.querySelectorAll(".tab-btn")
-      .forEach(b => b.classList.remove("active"));
-
-    document.querySelectorAll(".admin-section")
-      .forEach(sec => sec.classList.remove("active"));
-
-    btn.classList.add("active");
-
-    document.getElementById(btn.dataset.tab)
-      .classList.add("active");
-
-    const tab = btn.dataset.tab;
-
-    if (tab === "categoriesTab" && !_catLoaded) {
-      _catLoaded = true;
-      await loadCategoriesTab();
-    }
-
-    if (tab === "settingsTab" && !_settingsLoaded) {
-      _settingsLoaded = true;
-      await window.loadSettings();
-    }
-
-    if (tab === "storiesTab" && !_storiesLoaded) {
-      _storiesLoaded = true;
-      await loadStories();
-    }
-
-  });
+btn.addEventListener("click", async () => {
+document.querySelectorAll(".tab-btn")
+.forEach(b => b.classList.remove("active"));
+document.querySelectorAll(".admin-section")
+.forEach(sec => sec.classList.remove("active"));
+btn.classList.add("active");
+document.getElementById(btn.dataset.tab)
+.classList.add("active");
+const tab = btn.dataset.tab;
+if (tab === "categoriesTab" && !_catLoaded) {
+_catLoaded = true;
+await loadCategoriesTab();
+}
+if (tab === "settingsTab" && !_settingsLoaded) {
+_settingsLoaded = true;
+await window.loadSettings();
+}
+if (tab === "storiesTab" && !_storiesLoaded) {
+_storiesLoaded = true;
+await loadStories();
+}
 });
-
+});
 // INIT
 updateLive();
 await loadCategories();
@@ -983,42 +937,49 @@ await loadProducts();
 // get_all_stories is the single source of truth for ALL store
 // identity data. Every row carries:
 //   s.store_logo    ← profile.logo_url          (live JOIN)
-//   s.store_name    ← profile.business_name     (live JOIN)
-//   s.store_whatsapp← profile.whatsapp_number   (live JOIN)
-//   s.creator_name  ← store_members.member_name (live JOIN)
+//   s.store_name    ← profile.business_name      (live JOIN)
+//   s.store_whatsapp← profile.whatsapp_number    (live JOIN)
+//   s.creator_name  ← store_members.member_name  (live JOIN)
 //
 // v11 FIXES:
-//  • All CTA event listeners are registered via _addPreviewListener()
-//    and torn down atomically by _teardownPreview() / _teardownCtaListeners()
-//  • previewCtaPaused flag blocks timer, touch, mouse and nav while
-//    a popup or redirect is active
-//  • Product popup has its own controlled open/close so no orphan
-//    handlers survive across slides or tab switches
-//  • closePreview() is fully destructive: pauses+nulls all media,
-//    removes popup, removes every registered listener, resets all flags
-//  • Edit modal close stops and removes all media elements inside it
-//  • Button feedback (spinner overlay) for slow-network resilience
-//    on delete / hide / restore / reorder
-//  • No window.* event listener pollution — every listener is tracked
-//    in a private registry and removed on teardown
+//   • All CTA event listeners are registered via _addPreviewListener()
+//     and torn down atomically by _teardownPreview() / _teardownCtaListeners()
+//   • previewCtaPaused flag blocks timer, touch, mouse and nav while
+//     a popup or redirect is active
+//   • Product popup has its own controlled open/close so no orphan
+//     handlers survive across slides or tab switches
+//   • closePreview() is fully destructive: pauses+nulls all media,
+//     removes popup, removes every registered listener, resets all flags
+//   • Edit modal close stops and removes all media elements inside it
+//   • Button feedback (spinner overlay) for slow-network resilience
+//     on delete / hide / restore / reorder
+//   • No window.* event listener pollution — every listener is tracked
+//     in a private registry and removed on teardown
+//
+// INTEL HOOKS ADDED (dashboard-flags.js v3.0 integration):
+//   • window.INTEL.trackAction('storyCreated')  — after new story published
+//   • window.INTEL.trackAction('storyCreated')  — after expired story renewed
+//   • window.INTEL.trackAction('storyExpired')  — after story deleted
+//   Safe: all calls are guarded with typeof checks so the app never
+//   breaks if window.INTEL is not yet loaded.
 // ============================================================
 
 const STORY_R2_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
 
 // ── Core state
-let allStories              = [];
-let currentFilter           = "all";
-let currentMediaTypeFilter  = "all";
-let currentCreatedByFilter  = "all";
-let currentRoleFilter       = "all";
-let currentUserUidCache     = null;
-let storyEditingId          = null;
-let storyDraftId            = null;
-let storySelectedHours      = 24;
-let storyCtaType            = "none";
-let storyIsFeatured         = false;
-let storyCurrentMedia       = null;
-let _storyProductsCache     = null;
+let allStories = [];
+let currentFilter = "all";
+let currentMediaTypeFilter = "all";
+let currentCreatedByFilter = "all";
+let currentRoleFilter = "all";
+let currentUserUidCache = null;
+let storyEditingId = null;
+let storyDraftId = null;
+let storySelectedHours = 24;
+let storyCtaType = "none";
+let storyIsFeatured = false;
+let storyCurrentMedia = null;
+let _storyProductsCache = null;
 
 // ── Pagination
 let storyCurrentPage = 1;
@@ -1026,20 +987,20 @@ const STORY_PAGE_SIZE = 12;
 let storyHasMore = false;
 
 // ── Preview state
-let previewStoryList   = [];
-let previewIndex       = 0;
-let previewTimer       = null;
-let previewHolding     = false;
-let previewCtaPaused   = false;   // true while product popup / redirect is open
+let previewStoryList = [];
+let previewIndex = 0;
+let previewTimer = null;
+let previewHolding = false;
+let previewCtaPaused = false; // true while product popup / redirect is open
 let previewTouchStartX = 0;
 let previewTouchStartT = 0;
 
 // ── Listener registry — every listener added during preview lives here
 //    so _teardownPreview() can remove them all without any guesswork
-const _previewListeners = [];   // [{ target, type, fn, opts }]
+const _previewListeners = []; // [{ target, type, fn, opts }]
 
 // ── Visibility-change cleanup token for WA / external redirect resume
-let _visibilityResumeFn   = null;
+let _visibilityResumeFn = null;
 let _visibilityResumeTimer = null;
 
 // ============================================================
@@ -1047,43 +1008,42 @@ let _visibilityResumeTimer = null;
 // ============================================================
 (function injectStoryStyles() {
   if (document.getElementById("storyTabStyles")) return;
-  const s   = document.createElement("style");
-  s.id      = "storyTabStyles";
+  const s = document.createElement("style");
+  s.id = "storyTabStyles";
   s.innerHTML = `
-@keyframes stSpinnerSpin {
-  0%   { transform: translate(-50%,-50%) rotate(0deg); }
-  100% { transform: translate(-50%,-50%) rotate(360deg); }
-}
-@keyframes stFadeIn  { from { opacity:0 } to { opacity:1 } }
-@keyframes stScaleIn { from { transform:scale(.92);opacity:0 } to { transform:scale(1);opacity:1 } }
-@keyframes stLoadMorePulse {
-  0%,100% { opacity:1; }
-  50%     { opacity:.45; }
-}
-@keyframes stSpinConic { to { transform: rotate(360deg); } }
-@keyframes stBtnSpinner {
-  to { transform: rotate(360deg); }
-}
-.st-btn-busy {
-  position:relative;pointer-events:none;opacity:.72;
-}
-.st-btn-busy::after {
-  content:"";
-  position:absolute;inset:0;margin:auto;
-  width:14px;height:14px;
-  border:2px solid rgba(255,255,255,.35);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:stBtnSpinner .65s linear infinite;
-}
-`;
+    @keyframes stSpinnerSpin {
+      0%   { transform: translate(-50%,-50%) rotate(0deg); }
+      100% { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+    @keyframes stFadeIn  { from { opacity:0 } to { opacity:1 } }
+    @keyframes stScaleIn { from { transform:scale(.92);opacity:0 } to { transform:scale(1);opacity:1 } }
+    @keyframes stLoadMorePulse {
+      0%,100% { opacity:1; }
+      50%     { opacity:.45; }
+    }
+    @keyframes stSpinConic { to { transform: rotate(360deg); } }
+    @keyframes stBtnSpinner {
+      to { transform: rotate(360deg); }
+    }
+    .st-btn-busy {
+      position:relative;pointer-events:none;opacity:.72;
+    }
+    .st-btn-busy::after {
+      content:"";
+      position:absolute;inset:0;margin:auto;
+      width:14px;height:14px;
+      border:2px solid rgba(255,255,255,.35);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation:stBtnSpinner .65s linear infinite;
+    }
+  `;
   document.head.appendChild(s);
 })();
 
 // ============================================================
 // LISTENER REGISTRY HELPERS
 // ============================================================
-
 /**
  * Register a DOM event listener AND track it for later removal.
  * Use this for every listener added during preview or popup lifetime.
@@ -1176,13 +1136,13 @@ async function _syncMediaToSupabase(
   if (!storyId) return;
   const { error } = await supabaseClient.from("stories").update({
     media_url:    mediaUrl,
-    media_thumb:  mediaThumb  || null,
+    media_thumb:  mediaThumb || null,
     type,
-    media_width:  width       || null,
-    media_height: height      || null,
-    aspect_ratio: aspectRatio || null,
-    file_size:    fileSize    || null,
-    duration:     duration    || null
+    media_width:  width        || null,
+    media_height: height       || null,
+    aspect_ratio: aspectRatio  || null,
+    file_size:    fileSize     || null,
+    duration:     duration     || null
   }).eq("id", storyId);
   if (error) throw error;
 }
@@ -1219,7 +1179,7 @@ async function compressStoryImage(file) {
   return new Promise((resolve, reject) => {
     const img    = new Image();
     const reader = new FileReader();
-    reader.onload  = e => { img.src = e.target.result; };
+    reader.onload = e => { img.src = e.target.result; };
     reader.onerror = reject;
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -1402,7 +1362,7 @@ async function loadStories(appendMode = false) {
     const startOffset = (storyCurrentPage - 1) * STORY_PAGE_SIZE;
     const endOffset   = startOffset + STORY_PAGE_SIZE;
     const pageSlice   = fetchedStories.slice(startOffset, endOffset);
-    storyHasMore      = fetchedStories.length > endOffset;
+    storyHasMore = fetchedStories.length > endOffset;
 
     allStories = appendMode ? [...allStories, ...pageSlice] : pageSlice;
     renderStories();
@@ -1460,9 +1420,9 @@ function _injectLoadMoreTrigger(failed = false) {
   if (failed) {
     trigger.innerHTML = `
       <div style="width:52px;height:52px;border-radius:50%;
-                  background:linear-gradient(135deg,#FFD700,#FF7A00);
-                  display:flex;align-items:center;justify-content:center;
-                  font-size:22px;box-shadow:0 4px 16px rgba(255,122,0,.35);">📶</div>
+        background:linear-gradient(135deg,#FFD700,#FF7A00);
+        display:flex;align-items:center;justify-content:center;
+        font-size:22px;box-shadow:0 4px 16px rgba(255,122,0,.35);">📶</div>
       <p style="font-size:13px;font-weight:700;color:#FF7A00;margin:0;text-align:center;">No connection right now</p>
       <p style="font-size:11px;font-weight:500;color:#94a3b8;margin:0;text-align:center;">We'll load more stories once you're back online</p>
       <div id="stLoadMoreRetryBtn" style="
@@ -1491,6 +1451,7 @@ function _injectLoadMoreTrigger(failed = false) {
       </span>`;
     trigger.onclick = () => _attemptLoadMore();
   }
+
   grid.appendChild(trigger);
 }
 
@@ -1499,10 +1460,10 @@ async function _attemptLoadMore() {
   const label   = document.getElementById("stLoadMoreLabel");
   const trigger = document.getElementById("storyLoadMoreTrigger");
   if (label) {
-    label.style.animation           = "none";
-    label.textContent               = "Loading…";
+    label.style.animation = "none";
+    label.textContent = "Loading…";
     label.style.webkitTextFillColor = "#FF7A00";
-    label.style.backgroundClip      = "unset";
+    label.style.backgroundClip = "unset";
   }
   if (trigger) trigger.onclick = null;
   storyCurrentPage++;
@@ -1519,10 +1480,10 @@ function _watchForReconnect() {
     if (trigger) {
       trigger.innerHTML = `
         <div style="width:44px;height:44px;border-radius:50%;
-                    background:linear-gradient(135deg,#28A428,#34BF49);
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:20px;box-shadow:0 4px 14px rgba(40,164,40,.35);
-                    animation:stSpinConic .6s linear infinite;">✅</div>
+          background:linear-gradient(135deg,#28A428,#34BF49);
+          display:flex;align-items:center;justify-content:center;
+          font-size:20px;box-shadow:0 4px 14px rgba(40,164,40,.35);
+          animation:stSpinConic .6s linear infinite;">✅</div>
         <span style="font-size:13px;font-weight:700;color:#28A428;">Back online! Loading…</span>`;
     }
     setTimeout(() => loadStories(true), 800);
@@ -1547,19 +1508,19 @@ function renderStories() {
   }
 
   if (allStories.length > 0) {
-    const primaryRow = allStories[0];
-    const ownerPanel = document.getElementById("premiumOwnerFilterContainer");
-    const roleSelect = document.getElementById("storyRoleSelectFilter");
+    const primaryRow  = allStories[0];
+    const ownerPanel  = document.getElementById("premiumOwnerFilterContainer");
+    const roleSelect  = document.getElementById("storyRoleSelectFilter");
     if (primaryRow.viewer_role === "owner" && ownerPanel && ownerPanel.style.display === "none") {
       ownerPanel.style.display = "flex";
-      const uniqueRoles      = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
-      const currentSelection = roleSelect ? roleSelect.value : "all";
+      const uniqueRoles       = [...new Set(allStories.map(s => s.creator_role).filter(Boolean))];
+      const currentSelection  = roleSelect ? roleSelect.value : "all";
       if (roleSelect) {
         roleSelect.innerHTML = `<option value="all">All Team Roles</option>`;
         uniqueRoles.forEach(role => {
-          const opt = document.createElement("option");
-          opt.value = role;
-          opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+          const opt         = document.createElement("option");
+          opt.value         = role;
+          opt.textContent   = role.charAt(0).toUpperCase() + role.slice(1);
           roleSelect.appendChild(opt);
         });
         roleSelect.value = currentSelection;
@@ -1611,8 +1572,8 @@ function buildStoryCard(s, idx, list) {
       <div class="st-card-media" onclick="openPreviewAt('${s.id}')">
         ${thumbSrc
           ? `<img src="${thumbSrc}" alt="video cover"
-                style="width:100%;height:100%;object-fit:cover;"
-                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              style="width:100%;height:100%;object-fit:cover;"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
              <div class="st-card-video-fallback" style="display:none;"><span>🎬</span><small>Video</small></div>`
           : `<div class="st-card-video-fallback"><span>🎬</span><small>Video</small></div>`}
         <div class="st-card-play-badge">▶</div>
@@ -1646,8 +1607,8 @@ function buildStoryCard(s, idx, list) {
         background:${s.link_type === "product"
           ? "linear-gradient(135deg,#fff9e6,#fff3cc);color:#92400e;border:1px solid #FFD700;"
           : s.link_type === "whatsapp"
-            ? "linear-gradient(135deg,#f0fdf4,#dcfce7);color:#166534;border:1px solid #86efac;"
-            : "linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e40af;border:1px solid #93c5fd;"}
+          ? "linear-gradient(135deg,#f0fdf4,#dcfce7);color:#166534;border:1px solid #86efac;"
+          : "linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e40af;border:1px solid #93c5fd;"}
         font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;"
         title="${s.link_type === "product" ? (s.product_name || "Product") : s.link_type === "whatsapp" ? "WhatsApp" : "Link"}">
         ${s.link_type === "product"
@@ -1658,28 +1619,28 @@ function buildStoryCard(s, idx, list) {
   const roleBg = s.creator_role === "owner"
     ? "linear-gradient(135deg,#FFD700,#FF7A00)"
     : s.creator_role === "super_admin"
-      ? "linear-gradient(135deg,#FF7A00,#FF3B30)"
-      : s.creator_role === "admin"
-        ? "linear-gradient(135deg,#1877F2,#0d5bbf)"
-        : "linear-gradient(135deg,#28A428,#34BF49)";
+    ? "linear-gradient(135deg,#FF7A00,#FF3B30)"
+    : s.creator_role === "admin"
+    ? "linear-gradient(135deg,#1877F2,#0d5bbf)"
+    : "linear-gradient(135deg,#28A428,#34BF49)";
 
   const ribbonStyle = s.status === "active"
     ? "background:linear-gradient(90deg,#28A428,#34BF49);color:#fff;"
     : s.status === "expired"
-      ? "background:linear-gradient(90deg,#FF3B30,#C1271A);color:#fff;"
-      : "background:linear-gradient(90deg,#475569,#334155);color:#fff;";
+    ? "background:linear-gradient(90deg,#FF3B30,#C1271A);color:#fff;"
+    : "background:linear-gradient(90deg,#475569,#334155);color:#fff;";
   const ribbonLabel = s.status === "active" ? "🟢 Live" : s.status === "expired" ? "🔴 Expired" : "👁 Hidden";
 
   const editBtn = `
     <button onclick="openStoryModal('${s.id}')"
       style="background:linear-gradient(135deg,#1877F2,#0d5bbf);color:#fff;border:none;
-             border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+        border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
       onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">✏️ Edit</button>`;
 
   const restoreBtn = isExpired ? `
     <button onclick="restoreStory('${s.id}',this)"
       style="background:linear-gradient(135deg,#FFD700,#FF7A00);color:#111;border:none;
-             border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+        border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
       onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">🔄 Renew</button>` : "";
 
   const hideLabel = isHidden ? "👁 Show" : "🙈 Hide";
@@ -1689,65 +1650,64 @@ function buildStoryCard(s, idx, list) {
   const hideBtn = `
     <button onclick="toggleStoryVisibility('${s.id}',this)"
       style="${hideStyle}border:none;border-radius:8px;padding:6px 14px;
-             font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+        font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
       onmouseover="this.style.opacity='.82'"
       onmouseout="this.style.opacity='1'">${hideLabel}</button>`;
 
   const deleteBtn = `
     <button onclick="deleteStory('${s.id}',this)"
       style="background:linear-gradient(135deg,#FF3B30,#C1271A);color:#fff;border:none;
-             border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
+        border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;"
       onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">🗑</button>`;
 
   const upBtn = `
     <button onclick="moveStory('${s.id}',-1,this)" ${idx === 0 ? "disabled" : ""}
       style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;
-             padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
+        padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
       onmouseover="this.style.background='#e2e8f0'"
       onmouseout="this.style.background='#f1f5f9'">▲</button>`;
-
   const downBtn = `
     <button onclick="moveStory('${s.id}',1,this)" ${idx === list.length - 1 ? "disabled" : ""}
       style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;
-             padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
+        padding:4px 9px;cursor:pointer;font-size:13px;transition:.2s;"
       onmouseover="this.style.background='#e2e8f0'"
       onmouseout="this.style.background='#f1f5f9'">▼</button>`;
 
   return `
     <div class="st-story-card ${isHidden ? "hidden-card" : ""} ${isExpired ? "expired-card" : ""}"
-         id="storyCard_${s.id}" style="position:relative;">
+      id="storyCard_${s.id}" style="position:relative;">
       <div style="${ribbonStyle}font-size:11px;font-weight:700;padding:3px 10px;
-                  border-radius:0 0 8px 0;position:absolute;top:0;left:0;z-index:3;">${ribbonLabel}</div>
+        border-radius:0 0 8px 0;position:absolute;top:0;left:0;z-index:3;">${ribbonLabel}</div>
       ${s.is_featured ? `
-        <div style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;
-                    font-size:11px;font-weight:700;padding:3px 10px;
-                    border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">⭐ Featured</div>` : ""}
+      <div style="background:linear-gradient(90deg,#FFD700,#FF7A00);color:#111;
+        font-size:11px;font-weight:700;padding:3px 10px;
+        border-radius:0 0 0 8px;position:absolute;top:0;right:0;z-index:3;">⭐ Featured</div>` : ""}
       ${mediaHtml}
       <div class="st-card-body">
         <div class="st-card-title">${s.title || "Untitled Story"}</div>
         ${s.caption ? `<div class="st-card-caption">${s.caption}</div>` : ""}
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
           <span style="background:${s.type==='image'?'#e0f2fe':s.type==='video'?'#fce7f3':'#f0fdf4'};
-                       color:${s.type==='image'?'#0369a1':s.type==='video'?'#be185d':'#166534'};
-                       font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;">
+            color:${s.type==='image'?'#0369a1':s.type==='video'?'#be185d':'#166534'};
+            font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;">
             ${s.type.toUpperCase()}
           </span>
           ${linkTag}
           ${s.aspect_ratio ? `<span style="background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">${s.aspect_ratio}</span>` : ""}
         </div>
         <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;
-                    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
-                    border-radius:20px;margin-bottom:10px;border:1px solid #e2e8f0;width:fit-content;">
+          background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+          border-radius:20px;margin-bottom:10px;border:1px solid #e2e8f0;width:fit-content;">
           <span style="font-size:11px;font-weight:600;color:#475569;">
             👤 <strong style="color:#111;">${s.creator_name || "Team Member"}</strong>
             <span style="font-size:10px;font-weight:700;color:#fff;background:${roleBg};
-                         padding:2px 7px;border-radius:20px;margin-left:4px;text-transform:uppercase;">
+              padding:2px 7px;border-radius:20px;margin-left:4px;text-transform:uppercase;">
               ${s.creator_role || "staff"}
             </span>
           </span>
         </div>
         <div style="display:flex;gap:10px;font-size:12px;color:#64748b;font-weight:600;flex-wrap:wrap;margin-bottom:10px;">
-          <span>👁 ${s.views_count || 0} views</span>
+          <span>👁 ${s.views_count  || 0} views</span>
           <span>👆 ${s.clicks_count || 0} taps</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -1779,8 +1739,8 @@ window.filterStories = function (filter, btn) {
 // MODAL — OPEN / CLOSE / RELOAD
 // ============================================================
 window.openStoryModal = async function (editId = null) {
-  storyEditingId    = editId || null;
-  storyDraftId      = null;
+  storyEditingId  = editId || null;
+  storyDraftId    = null;
   storyCurrentMedia = null;
   storyIsFeatured   = false;
   storyCtaType      = "none";
@@ -1927,7 +1887,7 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
   if (ph) ph.style.display = "none";
 
   const wrap = document.createElement("div");
-  wrap.className    = "st-media-preview-wrap";
+  wrap.className = "st-media-preview-wrap";
   wrap.style.position = "relative";
 
   const spinner = document.createElement("div");
@@ -1939,9 +1899,9 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
     border-radius:50%;animation:stSpinnerSpin 0.8s linear infinite;z-index:10;`;
   wrap.appendChild(spinner);
 
-  const ratio     = (origWidth && origHeight) ? origWidth / origHeight : null;
-  const maxH      = 240;
-  const dispW     = ratio ? Math.round(maxH * ratio) : null;
+  const ratio   = (origWidth && origHeight) ? origWidth / origHeight : null;
+  const maxH    = 240;
+  const dispW   = ratio ? Math.round(maxH * ratio) : null;
   const sizeStyle = dispW
     ? `width:${Math.min(dispW, 480)}px;max-width:100%;height:${maxH}px;`
     : `width:100%;height:220px;`;
@@ -1949,8 +1909,8 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
   const changeBtn = `
     <button type="button" onclick="event.stopPropagation();_triggerMediaChange()"
       style="margin-top:8px;background:linear-gradient(135deg,#475569,#334155);color:#fff;
-             border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;
-             cursor:pointer;transition:.2s;"
+        border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;
+        cursor:pointer;transition:.2s;"
       onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
       🔄 Replace File
     </button>`;
@@ -1985,6 +1945,7 @@ function _showMediaPreview(url, type, thumbUrl, origWidth, origHeight) {
         ${changeBtn}
       </div>`;
   }
+
   zone.appendChild(wrap);
 }
 
@@ -2019,7 +1980,6 @@ function _initStoryUploadZone() {
     ph.style.cursor = "pointer";
     ph.onclick = e => { e.preventDefault(); e.stopPropagation(); newInput.click(); };
   }
-
   zone.onclick = e => {
     if (e.target === zone || e.target === ph || ph?.contains(e.target)) {
       e.preventDefault(); newInput.click();
@@ -2057,7 +2017,7 @@ async function _handleStoryMediaChange(e) {
 
   showProgress(15,
     isImage ? "Optimising your image…" :
-    isVideo ? "Preparing your video…"  : "Preparing your audio…"
+    isVideo ? "Preparing your video…" : "Preparing your audio…"
   );
 
   try {
@@ -2068,8 +2028,8 @@ async function _handleStoryMediaChange(e) {
     if (isImage) {
       const { file: compressed, width: w, height: h } = await compressStoryImage(file);
       showProgress(45, "Uploading your image…");
-      mediaUrl  = await storyUploadToR2(compressed, "stories");
-      thumbUrl  = mediaUrl;
+      mediaUrl = await storyUploadToR2(compressed, "stories");
+      thumbUrl = mediaUrl;
       width = w; height = h; fileSize = compressed.size;
     } else if (isVideo) {
       const thumbResult = await generateVideoThumbnail(file);
@@ -2115,6 +2075,7 @@ async function _handleStoryMediaChange(e) {
 
     showProgress(100, "Done ✓");
     setTimeout(() => showProgress(null), 600);
+
     storyCurrentMedia = { url: mediaUrl, thumbUrl, type: mediaType, width, height, aspectRatio, fileSize, duration };
     _showMediaPreview(mediaUrl, mediaType, thumbUrl, width, height);
     _initStoryUploadZone();
@@ -2149,7 +2110,7 @@ window.setCTAText = (t) => {
 };
 
 window.useProfileWhatsapp = function () {
-  const el     = document.getElementById("st_story_wa");
+  const el = document.getElementById("st_story_wa");
   if (!el) return;
   const liveWa = allStories[0]?.store_whatsapp || "";
   if (liveWa) {
@@ -2175,7 +2136,7 @@ async function _loadProductsForPicker() {
       <label for="st_story_product_search" style="font-size:12px;font-weight:600;color:#64748b;">🔍 Search your products:</label>
       <input type="text" id="st_story_product_search" placeholder="Type to filter…"
         style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
-               font-size:14px;outline:none;background:#fff;transition:.2s;"
+          font-size:14px;outline:none;background:#fff;transition:.2s;"
         onfocus="this.style.borderColor='#28A428';this.style.boxShadow='0 0 0 3px rgba(40,164,40,.12)'"
         onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">`;
     sel.parentNode.insertBefore(searchWrap, sel);
@@ -2196,12 +2157,13 @@ async function _loadProductsForPicker() {
       const matched = _storyProductsCache.filter(p => p.name.toLowerCase().includes(term));
       if (matched.length === 0) { sel.innerHTML = `<option value="">No products found</option>`; return; }
       matched.forEach(p => {
-        const o = document.createElement("option");
-        o.value = p.id;
+        const o       = document.createElement("option");
+        o.value       = p.id;
         o.textContent = p.price ? `${p.name} — ${p.price}` : p.name;
         sel.appendChild(o);
       });
     };
+
     renderOptions("");
     if (searchInput) searchInput.oninput = e => renderOptions(e.target.value);
   } catch (e) {
@@ -2249,24 +2211,26 @@ window.saveStory = async function () {
 
   const btn = document.getElementById("storyModalSaveBtn");
   const txt = document.getElementById("storyModalSaveTxt");
-  if (btn) btn.disabled   = true;
+  if (btn) btn.disabled = true;
   if (txt) txt.textContent = "Publishing…";
 
   try {
-    const title    = document.getElementById("st_story_title")?.value.trim()    || null;
-    const caption  = document.getElementById("st_story_caption")?.value.trim()  || null;
-    const ctaText  = document.getElementById("st_story_cta_text")?.value.trim() || null;
-    const waNum    = document.getElementById("st_story_wa")?.value.trim()        || null;
-    const extUrl   = document.getElementById("st_story_url")?.value.trim()       || null;
+    const title      = document.getElementById("st_story_title")?.value.trim()    || null;
+    const caption    = document.getElementById("st_story_caption")?.value.trim()  || null;
+    const ctaText    = document.getElementById("st_story_cta_text")?.value.trim() || null;
+    const waNum      = document.getElementById("st_story_wa")?.value.trim()       || null;
+    const extUrl     = document.getElementById("st_story_url")?.value.trim()      || null;
     const productSel = document.getElementById("st_story_product");
     const productId  = (storyCtaType === "product" && productSel?.value) ? productSel.value : null;
 
     let linkTarget = null, ctaUrl = null, waNumber = null;
     if (storyCtaType === "product")  { linkTarget = productId; }
     if (storyCtaType === "whatsapp") { waNumber   = waNum; }
-    if (storyCtaType === "external") { ctaUrl = extUrl; linkTarget = extUrl; }
+    if (storyCtaType === "external") { ctaUrl     = extUrl; linkTarget = extUrl; }
 
     let error;
+    const isNewStory = !storyEditingId; // capture before the update clears it
+
     if (storyEditingId) {
       const { error: e } = await supabaseClient.rpc("update_story", {
         p_id:              storyEditingId,
@@ -2285,22 +2249,30 @@ window.saveStory = async function () {
     } else if (storyDraftId) {
       const { error: e } = await supabaseClient.from("stories").update({
         title, caption,
-        product_id:      productId,
-        link_type:       storyCtaType,
-        link_target:     linkTarget,
-        cta_text:        ctaText,
-        cta_url:         ctaUrl,
-        whatsapp_number: waNumber,
-        is_featured:     storyIsFeatured,
-        expires_at:      new Date(Date.now() + storySelectedHours * 3600 * 1000).toISOString(),
-        auto_delete_at:  new Date(Date.now() + (storySelectedHours + 24) * 3600 * 1000).toISOString()
+        product_id:       productId,
+        link_type:        storyCtaType,
+        link_target:      linkTarget,
+        cta_text:         ctaText,
+        cta_url:          ctaUrl,
+        whatsapp_number:  waNumber,
+        is_featured:      storyIsFeatured,
+        expires_at:       new Date(Date.now() + storySelectedHours * 3600 * 1000).toISOString(),
+        auto_delete_at:   new Date(Date.now() + (storySelectedHours + 24) * 3600 * 1000).toISOString()
       }).eq("id", storyDraftId);
       error = e;
       if (!e) storyDraftId = null;
     }
 
     if (error) throw error;
+
     storyCurrentMedia = null;
+
+    // ── INTEL HOOK: fire trackAction for new stories only.
+    // Edits don't count as a new story creation — no metrics change.
+    if (isNewStory && typeof window.INTEL?.trackAction === "function") {
+      window.INTEL.trackAction("storyCreated");
+    }
+
     toast(
       storyEditingId
         ? "Story updated! Your audience sees it now ✓"
@@ -2313,13 +2285,13 @@ window.saveStory = async function () {
     console.error("Save error:", err);
     toast(err.message || "Couldn't save your story. Please try again.", "error");
   } finally {
-    if (btn) btn.disabled    = false;
+    if (btn) btn.disabled = false;
     if (txt) txt.textContent = storyEditingId ? "Save Changes ✓" : "Publish Story 🚀";
   }
 };
 
 // ============================================================
-// MUTATION ACTIONS  (all pass `this` for busy-state feedback)
+// MUTATION ACTIONS (all pass `this` for busy-state feedback)
 // ============================================================
 window.deleteStory = async function (id, btnEl) {
   if (!confirm("Are you sure? This story will be permanently deleted.")) return;
@@ -2336,6 +2308,12 @@ window.deleteStory = async function (id, btnEl) {
     allStories = allStories.filter(s => s.id !== id);
     renderStories();
     updateStats();
+
+    // ── INTEL HOOK: story removed — signal the intelligence engine
+    if (typeof window.INTEL?.trackAction === "function") {
+      window.INTEL.trackAction("storyExpired");
+    }
+
     toast("Story deleted ✓", "success");
   } catch (err) {
     _setBtnBusy(btnEl, false);
@@ -2371,6 +2349,13 @@ window.restoreStory = async function (id, btnEl) {
   try {
     const { error } = await supabaseClient.rpc("restore_story", { p_id: id, p_hours: 24 });
     if (error) throw error;
+
+    // ── INTEL HOOK: renewing an expired story is equivalent to creating new activity —
+    // fire storyCreated so the billboard / assistant card refreshes its active-story count.
+    if (typeof window.INTEL?.trackAction === "function") {
+      window.INTEL.trackAction("storyCreated");
+    }
+
     toast("Story renewed for another 24 hours! ✓", "success");
     await loadStories(false);
   } catch (err) {
@@ -2395,7 +2380,7 @@ window.moveStory = async function (id, direction, btnEl) {
   _setBtnBusy(btnEl, true);
   try {
     const orderedIds = allStories.map(s => s.id);
-    const { error }  = await supabaseClient.rpc("reorder_stories", { p_ids: orderedIds });
+    const { error } = await supabaseClient.rpc("reorder_stories", { p_ids: orderedIds });
     if (error) throw error;
     allStories.forEach((s, i) => { s.sort_order = i; });
   } catch (e) {
@@ -2409,7 +2394,6 @@ window.moveStory = async function (id, direction, btnEl) {
 // ============================================================
 // PREVIEW — PAUSE / RESUME HELPERS
 // ============================================================
-
 /** Pause everything for a CTA action. Sets the master lock flag. */
 function _previewPauseForCta() {
   previewCtaPaused = true;
@@ -2471,21 +2455,20 @@ window.showProductPreview = async function (productId, productName) {
   });
 
   document.body.appendChild(popup);
-
   popup.innerHTML = `
     <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:90%;
-                text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.18);animation:stScaleIn .25s ease;">
+      text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.18);animation:stScaleIn .25s ease;">
       <div id="storyProdPopupContent">
         <div style="width:56px;height:56px;border-radius:50%;
-                    background:linear-gradient(135deg,#28A428,#34BF49);
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:22px;margin:0 auto 14px;">🛍</div>
+          background:linear-gradient(135deg,#28A428,#34BF49);
+          display:flex;align-items:center;justify-content:center;
+          font-size:22px;margin:0 auto 14px;">🛍</div>
         <p style="font-weight:700;font-size:15px;color:#1e293b;">Loading product…</p>
       </div>
       <button onclick="_closeProductPreviewPopup()"
         style="margin-top:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
-               color:#475569;border:none;border-radius:10px;padding:8px 20px;
-               font-size:13px;font-weight:700;cursor:pointer;">Close</button>
+          color:#475569;border:none;border-radius:10px;padding:8px 20px;
+          font-size:13px;font-weight:700;cursor:pointer;">Close</button>
     </div>`;
 
   try {
@@ -2502,19 +2485,19 @@ window.showProductPreview = async function (productId, productName) {
       content.innerHTML = `
         ${imgSrc
           ? `<img src="${imgSrc}" alt="${data.name}"
-               style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:14px;">`
+              style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:14px;">`
           : `<div style="width:100%;height:100px;border-radius:12px;
-                          background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
-                          display:flex;align-items:center;justify-content:center;
-                          font-size:36px;margin-bottom:14px;">🛍</div>`}
+              background:linear-gradient(135deg,#f1f5f9,#e2e8f0);
+              display:flex;align-items:center;justify-content:center;
+              font-size:36px;margin-bottom:14px;">🛍</div>`}
         <p style="font-weight:800;font-size:16px;color:#111;margin-bottom:4px;">${data.name}</p>
         ${data.price ? `<p style="font-weight:700;font-size:18px;color:#28A428;margin-bottom:8px;">${data.price}</p>` : ""}
         ${data.description
           ? `<p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">
-               ${data.description.substring(0, 100)}${data.description.length > 100 ? "…" : ""}
+              ${data.description.substring(0, 100)}${data.description.length > 100 ? "…" : ""}
              </p>` : ""}
         <div style="background:linear-gradient(135deg,#fff9e6,#fff3cc);
-                    border:1px solid #FFD700;border-radius:10px;padding:10px 14px;margin-top:8px;">
+          border:1px solid #FFD700;border-radius:10px;padding:10px 14px;margin-top:8px;">
           <p style="font-size:12px;color:#92400e;font-weight:600;margin:0;">
             🛒 On the storefront, tapping this story opens <strong>${data.name}</strong>'s page directly.
           </p>
@@ -2542,7 +2525,6 @@ window._closeProductPreviewPopup = function () {
 // ============================================================
 // PREVIEW VIEWER — FULL TEARDOWN ARCHITECTURE
 // ============================================================
-
 /**
  * Complete teardown of the preview session:
  *  1. Clear auto-advance timer
@@ -2600,7 +2582,6 @@ function _teardownPreview() {
   // Reset flags
   previewCtaPaused = false;
   previewHolding   = false;
-
   document.body.style.overflow = "";
 }
 
@@ -2668,13 +2649,12 @@ function _renderPreviewSlide() {
   if (storeLogoEl) {
     storeLogoEl.innerHTML = s.store_logo
       ? `<img src="${s.store_logo}" alt="Store logo"
-            style="width:38px;height:38px;border-radius:50%;object-fit:cover;
-                   border:2px solid rgba(255,255,255,.55);"
-            onerror="this.outerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#28A428,#34BF49);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4);\\'>🏪</div>'">`
+          style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.55);"
+          onerror="this.outerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#28A428,#34BF49);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(255,255,255,.4);\\'>🏪</div>'">`
       : `<div style="width:38px;height:38px;border-radius:50%;
-                     background:linear-gradient(135deg,#28A428,#34BF49);
-                     display:flex;align-items:center;justify-content:center;
-                     font-size:18px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
+          background:linear-gradient(135deg,#28A428,#34BF49);
+          display:flex;align-items:center;justify-content:center;
+          font-size:18px;border:2px solid rgba(255,255,255,.4);">🏪</div>`;
   }
 
   // Store name
@@ -2708,11 +2688,11 @@ function _renderPreviewSlide() {
   let slideDuration = 5;
 
   if (s.type === "video") {
-    const vid = document.createElement("video");
-    vid.src         = s.media_url;
-    vid.autoplay    = true;
+    const vid     = document.createElement("video");
+    vid.src       = s.media_url;
+    vid.autoplay  = true;
     vid.playsInline = true;
-    vid.muted       = false;
+    vid.muted     = false;
     vid.style.cssText = `
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
@@ -2725,7 +2705,6 @@ function _renderPreviewSlide() {
     };
     vid.onended = () => { if (!previewCtaPaused && !previewHolding) previewNav(1); };
     wrap.appendChild(vid);
-
   } else if (s.type === "audio") {
     slideDuration = s.duration || 15;
     const ph = document.createElement("div");
@@ -2737,20 +2716,21 @@ function _renderPreviewSlide() {
       <span style="font-size:64px;">🎵</span>
       <p style="color:rgba(255,255,255,.6);font-size:13px;font-weight:700;">${s.title || "Audio Story"}</p>`;
     wrap.appendChild(ph);
-    const aud = document.createElement("audio");
+
+    const aud    = document.createElement("audio");
     aud.src      = s.media_url;
     aud.autoplay = true;
     aud.oncanplay = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     aud.onended   = () => { if (!previewCtaPaused && !previewHolding) previewNav(1); };
     wrap.appendChild(aud);
+
     _startProgressBar(slideDuration);
     previewTimer = setTimeout(() => { if (!previewCtaPaused && !previewHolding) previewNav(1); }, slideDuration * 1000);
-
   } else {
     // Image
-    const img = document.createElement("img");
-    img.src   = s.media_url;
-    img.alt   = s.title || "Story";
+    const img     = document.createElement("img");
+    img.src       = s.media_url;
+    img.alt       = s.title || "Story";
     img.style.cssText = `
       max-width:100%;max-height:100%;width:auto;height:auto;
       object-fit:contain;position:absolute;
@@ -2759,6 +2739,7 @@ function _renderPreviewSlide() {
     img.draggable     = false;
     img.onload        = () => wrap.querySelector(".st-preview-network-spinner")?.remove();
     wrap.appendChild(img);
+
     _startProgressBar(slideDuration);
     previewTimer = setTimeout(() => { if (!previewCtaPaused && !previewHolding) previewNav(1); }, slideDuration * 1000);
   }
@@ -2790,7 +2771,6 @@ function _renderPreviewSlide() {
           e.preventDefault();
           showProductPreview(s.product_id, s.product_name);
         });
-
       } else if (s.link_type === "whatsapp") {
         ctaNew.style.cssText = `
           display:block;background:linear-gradient(135deg,#28A428,#34BF49);
@@ -2807,7 +2787,6 @@ function _renderPreviewSlide() {
           );
           _scheduleVisibilityResume();
         });
-
       } else {
         // External link
         ctaNew.style.cssText = `
@@ -2877,7 +2856,7 @@ function _startProgressBar(durationSecs) {
 function _pauseProgressBar() {
   const fill = document.getElementById("previewProgFill");
   if (!fill) return;
-  const w = getComputedStyle(fill).width;
+  const w           = getComputedStyle(fill).width;
   fill.style.transition = "none";
   fill.style.width      = w;
 }
@@ -2955,6 +2934,7 @@ function onPreviewTouchEnd(e, defaultDir) {
   if (previewCtaPaused) return;
   e.preventDefault();
   previewHolding = false;
+
   const held   = Date.now() - previewTouchStartT;
   const deltaX = (e.changedTouches?.[0]?.clientX || previewTouchStartX) - previewTouchStartX;
   const wrap   = document.getElementById("previewMediaWrap");
@@ -2965,6 +2945,7 @@ function onPreviewTouchEnd(e, defaultDir) {
     if (s?.type === "image") previewTimer = setTimeout(() => previewNav(1), 4000);
     return;
   }
+
   if (Math.abs(deltaX) > 35) { previewNav(deltaX < 0 ? 1 : -1); return; }
   previewNav(defaultDir === "next" ? 1 : -1);
 }
@@ -2973,7 +2954,7 @@ window.onPreviewTouchEnd = onPreviewTouchEnd;
 // ============================================================
 // FILTER HANDLERS
 // ============================================================
-window.handleStorySearchFilter = function () { renderStories(); };
+window.handleStorySearchFilter  = function () { renderStories(); };
 
 window.filterMediaType = function (mediaType, btnElement) {
   currentMediaTypeFilter = mediaType;
@@ -3015,20 +2996,19 @@ window.handleRoleSelectFilter = function (selectElement) {
 // (toast() already exists in the outer DOMContentLoaded scope — no redeclaration)
 
 // ================================================================
-// CATEGORIES TAB — JavaScript v2  |  LIYOG ADMIN DASHBOARD
+// CATEGORIES TAB — JavaScript v2 | LIYOG ADMIN DASHBOARD
 // Friendly language · Global CSS tokens · Search · Premium UX
 // All RPC calls unchanged — only UI layer upgraded
 // ================================================================
-
 const EMOJI_SHORTCUTS = [
   "👟","📱","🍔","👗","💄","🎮","📸","🏠","🌿","⌚",
-  "🎒","🏋️","🍕","💻","🧴","🎁","👒","🛍️","🌸","🎵"
+  "🎒","🏋","🍕","💻","🧴","🎁","👒","🛍","🌸","🎵"
 ];
 
 // Module state
-let catEditingId   = null;
+let catEditingId = null;
 let activeStoreCategoriesCache = []; // raw DB data, never mutated
-let _catSortable   = null;
+let _catSortable = null;
 let _catSearchTerm = "";
 
 // ── Render emoji picker inside modal
@@ -3036,12 +3016,11 @@ function renderEmojiPicker() {
   const picker = document.getElementById("emojiPicker");
   if (!picker) return;
   picker.innerHTML = "";
-
   EMOJI_SHORTCUTS.forEach(em => {
     const btn = document.createElement("button");
-    btn.type      = "button";
+    btn.type = "button";
     btn.textContent = em;
-    btn.title     = `Use ${em} as icon`;
+    btn.title = `Use ${em} as icon`;
     btn.style.cssText = `
       font-size:20px;
       cursor:pointer;
@@ -3056,18 +3035,17 @@ function renderEmojiPicker() {
       font-family:var(--font-body);
     `;
     btn.onmouseenter = () => {
-      btn.style.transform  = "scale(1.2) translateY(-1px)";
+      btn.style.transform = "scale(1.2) translateY(-1px)";
       btn.style.background = "rgba(40,164,40,.1)";
     };
     btn.onmouseleave = () => {
-      btn.style.transform  = "scale(1)";
+      btn.style.transform = "scale(1)";
       btn.style.background = "transparent";
     };
     btn.onclick = () => {
       const emojiEl = document.getElementById("catIconEmoji");
       const preview = document.getElementById("catIconPreview");
       emojiEl.textContent = em;
-      
       // Visual feedback — pulse the preview
       preview.style.transform = "scale(1.08)";
       setTimeout(() => preview.style.transform = "scale(1)", 180);
@@ -3079,37 +3057,34 @@ function renderEmojiPicker() {
 // ── Open modal
 window.openCatModal = function (id = null) {
   catEditingId = id;
-
-  const nameInput  = document.getElementById("catNameInput");
-  const modalTitle = document.getElementById("catModalTitle");
-  const modalIcon  = document.getElementById("catModalIcon");
-  const emojiEl    = document.getElementById("catIconEmoji");
-  const auditBox   = document.getElementById("catAuditTrailBox");
-  const saveBtn    = document.getElementById("catSaveBtn");
+  const nameInput    = document.getElementById("catNameInput");
+  const modalTitle   = document.getElementById("catModalTitle");
+  const modalIcon    = document.getElementById("catModalIcon");
+  const emojiEl      = document.getElementById("catIconEmoji");
+  const auditBox     = document.getElementById("catAuditTrailBox");
+  const saveBtn      = document.getElementById("catSaveBtn");
 
   // Reset Form
   nameInput.value = "";
   nameInput.classList.remove("input-error", "animate-shake");
-  emojiEl.textContent   = "🏷️";
-  saveBtn.textContent   = "Save Category";
-  saveBtn.disabled      = false;
+  emojiEl.textContent = "🏷";
+  saveBtn.textContent = "Save Category";
+  saveBtn.disabled = false;
 
   if (id) {
     const cat = activeStoreCategoriesCache.find(c => c.id === id);
     if (cat) {
-      nameInput.value        = cat.name;
+      nameInput.value = cat.name;
       modalTitle.textContent = "Edit Category";
       modalIcon.textContent  = "✏️";
-
       // If it contains an icon, render it straight as text safely
       if (cat.icon && !cat.icon.startsWith("http")) {
         emojiEl.textContent = cat.icon;
       } else {
-        emojiEl.textContent = "🏷️";
+        emojiEl.textContent = "🏷";
       }
-
       document.getElementById("catAuditCreator").textContent = cat.creator_name || "—";
-      document.getElementById("catAuditUpdater").textContent = cat.updater_name  || "—";
+      document.getElementById("catAuditUpdater").textContent = cat.updater_name || "—";
       auditBox.style.display = "block";
     }
   } else {
@@ -3138,8 +3113,7 @@ document.getElementById("catModal").addEventListener("click", function (e) {
 // ── Save / update category
 window.saveCategory = async function () {
   const nameInput = document.getElementById("catNameInput");
-  const name      = nameInput.value.trim();
-
+  const name = nameInput.value.trim();
   if (!name) {
     nameInput.classList.add("input-error", "animate-shake");
     setTimeout(() => nameInput.classList.remove("animate-shake"), 400);
@@ -3155,12 +3129,12 @@ window.saveCategory = async function () {
 
   try {
     let finalIconValue = document.getElementById("catIconEmoji").textContent;
-
     // Security Fallback validation: Ensure we don't send broken values or plain placeholder text
-    if (!finalIconValue || finalIconValue === "🏷️") {
-      // Extract the absolute first character typed into the name input box (safely checks for emojis via string splitting iterator)
+    if (!finalIconValue || finalIconValue === "🏷") {
+      // Extract the absolute first character typed into the name input box (safely checks for emojis
+      // via string splitting iterator)
       const segments = [...name];
-      finalIconValue = segments[0] || "📦"; 
+      finalIconValue = segments[0] || "📦";
     }
 
     if (catEditingId) {
@@ -3178,6 +3152,10 @@ window.saveCategory = async function () {
       });
       if (error) throw error;
       toast("Category created! ✓", "success");
+      // ── INTEL HOOK: fire after successful category creation
+      if (window.INTEL && typeof window.INTEL.trackAction === "function") {
+        window.INTEL.trackAction("categoryAdded");
+      }
     }
 
     window.closeCatModal();
@@ -3188,7 +3166,7 @@ window.saveCategory = async function () {
     console.error("Category save error:", err);
     toast(err.message || "Couldn't save category. Please try again.", "error");
   } finally {
-    saveBtn.disabled    = false;
+    saveBtn.disabled = false;
     saveBtn.textContent = "Save Category";
   }
 };
@@ -3196,6 +3174,7 @@ window.saveCategory = async function () {
 // ── Delete category
 window.deleteCategory = async function (id, name) {
   if (!confirm(`Delete "${name}"?\n\nProducts in this category will become uncategorised.`)) return;
+
   try {
     const { error } = await supabaseClient.rpc("delete_category_secure", { p_id: id });
     if (error) throw error;
@@ -3217,13 +3196,13 @@ window.filterCatGrid = function (term) {
 // ── Build a single pill element
 function _buildCatPill(cat) {
   const pill = document.createElement("div");
-  pill.className    = "cat-pill";
-  pill.dataset.id   = cat.id;
+  pill.className = "cat-pill";
+  pill.dataset.id = cat.id;
 
   // Render text emoji safely, fall back instantly if old data has a URL asset lingering
   const displayIcon = (cat.icon && !cat.icon.startsWith("http")) ? cat.icon : "📦";
-  const iconMarkup = `<div class="cat-pill-icon">${displayIcon}</div>`;
-  const safeName = (cat.name || "").replace(/'/g, "\\'");
+  const iconMarkup  = `<div class="cat-pill-icon">${displayIcon}</div>`;
+  const safeName    = (cat.name || "").replace(/'/g, "\\'");
 
   pill.innerHTML = `
     ${iconMarkup}
@@ -3234,7 +3213,7 @@ function _buildCatPill(cat) {
         title="Edit">✏️</button>
       <button class="cat-pill-btn cat-delete-btn"
         onclick="window.deleteCategory('${cat.id}','${safeName}')"
-        title="Delete">🗑️</button>
+        title="Delete">🗑</button>
     </div>`;
 
   return pill;
@@ -3256,7 +3235,7 @@ function _renderCatGrid() {
   if (activeStoreCategoriesCache.length === 0) {
     grid.innerHTML = `
       <div class="cat-empty-state">
-        <div class="cat-empty-icon">🗂️</div>
+        <div class="cat-empty-icon">🗂</div>
         <div class="cat-empty-title">No categories yet</div>
         <div class="cat-empty-sub">Tap "New Category" to get started</div>
       </div>`;
@@ -3276,21 +3255,18 @@ function _renderCatGrid() {
   if (!_catSearchTerm) {
     _catSortable = Sortable.create(grid, {
       animation: 200,
-      ghostClass:   "sortable-ghost",
-      chosenClass:  "sortable-chosen",
-      delay:           120,
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      delay: 120,
       delayOnTouchOnly: true,
       onEnd: async () => {
         const updatedIds = Array.from(grid.querySelectorAll(".cat-pill"))
           .map(el => el.dataset.id)
           .filter(Boolean);
-
         toast("Saving order…", "info", 1000);
-
         const { error } = await supabaseClient.rpc("reorder_categories", {
           p_ids: updatedIds
         });
-
         if (error) {
           console.error("Reorder error:", error);
           toast("Couldn't save new order. Please try again.", "error");
@@ -3309,12 +3285,11 @@ function _renderCatGrid() {
 
 // ── Load + render categories from DB
 async function loadCategoriesTab() {
-  const grid       = document.getElementById("catGrid");
-  const reloadBtn  = document.getElementById("catReloadBtn");
+  const grid      = document.getElementById("catGrid");
+  const reloadBtn = document.getElementById("catReloadBtn");
   if (!grid) return;
 
-  if (reloadBtn)  reloadBtn.classList.add("spinning");
-
+  if (reloadBtn) reloadBtn.classList.add("spinning");
   grid.innerHTML = [1, 2, 3, 4].map(() => `
     <div class="cat-pill" style="pointer-events:none;opacity:.7;">
       <div class="cat-skel-icon"></div>
@@ -3324,7 +3299,6 @@ async function loadCategoriesTab() {
   try {
     const { data, error } = await supabaseClient.rpc("get_store_categories_v2");
     if (error) throw error;
-
     activeStoreCategoriesCache = data || [];
 
     const badge = document.getElementById("catCountBadge");
@@ -3337,7 +3311,6 @@ async function loadCategoriesTab() {
     if (searchInput) { searchInput.value = ""; _catSearchTerm = ""; }
 
     _renderCatGrid();
-
   } catch (err) {
     console.error("Categories load error:", err);
     grid.innerHTML = `
@@ -3345,7 +3318,8 @@ async function loadCategoriesTab() {
         <div style="font-size:36px;margin-bottom:10px;">😕</div>
         <p style="font-weight:700;color:var(--text-primary);margin-bottom:6px;">Couldn't load categories</p>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Check your connection and try again</p>
-        <button onclick="loadCategoriesTab()" style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
+        <button onclick="loadCategoriesTab()"
+          style="background:linear-gradient(135deg,var(--liyog-green),var(--liyog-green-dark));color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-body);">🔄 Retry</button>
       </div>`;
     toast("Couldn't load categories. Please try again.", "error");
   } finally {
@@ -3355,32 +3329,31 @@ async function loadCategoriesTab() {
 
 window.loadCategoriesTab = loadCategoriesTab;
 
-
 // ================================================================
-//  SETTINGS TAB — COMPLETE FIXED JS (PERFECTED MULTI-TENANT SAAS)
-//  Fixes:
-//  1. loadSettings exposed to window scope (reload button)
-//  2. CORS / fetch fix for local editor (R2 upload via supabaseUrl)
-//  3. Quill link popup z-index fix via CSS injection
-//  4. Currencies & countries fetched from Supabase DB
-//  5. Immediate R2 sync on logo/photo/doc remove (no orphans)
-//  6. Listeners bound once after DOM ready
-//  7. Resolved RPC 404 & Edge 400 by adhering to existing API signatures
+// SETTINGS TAB — COMPLETE FIXED JS (PERFECTED MULTI-TENANT SAAS)
+// Fixes:
+// 1. loadSettings exposed to window scope (reload button)
+// 2. CORS / fetch fix for local editor (R2 upload via supabaseUrl)
+// 3. Quill link popup z-index fix via CSS injection
+// 4. Currencies & countries fetched from Supabase DB
+// 5. Immediate R2 sync on logo/photo/doc remove (no orphans)
+// 6. Listeners bound once after DOM ready
+// 7. Resolved RPC 404 & Edge 400 by adhering to existing API signatures
 // ================================================================
 
 // ── STATE ────────────────────────────────────────────────────────
-let settingsProfileId = null;
-let selectedCurrency  = "₦";
-let catBadges         = [];
-let storePhotos       = [];  // {url, isNew, file?, isSaved}
-let storeDocs         = [];  // {url, isNew, file?, isPdf, name, isSaved}
-let _pendingLogoFile  = null;
-let _existingLogoUrl  = null;
-let bioEditor         = null;
-let _listenersBound   = false;
-let _settingsLoaded   = false; // track first load
+let settingsProfileId  = null;
+let selectedCurrency   = "₦";
+let catBadges          = [];
+let storePhotos        = []; // {url, isNew, file?, isSaved}
+let storeDocs          = []; // {url, isNew, file?, isPdf, name, isSaved}
+let _pendingLogoFile   = null;
+let _existingLogoUrl   = null;
+let bioEditor          = null;
+let _listenersBound    = false;
+let _settingsLoaded    = false; // track first load
 
-const R2_PUBLIC_BASE  = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
+const R2_PUBLIC_BASE = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
 
 // ── QUILL LINK POPUP FIX (z-index) ───────────────────────────────
 // Inject CSS to fix Quill tooltip showing below the editor box
@@ -3390,16 +3363,13 @@ const R2_PUBLIC_BASE  = "https://pub-0fc5736899f3449d987d356eafdca873.r2.dev";
     .ql-tooltip {
       z-index: 9999 !important;
     }
-
     /* Ensure editor container doesn't clip tooltip */
     .ql-container {
       overflow: visible !important;
     }
-
     .ql-editor {
       overflow: visible !important;
     }
-
     /* Optional: prevent parent clipping */
     #st_bio_editor {
       overflow: visible !important;
@@ -3414,7 +3384,7 @@ function r2KeyFromUrl(url) {
   return url.replace(R2_PUBLIC_BASE + "/", "");
 }
 
-/** Upload to R2 via presigned PUT 
+/** Upload to R2 via presigned PUT
  * Matches your secure multi-tenant Edge Function parameters exactly
  */
 async function settingsUploadFile(file, folder) {
@@ -3425,17 +3395,16 @@ async function settingsUploadFile(file, folder) {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${currentSessionToken}` // Authenticates your secure edge functions
     },
-    body: JSON.stringify({ 
-      fileName: file.name, 
-      fileType: file.type, 
-      folder: folder,
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: file.type,
+      folder:   folder,
       fileSize: file.size // <-- FIXED: Added to satisfy edge size-limit validation rules!
-    }) 
+    })
   });
-  
   const result = await res.json();
   if (!res.ok) throw new Error(result.error || "Failed to get upload URL");
-  
+
   // Step 2: PUT file directly to R2
   const upload = await fetch(result.uploadUrl, {
     method: "PUT",
@@ -3443,12 +3412,12 @@ async function settingsUploadFile(file, folder) {
     body: file
   });
   if (!upload.ok) throw new Error("Storage upload failed");
-  
+
   // Step 3: Return public URL
   return result.publicUrl;
 }
 
-/** Delete from R2 immediately 
+/** Delete from R2 immediately
  * Cleaned up path formatting to avoid duplicate slash artifacts
  */
 async function settingsDeleteFromR2(url) {
@@ -3456,10 +3425,8 @@ async function settingsDeleteFromR2(url) {
   try {
     // Strip public base url prefix to cleanly isolate the direct R2 object storage key path
     const basePrefix = R2_PUBLIC_BASE + "/";
-    const fileKey = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
-    
+    const fileKey    = url.startsWith(basePrefix) ? url.replace(basePrefix, "") : url;
     if (!fileKey || fileKey === url) return true;
-    
     const res = await fetch(`${supabaseUrl}/functions/v1/delete-r2-file`, {
       method: "POST",
       headers: {
@@ -3513,15 +3480,15 @@ async function compressForSettings(file) {
     try { return await optimizeImage(file); } catch(e) {}
   }
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img    = new Image();
     const reader = new FileReader();
     reader.onload = e => { img.src = e.target.result; };
     reader.onerror = reject;
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const maxW = 1200;
-      const scale = Math.min(1, maxW / img.width);
+      const ctx    = canvas.getContext("2d");
+      const maxW   = 1200;
+      const scale  = Math.min(1, maxW / img.width);
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -3562,8 +3529,8 @@ function lockTextField(id) {
   el.addEventListener("paste", (e) => {
     e.preventDefault();
     const text = (e.clipboardData || window.clipboardData).getData("text/plain");
-    const pos = el.selectionStart;
-    el.value = el.value.slice(0, pos) + text + el.value.slice(el.selectionEnd);
+    const pos  = el.selectionStart;
+    el.value   = el.value.slice(0, pos) + text + el.value.slice(el.selectionEnd);
   });
 }
 
@@ -3608,18 +3575,16 @@ async function loadCurrencyOptions(selectedSymbol) {
   const container = document.getElementById("currencyOptions");
   const label     = document.getElementById("selectedCurrencyLabel");
   if (!container) return;
-
   try {
     const { data, error } = await supabaseClient.rpc("get_currencies");
     if (error) throw error;
-
     container.innerHTML = "";
     data.forEach(c => {
       const btn = document.createElement("button");
-      btn.className = "currency-chip";
-      btn.dataset.symbol = c.symbol;
-      btn.textContent = `${c.symbol} ${c.name}`;
-      btn.onclick = function() { window.selectCurrency(this); };
+      btn.className       = "currency-chip";
+      btn.dataset.symbol  = c.symbol;
+      btn.textContent     = `${c.symbol} ${c.name}`;
+      btn.onclick         = function() { window.selectCurrency(this); };
       if (c.symbol === selectedSymbol) {
         btn.classList.add("active");
         if (label) label.textContent = btn.textContent;
@@ -3637,10 +3602,10 @@ async function loadCurrencyOptions(selectedSymbol) {
     container.innerHTML = "";
     fallback.forEach(c => {
       const btn = document.createElement("button");
-      btn.className = "currency-chip";
+      btn.className      = "currency-chip";
       btn.dataset.symbol = c.symbol;
-      btn.textContent = `${c.symbol} ${c.name}`;
-      btn.onclick = function() { window.selectCurrency(this); };
+      btn.textContent    = `${c.symbol} ${c.name}`;
+      btn.onclick        = function() { window.selectCurrency(this); };
       if (c.symbol === selectedSymbol) {
         btn.classList.add("active");
         if (label) label.textContent = btn.textContent;
@@ -3655,15 +3620,13 @@ async function loadCurrencyOptions(selectedSymbol) {
 async function loadCountryOptions(selectedCode) {
   const select = document.getElementById("st_country");
   if (!select) return;
-
   try {
     const { data, error } = await supabaseClient.rpc("get_countries");
     if (error) throw error;
-
     select.innerHTML = `<option value="">Select country...</option>`;
     data.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.name;
+      const opt     = document.createElement("option");
+      opt.value     = c.name;
       opt.textContent = `${c.flag} ${c.name}`;
       if (c.name === selectedCode) opt.selected = true;
       select.appendChild(opt);
@@ -3690,14 +3653,14 @@ function renderBadges() {
   catBadges.forEach((badge, i) => {
     const chip = document.createElement("span");
     chip.className = "badge-chip";
-    chip.innerHTML = `🛡️ ${badge} <span class="remove-badge" onclick="removeBadge(${i})">×</span>`;
+    chip.innerHTML = `🛡 ${badge} <span class="remove-badge" onclick="removeBadge(${i})">×</span>`;
     list.appendChild(chip);
   });
 }
 
 window.addBadge = function() {
   const input = document.getElementById("newBadgeInput");
-  const val = stripHtml(input.value.trim());
+  const val   = stripHtml(input.value.trim());
   if (!val) return toast("Type a badge text first.", "info");
   if (catBadges.length >= 8) return toast("Max 8 badges.", "error");
   catBadges.push(val);
@@ -3716,8 +3679,8 @@ function showLogoPreview(url) {
   const placeholder = document.getElementById("logoPlaceholder");
   const actions     = document.getElementById("logoActions");
   if (img)         { img.src = url; img.style.display = "block"; }
-  if (placeholder)   placeholder.style.display = "none";
-  if (actions)       actions.style.display = "flex";
+  if (placeholder) placeholder.style.display = "none";
+  if (actions)     actions.style.display = "flex";
 }
 
 function clearLogoPreview() {
@@ -3725,20 +3688,18 @@ function clearLogoPreview() {
   const placeholder = document.getElementById("logoPlaceholder");
   const actions     = document.getElementById("logoActions");
   if (img)         { img.src = ""; img.style.display = "none"; }
-  if (placeholder)   placeholder.style.display = "flex";
-  if (actions)       actions.style.display = "none";
+  if (placeholder) placeholder.style.display = "flex";
+  if (actions)     actions.style.display = "none";
 }
 
 window.removeLogo = async function() {
   const btn = document.getElementById("removeLogoBtn");
   if (btn) { btn.disabled = true; btn.textContent = "Removing…"; }
-
   try {
     const urlToDelete = _existingLogoUrl;
-    _existingLogoUrl = null;
-    _pendingLogoFile = null;
+    _existingLogoUrl  = null;
+    _pendingLogoFile  = null;
     clearLogoPreview();
-
     if (urlToDelete) {
       await settingsDeleteFromR2(urlToDelete);
       await _syncLogoToSupabase(null);
@@ -3757,7 +3718,6 @@ function renderStorePhotos() {
   const addBtn  = document.getElementById("storePhotosAddBtn");
   const countEl = document.getElementById("storePhotosCount");
   if (!grid) return;
-
   grid.innerHTML = "";
   storePhotos.forEach((photo, i) => {
     const item = document.createElement("div");
@@ -3774,7 +3734,6 @@ function renderStorePhotos() {
     }
     grid.appendChild(item);
   });
-
   const count = storePhotos.filter(p => !p.isUploading).length;
   if (countEl) countEl.textContent = `${storePhotos.length} / 5`;
   if (addBtn)  addBtn.style.display = storePhotos.length >= 5 ? "none" : "flex";
@@ -3783,10 +3742,8 @@ function renderStorePhotos() {
 window.removeStorePhoto = async function(i) {
   const photo = storePhotos[i];
   if (!photo) return;
-
   storePhotos.splice(i, 1);
   renderStorePhotos();
-
   if (photo.isSaved && photo.url.startsWith(R2_PUBLIC_BASE)) {
     await settingsDeleteFromR2(photo.url);
     await _syncPhotosToSupabase();
@@ -3799,13 +3756,11 @@ function renderDocs() {
   const addBtn  = document.getElementById("docsAddBtn");
   const countEl = document.getElementById("docsCount");
   if (!grid) return;
-
   grid.innerHTML = "";
   storeDocs.forEach((doc, i) => {
     const item = document.createElement("div");
     item.className = "st-doc-item";
     item.title = doc.name || "Document";
-
     if (doc.isUploading) {
       item.innerHTML = `
         <span class="st-doc-icon">⏳</span>
@@ -3829,7 +3784,6 @@ function renderDocs() {
     }
     grid.appendChild(item);
   });
-
   const count = storeDocs.length;
   if (countEl) countEl.textContent = `${count} / 3`;
   if (addBtn)  addBtn.style.display = count >= 3 ? "none" : "flex";
@@ -3838,10 +3792,8 @@ function renderDocs() {
 window.removeDoc = async function(i) {
   const doc = storeDocs[i];
   if (!doc) return;
-
   storeDocs.splice(i, 1);
   renderDocs();
-
   if (doc.isSaved && doc.url.startsWith(R2_PUBLIC_BASE)) {
     await settingsDeleteFromR2(doc.url);
     await _syncDocsToSupabase();
@@ -3883,25 +3835,20 @@ function _bindSettingsListeners() {
     const file = e.target.files[0];
     if (!file) return;
     this.value = "";
-
-    const oldUrl = _existingLogoUrl;
+    const oldUrl     = _existingLogoUrl;
     const previewUrl = URL.createObjectURL(file);
     showLogoPreview(previewUrl);
-
     try {
       const compressed = await compressForSettings(file);
       toast("Uploading logo…", "info");
       const newUrl = await settingsUploadFile(compressed, "logos");
-
       await _syncLogoToSupabase(newUrl);
       if (oldUrl) await settingsDeleteFromR2(oldUrl);
-
       _existingLogoUrl = newUrl;
       _pendingLogoFile = null;
       showLogoPreview(newUrl);
       URL.revokeObjectURL(previewUrl);
       toast("Logo saved ✓", "success");
-
     } catch(err) {
       clearLogoPreview();
       if (oldUrl) showLogoPreview(oldUrl);
@@ -3915,26 +3862,20 @@ function _bindSettingsListeners() {
     const file = e.target.files[0];
     if (!file) return;
     this.value = "";
-
     if (storePhotos.length >= 5) return toast("Max 5 store photos.", "error");
-
     const placeholder = { url: "", isUploading: true, isSaved: false };
     storePhotos.push(placeholder);
     renderStorePhotos();
-
     try {
-      const compressed = await compressForSettings(file);
+      const compressed  = await compressForSettings(file);
       const uploadedUrl = await settingsUploadFile(compressed, "store-photos");
-
       const idx = storePhotos.indexOf(placeholder);
       if (idx > -1) {
         storePhotos[idx] = { url: uploadedUrl, isUploading: false, isSaved: true };
       }
-
       await _syncPhotosToSupabase();
       renderStorePhotos();
       toast("Photo added ✓", "success");
-
     } catch(err) {
       const idx = storePhotos.indexOf(placeholder);
       if (idx > -1) storePhotos.splice(idx, 1);
@@ -3948,22 +3889,17 @@ function _bindSettingsListeners() {
     const file = e.target.files[0];
     if (!file) return;
     this.value = "";
-
     if (storeDocs.length >= 3) return toast("Max 3 documents.", "error");
-
-    const isPdf = file.type === "application/pdf";
+    const isPdf       = file.type === "application/pdf";
     const placeholder = { url: "", isUploading: true, isSaved: false, isPdf, name: file.name };
     storeDocs.push(placeholder);
     renderDocs();
-
     try {
       let processedFile = file;
       if (!isPdf) {
         try { processedFile = await compressForSettings(file); } catch(e) {}
       }
-
       const uploadedUrl = await settingsUploadFile(processedFile, "documents");
-
       const idx = storeDocs.indexOf(placeholder);
       if (idx > -1) {
         storeDocs[idx] = {
@@ -3971,11 +3907,9 @@ function _bindSettingsListeners() {
           isPdf, name: file.name
         };
       }
-
       await _syncDocsToSupabase();
       renderDocs();
       toast("Document added ✓", "success");
-
     } catch(err) {
       const idx = storeDocs.indexOf(placeholder);
       if (idx > -1) storeDocs.splice(idx, 1);
@@ -3999,20 +3933,17 @@ function _bindSettingsListeners() {
 async function loadBusinessTypeOptions(selectedVal) {
   const select = document.getElementById("st_business_type");
   if (!select) return;
-
   try {
     const { data, error } = await supabaseClient.rpc("get_business_types");
     if (error) throw error;
-
     select.innerHTML = `<option value="">Select business type...</option>`;
     data.forEach(b => {
-      const opt = document.createElement("option");
-      opt.value = b.name;
+      const opt     = document.createElement("option");
+      opt.value     = b.name;
       opt.textContent = b.name;
       if (b.name === selectedVal) opt.selected = true;
       select.appendChild(opt);
     });
-
   } catch (e) {
     console.warn("Business types DB failed, using fallback", e);
     const fallback = [
@@ -4022,8 +3953,8 @@ async function loadBusinessTypeOptions(selectedVal) {
     ];
     select.innerHTML = `<option value="">Select business type...</option>`;
     fallback.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
+      const opt       = document.createElement("option");
+      opt.value       = name;
       opt.textContent = name;
       if (name === selectedVal) opt.selected = true;
       select.appendChild(opt);
@@ -4054,22 +3985,22 @@ window.loadSettings = async function() {
     if (data) {
       settingsProfileId = data.id;
 
-      setVal("st_business_name", data.business_name    || "");
-      setVal("st_tagline",       data.tagline           || "");
-      setVal("st_whatsapp",      data.whatsapp_number   || "");
-      setVal("st_phone",         data.phone_number      || "");
-      setVal("st_address",       data.store_address     || "");
-      setVal("st_city",          data.store_city        || "");
-      setVal("st_wa_message",    data.wa_message        || "Hi, I want to buy [Product Name]");
-      setVal("st_response_time", data.response_time     || "");
-      setVal("st_delivery_info", data.delivery_info     || "");
-      setVal("st_return_policy", data.return_policy     || "");
-      setVal("st_year_est",      data.year_established  || "");
+      setVal("st_business_name", data.business_name || "");
+      setVal("st_tagline",       data.tagline        || "");
+      setVal("st_whatsapp",      data.whatsapp_number || "");
+      setVal("st_phone",         data.phone_number    || "");
+      setVal("st_address",       data.store_address   || "");
+      setVal("st_city",          data.store_city      || "");
+      setVal("st_wa_message",    data.wa_message      || "Hi, I want to buy [Product Name]");
+      setVal("st_response_time", data.response_time   || "");
+      setVal("st_delivery_info", data.delivery_info   || "");
+      setVal("st_return_policy", data.return_policy   || "");
+      setVal("st_year_est",      data.year_established || "");
       setSelectVal("st_business_type", data.business_type || "");
 
       await Promise.all([
         loadCurrencyOptions(data.currency_symbol || "₦"),
-        loadCountryOptions(data.store_country || ""),
+        loadCountryOptions(data.store_country    || ""),
         loadBusinessTypeOptions(data.business_type || "")
       ]);
 
@@ -4099,7 +4030,7 @@ window.loadSettings = async function() {
       storeDocs = rawDocs.map(url => ({
         url, isUploading: false, isSaved: true,
         isPdf: url.toLowerCase().endsWith(".pdf"),
-        name: decodeURIComponent(url.split("/").pop())
+        name:  decodeURIComponent(url.split("/").pop())
       }));
       renderDocs();
 
@@ -4119,14 +4050,13 @@ window.loadSettings = async function() {
     }
 
     if (skeleton) skeleton.style.display = "none";
-    if (form)      form.style.display     = "block";
-
+    if (form)     form.style.display = "block";
     _bindSettingsListeners();
 
   } catch (err) {
     console.error("loadSettings error:", err);
     if (skeleton) skeleton.style.display = "none";
-    if (form)      form.style.display     = "block";
+    if (form)     form.style.display = "block";
     initQuill();
     _bindSettingsListeners();
     toast("Could not load settings.", "info");
@@ -4138,14 +4068,14 @@ window.loadSettings = async function() {
 // ── SAVE SETTINGS ─────────────────────────────────────────────────
 window.saveSettings = async function() {
   const btn = document.getElementById("saveSettingsBtn");
-  btn.disabled = true;
+  btn.disabled  = true;
   btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;vertical-align:middle;"></div>Saving…`;
 
   try {
     let bioHtml = "";
     if (bioEditor) {
       const raw = bioEditor.root.innerHTML;
-      bioHtml = sanitizeHtml(raw);
+      bioHtml   = sanitizeHtml(raw);
       if (bioHtml === "<p><br></p>") bioHtml = "";
     }
 
@@ -4154,32 +4084,32 @@ window.saveSettings = async function() {
 
     // RESTORED SIGNATURE: Removed p_store_id parameter so it perfectly maps your current RPC signature
     const payload = {
-      p_id:               settingsProfileId,
-      p_business_name:    getVal("st_business_name"),
-      p_tagline:          getVal("st_tagline"),
-      p_whatsapp_number:  getVal("st_whatsapp"),
-      p_bio:              bioHtml,
-      p_phone_number:     getVal("st_phone"),
-      p_store_address:    getVal("st_address"),
-      p_store_city:       getVal("st_city"),
-      p_store_country:    getVal("st_country"),
-      p_wa_message:       getVal("st_wa_message"),
-      p_response_time:    getVal("st_response_time"),
-      p_delivery_info:    getVal("st_delivery_info"),
-      p_currency_symbol:  selectedCurrency,
-      p_trust_badges:     catBadges,
-      p_logo_url:         _existingLogoUrl || null,
-      p_social_facebook:  getUrlVal("st_facebook"),
-      p_social_instagram: getUrlVal("st_instagram"),
-      p_social_twitter:   getUrlVal("st_twitter"),
-      p_social_tiktok:    getUrlVal("st_tiktok"),
-      p_social_youtube:   getUrlVal("st_youtube"),
-      p_social_website:   getUrlVal("st_website"),
-      p_store_photos:     finalPhotos,
-      p_documents:        finalDocs,
-      p_return_policy:    getVal("st_return_policy"),
-      p_year_established: getVal("st_year_est"),
-      p_business_type:    getVal("st_business_type")
+      p_id:              settingsProfileId,
+      p_business_name:   getVal("st_business_name"),
+      p_tagline:         getVal("st_tagline"),
+      p_whatsapp_number: getVal("st_whatsapp"),
+      p_bio:             bioHtml,
+      p_phone_number:    getVal("st_phone"),
+      p_store_address:   getVal("st_address"),
+      p_store_city:      getVal("st_city"),
+      p_store_country:   getVal("st_country"),
+      p_wa_message:      getVal("st_wa_message"),
+      p_response_time:   getVal("st_response_time"),
+      p_delivery_info:   getVal("st_delivery_info"),
+      p_currency_symbol: selectedCurrency,
+      p_trust_badges:    catBadges,
+      p_logo_url:        _existingLogoUrl || null,
+      p_social_facebook: getUrlVal("st_facebook"),
+      p_social_instagram:getUrlVal("st_instagram"),
+      p_social_twitter:  getUrlVal("st_twitter"),
+      p_social_tiktok:   getUrlVal("st_tiktok"),
+      p_social_youtube:  getUrlVal("st_youtube"),
+      p_social_website:  getUrlVal("st_website"),
+      p_store_photos:    finalPhotos,
+      p_documents:       finalDocs,
+      p_return_policy:   getVal("st_return_policy"),
+      p_year_established:getVal("st_year_est"),
+      p_business_type:   getVal("st_business_type")
     };
 
     const { data: saved, error } = await supabaseClient.rpc("upsert_profile", payload);
@@ -4188,7 +4118,12 @@ window.saveSettings = async function() {
     if (saved && saved.length > 0 && saved[0].id) {
       settingsProfileId = saved[0].id;
       storePhotos.forEach(p => p.isSaved = true);
-      storeDocs.forEach(d => d.isSaved = true);
+      storeDocs.forEach(d => d.isSaved   = true);
+    }
+
+    // ── INTEL HOOK: fire after successful settings save
+    if (window.INTEL && typeof window.INTEL.trackAction === "function") {
+      window.INTEL.trackAction("profileUpdated");
     }
 
     const savedTag = document.getElementById("settingsSavedTag");
@@ -4196,13 +4131,14 @@ window.saveSettings = async function() {
       savedTag.classList.add("show");
       setTimeout(() => savedTag.classList.remove("show"), 3000);
     }
+
     toast("Settings saved ✓", "success");
 
   } catch (err) {
     console.error("saveSettings error:", err);
     toast(err.message || "Failed to save settings.", "error");
   } finally {
-    btn.disabled = false;
+    btn.disabled  = false;
     btn.innerHTML = "Save All Settings";
   }
 };
@@ -4435,4 +4371,5 @@ document.addEventListener("DOMContentLoaded", () => {
   switchTab(initialTab);
 });
 });
+
 
