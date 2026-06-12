@@ -755,3 +755,249 @@ window.INTEL = {
   }
 };
 
+      
+// ============================================================================
+// BiziNet · Dashboard Realtime Sync Engine v1.0
+// dashboard/js/dashboard-flags.js  ← ADD THIS BLOCK AT THE BOTTOM
+//
+// Architecture:
+//   - Zero dependency on tabscript.js
+//   - Subscribes to Supabase Realtime on 5 tables filtered by store_id
+//   - Debounces bursts (e.g. bulk product uploads) into a single refresh
+//   - Reconnects automatically on network drop
+//   - Works alongside existing window.INTEL API (both can coexist safely)
+//   - No polling, no setInterval hammering — pure WebSocket push
+//
+// HOW IT WORKS:
+//   Supabase Realtime listens to Postgres WAL changes.
+//   When any row in products/stories/store_members/profile/stores changes
+//   for THIS store, it fires a WebSocket event → we call refreshLiveMetrics()
+//   → runtime.js re-fetches get_smart_dashboard_state() RPC
+//   → applyDashboardFlags() re-runs IntelEngine → dashboard updates in ~200ms
+//
+// TO ACTIVATE:
+//   Add this entire block to the bottom of your dashboard-flags.js file.
+//   No other files need to change.
+// ============================================================================
+
+const DashboardRealtimeSync = (function () {
+
+  // ── Internal state
+  let _channel        = null;   // Active Supabase Realtime channel
+  let _debounceTimer  = null;   // Burst debounce handle
+  let _storeId        = null;   // Resolved store_id for this session
+  let _isActive       = false;  // Whether sync is currently running
+  let _reconnectTimer = null;   // Reconnect backoff handle
+  let _reconnectDelay = 2000;   // Start at 2s, backs off to max 30s
+  const MAX_RECONNECT = 30000;
+  const DEBOUNCE_MS   = 400;    // Collapse rapid-fire changes into one refresh
+
+  // ── Tables to watch and why
+  const WATCHED_TABLES = [
+    { table: 'products',      reason: 'product count, video uploads' },
+    { table: 'stories',       reason: 'active story count'           },
+    { table: 'store_members', reason: 'staff count'                  },
+    { table: 'profile',       reason: 'profile completeness score'   },
+    { table: 'stores',        reason: 'plan, suspension, trial, flags'},
+  ];
+
+  // ── Resolve store_id from the already-populated runtime context
+  function _resolveStoreId() {
+    // runtime.js populates window.APP_RUNTIME.runtimeState after auth
+    const rt = window.APP_RUNTIME?.runtimeState;
+    if (rt?.store_id) return rt.store_id;
+
+    // Fallback: read from dashboardFlags if already loaded
+    const flags = window.APP_RUNTIME?.dashboardFlags;
+    if (flags?.store_id) return flags.store_id;
+
+    return null;
+  }
+
+  // ── Debounced refresh — collapses rapid-fire changes into one RPC call
+  function _scheduleRefresh(eventInfo) {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = setTimeout(() => {
+      if (typeof window.refreshLiveMetrics === 'function') {
+        window.refreshLiveMetrics();
+      }
+    }, DEBOUNCE_MS);
+  }
+
+  // ── Build and activate the Realtime channel
+  function _subscribe(storeId) {
+    if (!storeId) return;
+
+    const client = window.APP_CLIENT;
+    if (!client) {
+      console.warn('[RealtimeSync] Supabase client not ready yet');
+      return;
+    }
+
+    // Remove any stale channel before creating a new one
+    _unsubscribe();
+
+    // Create one channel that listens to all 5 tables for this store
+    // Supabase Realtime filter syntax: column=eq.value
+    _channel = client.channel(`dashboard_sync_${storeId}`);
+
+    WATCHED_TABLES.forEach(({ table }) => {
+      _channel.on(
+        'postgres_changes',
+        {
+          event:  '*',              // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table:  table,
+          filter: `store_id=eq.${storeId}`
+        },
+        (payload) => {
+          _scheduleRefresh({ table, payload });
+        }
+      );
+    });
+
+    // The `stores` table uses `id` not `store_id` as the PK filter
+    // Re-add for stores table with the correct column
+    _channel.on(
+      'postgres_changes',
+      {
+        event:  '*',
+        schema: 'public',
+        table:  'stores',
+        filter: `id=eq.${storeId}`
+      },
+      (payload) => {
+        _scheduleRefresh({ table: 'stores', payload });
+      }
+    );
+
+    _channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        _isActive = true;
+        _reconnectDelay = 2000; // Reset backoff on successful connect
+      }
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        _isActive = false;
+        _scheduleReconnect();
+      }
+    });
+  }
+
+  // ── Clean up active channel
+  function _unsubscribe() {
+    if (_channel) {
+      const client = window.APP_CLIENT;
+      if (client) {
+        try { client.removeChannel(_channel); } catch (_) {}
+      }
+      _channel = null;
+    }
+    _isActive = false;
+  }
+
+  // ── Exponential backoff reconnect
+  function _scheduleReconnect() {
+    clearTimeout(_reconnectTimer);
+    _reconnectTimer = setTimeout(() => {
+      const storeId = _resolveStoreId();
+      if (storeId) {
+        _subscribe(storeId);
+      }
+      // Back off: 2s → 4s → 8s → 16s → 30s (capped)
+      _reconnectDelay = Math.min(_reconnectDelay * 2, MAX_RECONNECT);
+    }, _reconnectDelay);
+  }
+
+  // ── Public API
+  return {
+
+    /**
+     * Start the realtime sync.
+     * Safe to call multiple times — will not create duplicate channels.
+     * Called automatically once runtime is ready.
+     */
+    start() {
+      if (_isActive) return; // Already running
+
+      _storeId = _resolveStoreId();
+      if (_storeId) {
+        _subscribe(_storeId);
+        return;
+      }
+
+      // Runtime not ready yet — wait for it
+      // runtime.js fires window.APP_RUNTIME_READY when boot completes
+      if (window.APP_RUNTIME_READY && typeof window.APP_RUNTIME_READY.then === 'function') {
+        window.APP_RUNTIME_READY.then(() => {
+          _storeId = _resolveStoreId();
+          if (_storeId) _subscribe(_storeId);
+        }).catch(() => {});
+      } else {
+        // Fallback: poll for runtime readiness (max 10s, every 250ms)
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          _storeId = _resolveStoreId();
+          if (_storeId || attempts > 40) {
+            clearInterval(poll);
+            if (_storeId) _subscribe(_storeId);
+          }
+        }, 250);
+      }
+    },
+
+    /**
+     * Stop and clean up all subscriptions.
+     * Call on logout or when dashboard is unmounted.
+     */
+    stop() {
+      clearTimeout(_debounceTimer);
+      clearTimeout(_reconnectTimer);
+      _unsubscribe();
+    },
+
+    /**
+     * Status check — useful for debugging.
+     */
+    isActive() {
+      return _isActive;
+    }
+  };
+
+})();
+
+// ============================================================================
+// AUTO-START
+// Waits for runtime readiness then starts watching.
+// This fires after dashboard-flags.js loads — no extra wiring needed.
+// ============================================================================
+(function autoStartRealtimeSync() {
+  // If DOM is already loaded, start immediately via the runtime promise
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => DashboardRealtimeSync.start());
+  } else {
+    DashboardRealtimeSync.start();
+  }
+
+  // Also expose on window so runtime.js or devtools can call it
+  window.DashboardRealtimeSync = DashboardRealtimeSync;
+})();
+
+// ============================================================================
+// IMPORTANT: Remove window.INTEL.trackAction() calls from tabscript.js
+// once this is confirmed working. They are now redundant.
+// The Realtime channel covers every action automatically — including:
+//   ✓ Product created/updated/deleted         → products table change
+//   ✓ Video uploaded                          → products table change
+//   ✓ Story created/renewed/deleted           → stories table change
+//   ✓ Category changes                        → (triggers product re-fetch via stories)
+//   ✓ Profile saved/logo/photos/docs          → profile table change
+//   ✓ Plan upgrade/suspension/renewal         → stores table change
+//   ✓ Staff added/removed                     → store_members table change
+//   ✓ Changes made by OTHER team members      → caught automatically
+//   ✓ Server-side changes (admin, cron jobs)  → caught automatically
+// ============================================================================
+
+                               
+
