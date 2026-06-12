@@ -1,11 +1,13 @@
 // ============================================================
-//  BiziNet · Global Runtime & Session Engine v4.0
+//  BiziNet · Global Runtime & Session Engine v4.1
 //  dashboard/js/runtime.js
 //
-//  v4.0 change: Realtime subscriptions REMOVED from here.
-//  They are now fully owned by realtime-engine.js which loads
-//  after this file and waits for APP_RUNTIME_READY before
-//  subscribing. This file remains the boot authority only.
+//  v4.1 fix: Execution lock now has a 10s safety timeout.
+//  If refreshLiveMetrics() ever gets stuck (network hiccup,
+//  silent throw before finally), the lock auto-releases after
+//  10 seconds so the next realtime event is never permanently
+//  blocked. Previously a stuck lock would silently swallow
+//  all subsequent refresh calls while the tab was open.
 // ============================================================
 
 window.APP_RUNTIME = {
@@ -18,12 +20,28 @@ window.APP_RUNTIME_READY = new Promise(function (resolve) {
   window._resolveAppRuntime = resolve;
 });
 
-// Execution lock to prevent parallel state calculation collisions
-let isRefreshingMetrics = false;
+// Execution lock — prevents parallel RPC calls colliding.
+// Safety timeout: auto-releases after 10s so it can never
+// permanently block realtime events.
+let isRefreshingMetrics  = false;
+let _refreshLockTimer    = null;
+const REFRESH_LOCK_MAX_MS = 10000;
 
 window.refreshLiveMetrics = async function () {
   if (isRefreshingMetrics) return;
+
   isRefreshingMetrics = true;
+
+  // Safety net: if something goes wrong and finally never runs,
+  // force-release the lock after REFRESH_LOCK_MAX_MS.
+  clearTimeout(_refreshLockTimer);
+  _refreshLockTimer = setTimeout(() => {
+    if (isRefreshingMetrics) {
+      console.warn('[BiziRuntime] Lock safety timeout — force releasing.');
+      isRefreshingMetrics = false;
+    }
+  }, REFRESH_LOCK_MAX_MS);
+
   try {
     const { data, error } = await window.APP_CLIENT.rpc('get_smart_dashboard_state');
     if (error) throw error;
@@ -37,8 +55,9 @@ window.refreshLiveMetrics = async function () {
       }
     }
   } catch (err) {
-    console.error('Failed structural metrics engine refresh:', err);
+    console.error('[BiziRuntime] refreshLiveMetrics failed:', err);
   } finally {
+    clearTimeout(_refreshLockTimer);
     isRefreshingMetrics = false;
   }
 };
@@ -72,7 +91,7 @@ window.refreshLiveMetrics = async function () {
     // now subscribe to all Supabase Realtime channels automatically.
 
   } catch (err) {
-    console.error('Boot execution exception failure:', err);
+    console.error('[BiziRuntime] Boot execution exception:', err);
     safeNavigate('/auth/');
   } finally {
     window._resolveAppRuntime();
