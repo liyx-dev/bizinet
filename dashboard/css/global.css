@@ -427,6 +427,263 @@ letter-spacing:.3px;
       to   { opacity: 1; transform: translateY(0); }
     }
 
+/* ============================================================
+   BIZINET PREMIUM FLOATING STICKY SIDEBAR CORE INTERFACE
+============================================================ */
+
+/* Floating Smart Trigger Action Button */
+.sidebar-trigger {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  background: var(--liyog-black);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-trigger:hover {
+  transform: scale(1.05);
+  background: var(--liyog-black-light);
+  border-color: var(--liyog-blue);
+}
+
+/* Hamburger UI Engine Components */
+.hamburger-lines {
+  width: 22px;
+  height: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger-lines .line {
+  display: block;
+  height: 2.5px;
+  width: 100%;
+  border-radius: 4px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+}
+
+/* Modal UI Dimmer Backdrop Layout */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sidebar Drawer Panel Definition Box */
+.bizinet-sidebar {
+  position: fixed;
+  top: 0;
+  left: -340px; /* Hidden standard off-canvas placement state */
+  width: 320px;
+  height: 100vh;
+  background: var(--surface-card);
+  border-right: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font-body);
+}
+
+/* State Modifier triggered through JS integration */
+.bizinet-sidebar.open {
+  transform: translateX(340px);
+}
+
+/* Header styling */
+.sidebar-header {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-brand-context h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.system-node-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--surface-bg);
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: var(--text-muted);
+}
+
+.sidebar-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  color: var(--text-muted);
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--liyog-red);
+}
+
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0 24px;
+}
+
+/* Navigation System Layout Container */
+.sidebar-nav-container {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+/* Extensible Navigation Control Element Item */
+.sidebar-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: all 0.23s ease;
+}
+
+.sidebar-nav-item:hover:not(:disabled) {
+  background: var(--surface-soft);
+  border-color: var(--border-subtle);
+}
+
+.sidebar-nav-item.active {
+  background: rgba(24, 119, 242, 0.07);
+  border-color: rgba(24, 119, 242, 0.15);
+}
+
+.sidebar-nav-item.active .nav-item-title {
+  color: var(--liyog-blue);
+  font-weight: 700;
+}
+
+.nav-item-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.nav-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.nav-item-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Layout Architecture styling for Future Modules */
+.sidebar-nav-item.locked-feature {
+  opacity: 0.6;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.lock-tag {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  background: #f1f5f9;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Footer Section / Action Logout Button Layout */
+.sidebar-footer {
+  padding: 24px;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sidebar-logout-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.sidebar-logout-btn:hover {
+  background: #fff0f0;
+  border-color: rgba(255, 59, 48, 0.2);
+  color: var(--liyog-red);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.1);
+}
+
+/* Pushes down layout top margins smoothly when standard sidebar button remains active */
+@media (max-width: 768px) {
+  .admin-topbar {
+    margin-top: 54px;
+  }
+}
+
     /* =============================================
        CARD
     ============================================= */
