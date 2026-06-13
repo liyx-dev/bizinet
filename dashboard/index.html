@@ -5,43 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BiziNet Admin Upload | Premium Edition</title>
 
-  <!-- Google Fonts: Syne (display) + DM Sans (body) — premium, modern feel -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- External Tailwind build — show offline banner if it fails -->
   <link rel="stylesheet" href="https://liyx-dev.github.io/whatsapp-sales/output.css"
         id="mainStylesheet"
         onerror="document.getElementById('offlineBanner').style.display='flex'">
-<!-- BiziNet Dashboard CSS — split by concern -->
-<link rel="stylesheet" href="css/global.css">
-<link rel="stylesheet" href="css/products.css">
-<link rel="stylesheet" href="css/stories.css">
-<link rel="stylesheet" href="css/categories.css">
-<link rel="stylesheet" href="css/settings.css">
 
-<script src="../global.js"></script>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/products.css">
+  <link rel="stylesheet" href="css/stories.css">
+  <link rel="stylesheet" href="css/categories.css">
+  <link rel="stylesheet" href="css/settings.css">
 
-<!-- DOMPurify for HTML sanitization -->
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<!-- Quill editor -->
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+  <script src="../global.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
-  <!-- 3. Config — APP_CONFIG + APP_CLIENT -->
   <script src="js/config.js"></script>
-  <!-- 4. Dashboard flags — applyDashboardFlags + refreshDashboardFlags -->
-<!-- 4. Dashboard flags — applyDashboardFlags + refreshDashboardFlags -->
   <script src="js/dashboard-flags.js"></script>
-  <!-- 5. Runtime — boot guard, fills APP_RUNTIME, resolves APP_RUNTIME_READY -->
   <script src="js/runtime.js"></script>
-  <!-- 6. Realtime Engine — self-contained subscriptions, zero tabscript dependency -->
-<script src="js/realtime-engine.js"></script>
-
+  <script src="js/realtime-engine.js"></script>
 </head>
 <body>
 
@@ -53,9 +43,6 @@
   </div>
 </button>
 
-<!-- ================================================
-     OFFLINE / NO-NETWORK BANNER
-================================================= -->
 <div id="offlineBanner">
   <span class="banner-icon">📡</span>
   <span>
@@ -64,117 +51,130 @@
   </span>
 </div>
 
-<!-- ================================================
-     TOPBAR
-================================================= -->
-<div style="padding-top: 24px;" class="admin-wrapper">
+<div class="admin-wrapper">
   <div class="admin-topbar">
     <div class="topbar-brand">
       <h1 style="color: var(--liyog-blue);">BiziNet <span style="color: var(--liyog-red);">Command</span></h1>
       <p>Next-Gen Premium Listing Portal</p>
     </div>            
-      <div class="live-badge" style="background: var(--liyog-green);">
-        <span class="live-dot"></span>
-        Live Portal
+    <div class="live-badge" style="background: var(--liyog-green);">
+      <span class="live-dot"></span>
+      Live Portal
+    </div>
+  </div>
+
+  <div class="dashboard-hero">
+    <div class="dashboard-hero-left">
+      <div class="dashboard-plan-icon">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L15 9L22 9L16.5 13.5L18.5 21L12 16.8L5.5 21L7.5 13.5L2 9L9 9L12 2Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <h2 id="welcomeTitle">Loading...</h2>
+        <p id="welcomeMessage">
+          Loading account information…
+          <div id="assistantBox" class="assistant-box">
+            <div id="assistantTitle" style="font-family: var(--font-display); font-weight: 800; color: var(--text-primary);">
+              Loading Strategy...
+            </div>
+            <div id="assistantMessage" style="color: var(--text-secondary); margin-top: 4px;">
+              Analyzing real-time channel usage metrics...
+            </div>
+          </div>
+        </p>
+        <div class="hero-meta">
+          <span id="storeNameUI">Store</span>
+          <span id="roleUI">Role</span>
+        </div>
       </div>
     </div>
-  
-
-<div class="dashboard-hero">
-    <div class="dashboard-hero-left">
-        <div class="dashboard-plan-icon">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L15 9L22 9L16.5 13.5L18.5 21L12 16.8L5.5 21L7.5 13.5L2 9L9 9L12 2Z"
-                fill="currentColor"/>
-            </svg>
-        </div>
-        <div>
-            <h2 id="welcomeTitle">
-                Loading...
-            </h2>
-            <p id="welcomeMessage">
-                Loading account information…
-<!-- The Dynamic Coach Box will automatically structure its recommendations inside this node -->
-<div id="assistantBox" class="assistant-box">
-    <div id="assistantTitle" style="font-family: var(--font-display); font-weight: 800; color: var(--text-primary);">
-        Loading Strategy...
-    </div>
-    <div id="assistantMessage" style="color: var(--text-secondary); margin-top: 4px;">
-        Analyzing real-time channel usage metrics...
-    </div>
-</div>
-            </p>
-            <div class="hero-meta">
-                <span id="storeNameUI">
-                    Store
-                </span>
-                <span id="roleUI">
-                    Role
-                </span>
-            </div>
-        </div>
-    </div>
     <div class="dashboard-hero-right">
-        <div id="planBadgeUI" class="plan-pill">
-            Plan
-        </div>
-        <div id="countdownUI" class="countdown-pill">
-           --
-        </div>
-        <button
-            id="viewPlanDetailsBtn"
-            class="hero-btn"
-            type="button">
-            View Plan Details
-        </button>
+      <div id="planBadgeUI" class="plan-pill">Plan</div>
+      <div id="countdownUI" class="countdown-pill">--</div>
+      <button id="viewPlanDetailsBtn" class="hero-btn" type="button">View Plan Details</button>
     </div>
-</div>     
-<div
-id="assistantBillboard"
-class="assistant-billboard">
+  </div>     
 
-<button
-id="billboardPrev"
-type="button">
-‹
-</button>
+  <div id="assistantBillboard" class="assistant-billboard">
+    <button id="billboardPrev" type="button">‹</button>
+    <div id="billboardMessage">Loading...</div>
+    <button id="billboardNext" type="button">›</button>
+  </div>
 
-<div
-id="billboardMessage">
-Loading...
-</div>
-
-<button
-id="billboardNext"
-type="button">
-›
-</button>
-
-</div>
-
-  <!-- ================================================
-       TAB NAVIGATION
-  ================================================= -->
   <div class="tabs-container admin-tabs">
+    <button class="tab-btn" data-tab="sidebarTab">📋 Menu Summary</button>
     <button class="tab-btn active" data-tab="uploadTab">📦 Upload &amp; Manage</button>
     <button class="tab-btn" data-tab="storiesTab">📸 Stories</button>
     <button class="tab-btn" data-tab="categoriesTab">🗂 Categories</button>
     <button class="tab-btn" data-tab="settingsTab">⚙️ Settings</button>
   </div>
   
-<main id="dashboardContent">
+  <main id="dashboardContent">
+    <div id="sidebarTab" class="admin-section">
+      <div style="padding: 24px; background: var(--surface-card); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+        <h2 class="section-title" style="margin-bottom: 8px;">Workspace Overview</h2>
+        <p class="section-subtitle" style="margin-bottom: 24px;">Quickly manage shortcuts and sub-modules.</p>
+        
+        <div style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+          <button class="btn-ghost" onclick="document.getElementById('sideBtnInviteTeam').click();" style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px;">
+            <span style="font-size: 24px;">👥</span>
+            <span style="text-align: left;">
+              <strong style="display: block; font-size: 14px; color: var(--text-primary);">Invite Workspace Team</strong>
+              <small style="font-size: 11px; color: var(--text-muted);">Manage authorization nodes</small>
+            </span>
+          </button>
+          
+          <button class="btn-ghost" style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; opacity: 0.6; cursor: not-allowed;" disabled>
+            <span style="font-size: 24px;">📊</span>
+            <span style="text-align: left;">
+              <strong style="display: block; font-size: 14px; color: var(--text-primary);">Analytics</strong>
+              <small style="font-size: 11px; color: var(--text-muted);">Coming Soon</small>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-  <div id="productsContainer"></div>
+    <div id="uploadTab" class="admin-section active">
+      <div id="productsContainer"></div>
+    </div>
 
-  <div id="storiesContainer"></div>
+    <div id="storiesTab" class="admin-section">
+      <div id="storiesContainer"></div>
+    </div>
 
-  <div id="categoriesContainer"></div>
+    <div id="categoriesTab" class="admin-section">
+      <div id="categoriesContainer"></div>
+    </div>
 
-  <div id="settingsContainer"></div>
+    <div id="settingsTab" class="admin-section">
+      <div id="settingsContainer"></div>
+    </div>
+  </main>
+</div><div class="premium-bottom-nav">
+  <button class="bottom-nav-item active" data-nav-target="uploadTab">
+    <span class="bottom-nav-icon">📦</span>
+    <span class="bottom-nav-text">Upload</span>
+  </button>
+  <button class="bottom-nav-item" data-nav-target="storiesTab">
+    <span class="bottom-nav-icon">📸</span>
+    <span class="bottom-nav-text">Stories</span>
+  </button>
+  <button class="bottom-nav-item" data-nav-target="sidebarTab">
+    <span class="bottom-nav-icon">📋</span>
+    <span class="bottom-nav-text">Menu</span>
+  </button>
+  <button class="bottom-nav-item" data-nav-target="categoriesTab">
+    <span class="bottom-nav-icon">🗂</span>
+    <span class="bottom-nav-text">Categories</span>
+  </button>
+  <button class="bottom-nav-item" data-nav-target="settingsTab">
+    <span class="bottom-nav-icon">⚙️</span>
+    <span class="bottom-nav-text">Settings</span>
+  </button>
+</div>
 
-</main>
-
-</div><!-- /admin-wrapper -->
 <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
 <aside id="bizinetSidebar" class="bizinet-sidebar">
@@ -225,15 +225,11 @@ type="button">
   </div>
 </aside>
 
-
-<!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tabscript.js"></script>
 <script src="js/tab-loader.js"></script>
-  <script src="js/sidebar.js"></script>
-  <script src="js/tab-system.js"></script>   <!-- ← this file, always LAST -->
+<script src="js/sidebar.js"></script>
+<script src="js/tab-system.js"></script>
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
 <div id="smartToast"></div>
 </body>
 </html>
-
-
