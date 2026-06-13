@@ -802,3 +802,131 @@ letter-spacing:.3px;
 .form-card{
   overflow:visible !important;
 }
+/* ============================================================
+   BIZINET PREMIUM FLOATING TRI-COLOR FLOATING RADAR
+============================================================ */
+.sidebar-trigger {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 9999;
+  width: 48px;
+  height: 48px;
+  border-radius: 0px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* Individual Multi-Colored Line Engine Configuration */
+.hamburger-lines .line-1 { background: var(--liyog-red) !important; }
+.hamburger-lines .line-2 { background: var(--liyog-blue) !important; }
+.hamburger-lines .line-3 { background: var(--liyog-green) !important; }
+
+/* Responsive adjustments for layout spacing spacing overlay alignment */
+@media (max-width: 768px) {
+  .admin-topbar {
+    margin-top: 12px !important; /* Fixed large overhead empty layout void gap spacing */
+  }
+}
+
+/* ============================================================
+   STICKY OVERLAY SIGN OUT FOOTER WORKSPACE TERMINATION
+============================================================ */
+.sidebar-footer {
+  padding: 20px 24px calc(20px + env(safe-area-inset-bottom, 24px)) !important;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
+}
+
+.sidebar-logout-btn {
+  background: linear-gradient(135deg, #ffffff, var(--surface-soft));
+  border: 1.5px solid rgba(255, 59, 48, 0.15) !important;
+  color: var(--text-secondary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebar-logout-btn:hover {
+  background: linear-gradient(135deg, var(--liyog-red), #e0241b) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 59, 48, 0.3) !important;
+}
+
+/* ============================================================
+   PREMIUM MOBILE-FIRST SPA FIXED STICKY NAVIGATION CONTROLLER
+============================================================ */
+.premium-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 999;
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.04);
+}
+
+.bottom-nav-item {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
+  color: var(--text-muted);
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.bottom-nav-icon {
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.bottom-nav-text {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+/* Active Highlight States Mapping */
+.bottom-nav-item.active {
+  color: var(--liyog-blue);
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+  transform: translateY(-2px) scale(1.1);
+}
+
+/* Extra content padding offset safety guard container configuration rule */
+.admin-wrapper {
+  padding-bottom: 100px !important;
+}
+
+/* Hide navigation overlay bar baseline rules on expansive displays layout engine */
+@media (min-width: 1025px) {
+  .premium-bottom-nav {
+    display: none !important;
+  }
+  .admin-wrapper {
+    padding-bottom: 60px !important;
+  }
+       }
+                              
