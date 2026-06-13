@@ -223,7 +223,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
     if (tabId === "storiesTab" && !_storiesLoaded) {
       _storiesLoaded = true;
-      await loadStories();
+      await window.loadStories();
     }
 
     // Future tab example — uncomment and rename when ready:
