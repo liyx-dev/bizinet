@@ -1401,6 +1401,7 @@ async function loadStories(appendMode = false) {
 }
 
 window.reloadStories = () => loadStories(false);
+  window.loadStories = loadStories;
 
 // ============================================================
 // LOAD MORE TRIGGER
