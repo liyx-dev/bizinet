@@ -45,6 +45,14 @@
 </head>
 <body>
 
+<button id="sidebarTrigger" class="sidebar-trigger" aria-label="Open Navigation Menu">
+  <div class="hamburger-lines">
+    <span class="line line-1"></span>
+    <span class="line line-2"></span>
+    <span class="line line-3"></span>
+  </div>
+</button>
+
 <!-- ================================================
      OFFLINE / NO-NETWORK BANNER
 ================================================= -->
@@ -167,16 +175,64 @@ type="button">
 </main>
 
 </div><!-- /admin-wrapper -->
+<div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+<aside id="bizinetSidebar" class="bizinet-sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand-context">
+      <h3>BiziNet <span style="color: var(--liyog-red);">Command</span></h3>
+      <span class="system-node-badge">v4.1 Core</span>
+    </div>
+    <button id="sidebarCloseBtn" class="sidebar-close-btn">&times;</button>
+  </div>
+
+  <hr class="sidebar-divider" />
+
+  <nav class="sidebar-nav-container">
+    <div class="nav-group-label">Active Modules</div>
+    
+    <button class="sidebar-nav-item active" id="sideBtnInviteTeam">
+      <span class="nav-item-icon">👥</span>
+      <div class="nav-item-text">
+        <span class="nav-item-title">Invite Team</span>
+        <span class="nav-item-desc">Manage workspace access</span>
+      </div>
+    </button>
+
+    <button class="sidebar-nav-item locked-feature" id="sideBtnAnalytics" disabled>
+      <span class="nav-item-icon">📊</span>
+      <div class="nav-item-text">
+        <span class="nav-item-title">Analytics &amp; Insights</span>
+        <span class="nav-item-desc">Coming Soon</span>
+      </div>
+      <span class="lock-tag">Soon</span>
+    </button>
+
+    <button class="sidebar-nav-item locked-feature" id="sideBtnSystemLogs" disabled>
+      <span class="nav-item-icon">⚡</span>
+      <div class="nav-item-text">
+        <span class="nav-item-title">Realtime Engine Logs</span>
+        <span class="nav-item-desc">System health tracking</span>
+      </div>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="sidebar-logout-btn" id="sideBtnLogout">
+      <span class="logout-icon">🚪</span>
+      <span>Sign Out of Command</span>
+    </button>
+  </div>
+</aside>
 
 
 <!-- 4. Main tab script — reads APP_CLIENT, APP_CONFIG, APP_RUNTIME freely -->
 <script src="js/tabscript.js"></script>
 <script src="js/tab-loader.js"></script>
-  
+  <script src="js/sidebar.js"></script>
 <script src="https://bartoos-1.github.io/store/global-error.js"></script>
 <div id="smartToast"></div>
 </body>
 </html>
 
 
-    
