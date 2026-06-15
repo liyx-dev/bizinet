@@ -2,17 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>BiziNet Admin Upload | Premium Edition</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="https://liyx-dev.github.io/whatsapp-sales/output.css"
-        id="mainStylesheet"
-        onerror="document.getElementById('offlineBanner').style.display='flex'">
-
+  <link rel="stylesheet" href="https://liyx-dev.github.io/whatsapp-sales/output.css" id="mainStylesheet" onerror="document.getElementById('offlineBanner').style.display='flex'">
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/products.css">
   <link rel="stylesheet" href="css/stories.css">
@@ -20,11 +17,9 @@
   <link rel="stylesheet" href="css/settings.css">
 
   <script src="../global.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
@@ -103,7 +98,7 @@
   </div>
 
   <div class="tabs-container admin-tabs">
-    <button class="tab-btn" data-tab="sidebarTab">📋 Menu Summary</button>
+    <button class="tab-btn" data-tab="sidebarTab">☰ Navigation Menu</button>
     <button class="tab-btn active" data-tab="uploadTab">📦 Upload &amp; Manage</button>
     <button class="tab-btn" data-tab="storiesTab">📸 Stories</button>
     <button class="tab-btn" data-tab="categoriesTab">🗂 Categories</button>
@@ -111,30 +106,7 @@
   </div>
   
   <main id="dashboardContent">
-    <div id="sidebarTab" class="admin-section">
-      <div style="padding: 24px; background: var(--surface-card); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
-        <h2 class="section-title" style="margin-bottom: 8px;">Workspace Overview</h2>
-        <p class="section-subtitle" style="margin-bottom: 24px;">Quickly manage shortcuts and sub-modules.</p>
-        
-        <div style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
-          <button class="btn-ghost" onclick="document.getElementById('sideBtnInviteTeam').click();" style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px;">
-            <span style="font-size: 24px;">👥</span>
-            <span style="text-align: left;">
-              <strong style="display: block; font-size: 14px; color: var(--text-primary);">Invite Workspace Team</strong>
-              <small style="font-size: 11px; color: var(--text-muted);">Manage authorization nodes</small>
-            </span>
-          </button>
-          
-          <button class="btn-ghost" style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; opacity: 0.6; cursor: not-allowed;" disabled>
-            <span style="font-size: 24px;">📊</span>
-            <span style="text-align: left;">
-              <strong style="display: block; font-size: 14px; color: var(--text-primary);">Analytics</strong>
-              <small style="font-size: 11px; color: var(--text-muted);">Coming Soon</small>
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <div id="sidebarTab" class="admin-section"></div>
 
     <div id="uploadTab" class="admin-section active">
       <div id="productsContainer"></div>
@@ -152,7 +124,9 @@
       <div id="settingsContainer"></div>
     </div>
   </main>
-</div><div class="premium-bottom-nav">
+</div>
+
+<div class="premium-bottom-nav">
   <button class="bottom-nav-item active" data-nav-target="uploadTab">
     <span class="bottom-nav-icon">📦</span>
     <span class="bottom-nav-text">Upload</span>
@@ -160,18 +134,6 @@
   <button class="bottom-nav-item" data-nav-target="storiesTab">
     <span class="bottom-nav-icon">📸</span>
     <span class="bottom-nav-text">Stories</span>
-  </button>
-  <button class="bottom-nav-item" data-nav-target="sidebarTab">
-    <span class="bottom-nav-icon">📋</span>
-    <span class="bottom-nav-text">Menu</span>
-  </button>
-  <button class="bottom-nav-item" data-nav-target="categoriesTab">
-    <span class="bottom-nav-icon">🗂</span>
-    <span class="bottom-nav-text">Categories</span>
-  </button>
-  <button class="bottom-nav-item" data-nav-target="settingsTab">
-    <span class="bottom-nav-icon">⚙️</span>
-    <span class="bottom-nav-text">Settings</span>
   </button>
 </div>
 
@@ -183,7 +145,7 @@
       <h3>BiziNet <span style="color: var(--liyog-red);">Command</span></h3>
       <span class="system-node-badge">v4.1 Core</span>
     </div>
-    <button id="sidebarCloseBtn" class="sidebar-close-btn">&times;</button>
+    <button id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Close Navigation Menu">&times;</button>
   </div>
 
   <hr class="sidebar-divider" />
@@ -224,7 +186,6 @@
     </button>
   </div>
 </aside>
-
 <script src="js/tabscript.js"></script>
 <script src="js/tab-loader.js"></script>
 <script src="js/sidebar.js"></script>
