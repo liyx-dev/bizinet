@@ -121,8 +121,22 @@
       <div id="settingsContainer"></div>
     </div>
   </main>
-</div>
+</div> <!-- admin-wrapper -->
+  
+<!-- =====================================================
+     SIDEBAR MODULE WORKSPACE
+===================================================== -->
 
+<div id="sidebarModuleWorkspace" class="sidebar-module-workspace" style="display:none;">
+  <div id="sidebarModuleContainer">
+
+    <div class="module-loading-state">
+      Loading module...
+    </div>
+
+  </div>
+
+</div>
 <div class="premium-bottom-nav">
   <button class="bottom-nav-item active" data-nav-target="uploadTab">
     <span class="bottom-nav-icon">📦</span>
@@ -148,34 +162,61 @@
   <hr class="sidebar-divider" />
 
   <nav class="sidebar-nav-container">
-    <div class="nav-group-label">Active Modules</div>
+
+  <div class="nav-group-label">
+    Workspace Modules
+  </div>
+
+  <button class="sidebar-nav-item" id="sideBtnInviteTeam">
+    <span class="nav-item-icon">👥</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Invite Team</span>
+      <span class="nav-item-desc">Manage workspace access</span>
+    </div>
+  </button>
+
+  <button class="sidebar-nav-item" id="sideBtnBilling">
+    <span class="nav-item-icon">💳</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Billing</span>
+      <span class="nav-item-desc">Plans and invoices</span>
+    </div>
+  </button>
+
+  <button class="sidebar-nav-item" id="sideBtnUpgrade">
+    <span class="nav-item-icon">🚀</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Upgrade</span>
+      <span class="nav-item-desc">Unlock premium features</span>
+    </div>
+  </button>
+
+  <button class="sidebar-nav-item" id="sideBtnNotifications">
+    <span class="nav-item-icon">🔔</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Notifications</span>
+      <span class="nav-item-desc">Alerts and reminders</span>
+    </div>
+  </button>
+
+  <button class="sidebar-nav-item" id="sideBtnDomains">
+    <span class="nav-item-icon">🌐</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Domains</span>
+      <span class="nav-item-desc">Custom domains</span>
+    </div>
+  </button>
+
+  <button class="sidebar-nav-item" id="sideBtnAnalytics">
+    <span class="nav-item-icon">📊</span>
+    <div class="nav-item-text">
+      <span class="nav-item-title">Analytics</span>
+      <span class="nav-item-desc">Store performance</span>
+    </div>
+  </button>
+
+</nav>
     
-    <button class="sidebar-nav-item active" id="sideBtnInviteTeam">
-      <span class="nav-item-icon">👥</span>
-      <div class="nav-item-text">
-        <span class="nav-item-title">Invite Team</span>
-        <span class="nav-item-desc">Manage workspace access</span>
-      </div>
-    </button>
-
-    <button class="sidebar-nav-item locked-feature" id="sideBtnAnalytics" disabled>
-      <span class="nav-item-icon">📊</span>
-      <div class="nav-item-text">
-        <span class="nav-item-title">Analytics &amp; Insights</span>
-        <span class="nav-item-desc">Coming Soon</span>
-      </div>
-      <span class="lock-tag">Soon</span>
-    </button>
-
-    <button class="sidebar-nav-item locked-feature" id="sideBtnSystemLogs" disabled>
-      <span class="nav-item-icon">⚡</span>
-      <div class="nav-item-text">
-        <span class="nav-item-title">Realtime Engine Logs</span>
-        <span class="nav-item-desc">System health tracking</span>
-      </div>
-    </button>
-  </nav>
-
   <div class="sidebar-footer">
     <button class="sidebar-logout-btn" id="sideBtnLogout">
       <span class="logout-icon">🚪</span>
