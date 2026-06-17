@@ -171,6 +171,9 @@ function switchTab(tabId) {
   triggerLazyLoad(tabId);
 }
 
+// Make switchTab global- NEW
+window.switchTab = switchTab;
+
 // SECTION 8 — LAZY LOAD ENGINE
 async function triggerLazyLoad(tabId) {
 
