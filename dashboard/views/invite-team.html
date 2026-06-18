@@ -1,17 +1,515 @@
-<div class="module-page">
+<div class="invite-team-module">
 
-  <div class="module-header">
+  <!-- ========================================= -->
+  <!-- HEADER -->
+  <!-- ========================================= -->
 
-    <button onclick="goDashboardHome()">
-      ← Back
+  <div class="invite-team-header">
+
+    <button
+      class="invite-back-btn"
+      onclick="goDashboardHome()">
+
+      ← Back to Dashboard
+
     </button>
 
-    <h2>Invite Team</h2>
+    <div class="invite-header-content">
+
+      <div class="invite-header-icon">
+        👥
+      </div>
+
+      <div>
+
+        <h1 class="invite-page-title">
+          Team Workspace
+        </h1>
+
+        <p class="invite-page-subtitle">
+          Manage staff access, invitations, permissions and workspace collaboration.
+        </p>
+
+      </div>
+
+    </div>
 
   </div>
 
-  <div id="inviteTeamContainer">
-    Loading team workspace...
+  <!-- ========================================= -->
+  <!-- SMART TEAM INSIGHTS BILLBOARD -->
+  <!-- ========================================= -->
+
+  <div class="team-billboard-card">
+
+    <div class="team-billboard-label">
+      TEAM INSIGHTS
+    </div>
+
+    <div id="teamInsightMessage">
+
+      Loading workspace intelligence...
+
+    </div>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- OVERVIEW METRICS -->
+  <!-- ========================================= -->
+
+  <div class="team-overview-grid">
+
+    <div class="team-stat-card">
+
+      <div class="team-stat-icon">
+        👤
+      </div>
+
+      <div class="team-stat-content">
+
+        <span class="team-stat-label">
+          Team Members
+        </span>
+
+        <h3 id="teamMemberCount">
+          --
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="team-stat-card">
+
+      <div class="team-stat-icon">
+        ✉️
+      </div>
+
+      <div class="team-stat-content">
+
+        <span class="team-stat-label">
+          Pending Invites
+        </span>
+
+        <h3 id="pendingInviteCount">
+          --
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="team-stat-card">
+
+      <div class="team-stat-icon">
+        🪑
+      </div>
+
+      <div class="team-stat-content">
+
+        <span class="team-stat-label">
+          Available Slots
+        </span>
+
+        <h3 id="availableSlotsCount">
+          --
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="team-stat-card">
+
+      <div class="team-stat-icon">
+        🚀
+      </div>
+
+      <div class="team-stat-content">
+
+        <span class="team-stat-label">
+          Plan Capacity
+        </span>
+
+        <h3 id="planLimitCount">
+          --
+        </h3>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- PLAN UTILIZATION -->
+  <!-- ========================================= -->
+
+  <div class="team-card">
+
+    <div class="team-card-header">
+
+      <div>
+
+        <h3>
+          Team Capacity
+        </h3>
+
+        <p>
+          Current usage of your plan team allocation.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="team-capacity-wrapper">
+
+      <div class="team-capacity-meta">
+
+        <span id="capacityLabel">
+          Loading...
+        </span>
+
+        <span id="capacityPercentage">
+          --
+        </span>
+
+      </div>
+
+      <div class="team-progress-bar">
+
+        <div
+          id="capacityProgress"
+          class="team-progress-fill">
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- INVITE FORM -->
+  <!-- ========================================= -->
+
+  <div class="team-card">
+
+    <div class="team-card-header">
+
+      <div>
+
+        <h3>
+          Invite Team Member
+        </h3>
+
+        <p>
+          Send workspace access invitations securely.
+        </p>
+
+      </div>
+
+    </div>
+
+    <form id="inviteTeamForm">
+
+      <div class="team-form-grid">
+
+        <div>
+
+          <label class="form-label">
+            Team Member Email
+          </label>
+
+          <input
+            id="inviteEmail"
+            type="email"
+            class="input-premium"
+            placeholder="staff@example.com"
+            required>
+
+        </div>
+
+        <div>
+
+          <label class="form-label">
+            Role
+          </label>
+
+          <select
+            id="inviteRole"
+            class="input-premium">
+
+            <option value="staff">
+              Staff
+            </option>
+
+            <option value="admin">
+              Admin
+            </option>
+
+            <option value="super_admin">
+              Super Admin
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <button
+        id="inviteSubmitBtn"
+        type="submit"
+        class="btn-primary invite-submit-btn">
+
+        Send Invitation
+
+      </button>
+
+    </form>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- QUICK ACTIONS -->
+  <!-- ========================================= -->
+
+  <div class="team-quick-actions">
+
+    <button
+      id="copyJoinPortalBtn"
+      class="team-action-card">
+
+      <span class="action-icon">
+        🔗
+      </span>
+
+      <span>
+        Copy Join Portal
+      </span>
+
+    </button>
+
+    <button
+      id="refreshTeamBtn"
+      class="team-action-card">
+
+      <span class="action-icon">
+        🔄
+      </span>
+
+      <span>
+        Refresh Team Data
+      </span>
+
+    </button>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- PENDING INVITATIONS -->
+  <!-- ========================================= -->
+
+  <div class="team-card">
+
+    <div class="team-card-header">
+
+      <div>
+
+        <h3>
+          Pending Invitations
+        </h3>
+
+        <p>
+          Invitations awaiting acceptance.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div
+      id="pendingInvitationsContainer"
+      class="team-list-container">
+
+      <div class="team-loading-state">
+
+        Loading invitations...
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================= -->
+  <!-- TEAM MEMBERS -->
+  <!-- ========================================= -->
+
+  <div class="team-card">
+
+    <div class="team-card-header">
+
+      <div>
+
+        <h3>
+          Current Team Members
+        </h3>
+
+        <p>
+          Active members currently assigned to your workspace.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div
+      id="teamMembersContainer"
+      class="team-list-container">
+
+      <div class="team-loading-state">
+
+        Loading team members...
+
+      </div>
+
+    </div>
+
   </div>
 
 </div>
+
+<!-- ========================================= -->
+<!-- TEMPLATES -->
+<!-- ========================================= -->
+
+<template id="teamMemberTemplate">
+
+  <div class="team-member-card">
+
+    <div class="team-member-left">
+
+      <div class="member-avatar">
+        👤
+      </div>
+
+      <div>
+
+        <div class="member-name">
+        </div>
+
+        <div class="member-meta">
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="team-member-right">
+
+      <span class="role-badge">
+      </span>
+
+    </div>
+
+  </div>
+
+</template>
+
+<template id="pendingInviteTemplate">
+
+  <div class="pending-invite-card">
+
+    <div class="invite-card-top">
+
+      <div>
+
+        <div class="invite-email">
+        </div>
+
+        <div class="invite-meta">
+        </div>
+
+      </div>
+
+      <span class="role-badge">
+      </span>
+
+    </div>
+
+    <div class="invite-actions">
+
+      <button
+        class="btn-ghost copy-link-btn">
+
+        Copy Link
+
+      </button>
+
+      <button
+        class="btn-ghost resend-link-btn">
+
+        Resend
+
+      </button>
+
+      <button
+        class="btn-ghost revoke-link-btn">
+
+        Revoke
+
+      </button>
+
+    </div>
+
+  </div>
+
+</template>
+
+<!-- ========================================= -->
+<!-- EMPTY STATES -->
+<!-- ========================================= -->
+
+<template id="emptyMembersTemplate">
+
+  <div class="team-empty-state">
+
+    <div class="empty-icon">
+      👥
+    </div>
+
+    <h3>
+      No Team Members Yet
+    </h3>
+
+    <p>
+      Invite your first staff member to start collaborating inside your workspace.
+    </p>
+
+  </div>
+
+</template>
+
+<template id="emptyInvitesTemplate">
+
+  <div class="team-empty-state">
+
+    <div class="empty-icon">
+      ✉️
+    </div>
+
+    <h3>
+      No Pending Invitations
+    </h3>
+
+    <p>
+      Invitations you send will appear here until accepted.
+    </p>
+
+  </div>
+
+</template>
