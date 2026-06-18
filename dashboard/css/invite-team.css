@@ -1,0 +1,475 @@
+/* ============================================================
+   BIZIPLEX · INVITE TEAM MODULE (PREMIUM UI LAYER)
+   Fully responsive · LIYOG design system aligned
+============================================================ */
+
+/* ===========================
+   ROOT MODULE WRAPPER
+=========================== */
+
+.invite-team-module {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 4px 2px 40px;
+  animation: fadeUp 0.35s ease-out;
+}
+
+/* ===========================
+   HEADER
+=========================== */
+
+.invite-team-header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.invite-back-btn {
+  width: fit-content;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.25s ease;
+}
+
+.invite-back-btn:hover {
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.invite-header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  padding: 18px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.invite-header-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--liyog-green),
+    var(--liyog-blue)
+  );
+  color: #fff;
+  font-size: 22px;
+  box-shadow: var(--shadow-green);
+}
+
+.invite-page-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.invite-page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* ===========================
+   BILLBOARD INSIGHT
+=========================== */
+
+.team-billboard-card {
+  background: linear-gradient(135deg, #0f172a, #111827);
+  border-radius: var(--radius-xl);
+  padding: 14px 16px;
+  color: #00ff9d;
+  font-family: "JetBrains Mono", monospace;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-billboard-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.5);
+}
+
+/* ===========================
+   OVERVIEW GRID
+=========================== */
+
+.team-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.team-stat-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+}
+
+.team-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.team-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(24,119,242,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.team-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.team-stat-content h3 {
+  font-size: 18px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+/* ===========================
+   CARDS
+=========================== */
+
+.team-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.team-card-header h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.team-card-header p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ===========================
+   CAPACITY BAR
+=========================== */
+
+.team-capacity-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-capacity-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.team-progress-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.team-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(
+    135deg,
+    var(--liyog-green),
+    var(--liyog-blue)
+  );
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+/* ===========================
+   FORM
+=========================== */
+
+.team-form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.invite-submit-btn {
+  margin-top: 14px;
+  width: 100%;
+}
+
+/* ===========================
+   QUICK ACTIONS
+=========================== */
+
+.team-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.team-action-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.25s ease;
+}
+
+.team-action-card:hover {
+  transform: translateY(-2px);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+}
+
+/* ===========================
+   LISTS
+=========================== */
+
+.team-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-loading-state {
+  padding: 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ===========================
+   MEMBER CARD
+=========================== */
+
+.team-member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-soft);
+  transition: all 0.2s ease;
+}
+
+.team-member-card:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.team-member-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.member-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(40,164,40,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-name {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.member-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ===========================
+   INVITE CARD
+=========================== */
+
+.pending-invite-card {
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invite-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invite-email {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.invite-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===========================
+   ROLE BADGES
+=========================== */
+
+.role-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.role-badge.owner {
+  background: #fff7d6;
+  color: #9a6700;
+}
+
+.role-badge.super_admin {
+  background: #eaf2ff;
+  color: var(--liyog-blue);
+}
+
+.role-badge.admin {
+  background: #e9f7ef;
+  color: var(--liyog-green-dark);
+}
+
+.role-badge.staff {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+/* ===========================
+   EMPTY STATE
+=========================== */
+
+.team-empty-state {
+  text-align: center;
+  padding: 30px 16px;
+  color: var(--text-muted);
+}
+
+.team-empty-state .empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+=========================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .team-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .team-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .invite-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .team-overview-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .team-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Small phones */
+@media (max-width: 420px) {
+  .team-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-page-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* ===========================
+   ANIMATIONS
+=========================== */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
