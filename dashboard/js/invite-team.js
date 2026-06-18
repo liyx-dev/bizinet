@@ -217,7 +217,7 @@ async function sendInvitation() {
   btn.textContent = "Sending...";
 
   try {
-    const { error } = await window.APP_CLIENT.rpc("invite_team_member", {
+    const { error } = await window.APP_CLIENT.rpc("create_team_invitation", {
       p_email: email,
       p_role: role
     });
@@ -260,7 +260,7 @@ async function copyInviteLink(token) {
 
 async function resendInvite(id) {
   try {
-    await window.APP_CLIENT.rpc("resend_invite", { p_id: id });
+    await window.APP_CLIENT.rpc("resend_team_invitation", { p_id: id });
     toast("Invite resent", "success");
   } catch {
     toast("Failed to resend", "error");
@@ -269,7 +269,7 @@ async function resendInvite(id) {
 
 async function revokeInvite(id) {
   try {
-    await window.APP_CLIENT.rpc("revoke_invite", { p_id: id });
+    await window.APP_CLIENT.rpc("revoke_team_invitation", { p_id: id });
     toast("Invite revoked", "success");
     refreshTeamData();
   } catch {
@@ -332,4 +332,10 @@ function goDashboardHome() {
   } else {
     window.location.href = "/dashboard/";
   }
+}
+
+function initInviteTeamModule() {
+  // Kick off the module
+  bindUIActions();
+  loadTeamDashboard();
 }
