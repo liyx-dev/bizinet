@@ -73,14 +73,62 @@
       document.querySelectorAll(".portal-view").forEach(v => v.classList.remove("active"));
       const target = document.getElementById(viewId);
       if (target) target.classList.add("active");
+
+      // Leaving a view mid-submit should never leave its button stuck
+      // on "Logging in…" etc. — clear all loading/alert state on every
+      // navigation so each view is always entered fresh.
+      this.resetFormState();
+
+      // The connection strip reflects whichever step the visible view
+      // belongs to, so navigating between views never leaves a stale
+      // "current"/spinner state behind on a step the person isn't on
+      // anymore (e.g. leaving Sign Up for Login or Forgot Password).
+      const hasInvite = !!this.state.invite;
+      if (viewId === "viewSignUp" || viewId === "viewLogin") {
+        if (hasInvite) {
+          this.setConnectionStep("verify", "done");
+          this.setConnectionStep("identity", "current");
+          this.setConnectionStep("join", "idle");
+        }
+      } else if (viewId === "viewForgot") {
+        // Recovery is a side-trip, not part of the invite handshake —
+        // dim the strip back to its resting look without claiming a step.
+        if (hasInvite) {
+          this.setConnectionStep("verify", "done");
+          this.setConnectionStep("identity", "idle");
+          this.setConnectionStep("join", "idle");
+        }
+      }
+
+      // Only show "Back to invitation" links when there's actually a
+      // live invite to go back to (i.e. someone arrived via a real
+      // ?token= link, not by browsing to /join/ directly).
+      const loginBack = document.getElementById("loginBackToInviteWrap");
+      const forgotBack = document.getElementById("forgotBackToInviteWrap");
+      if (loginBack) loginBack.style.display = hasInvite ? "inline" : "none";
+      if (forgotBack) forgotBack.style.display = hasInvite ? "inline" : "none";
     },
 
     setConnectionStep(step, status) {
-      // step: 'verify' | 'identity' | 'join'   status: 'current' | 'done' | 'error'
+      // step: 'verify' | 'identity' | 'join'
+      // status: 'current' | 'done' | 'error' | 'idle' (resting, not yet started)
       const el = document.querySelector(`.conn-step[data-step="${step}"]`);
       if (!el) return;
       el.classList.remove("is-current", "is-done", "is-error");
-      el.classList.add(`is-${status}`);
+      if (status !== "idle") el.classList.add(`is-${status}`);
+    },
+
+    // Brings every interactive control back to a clean, retryable state.
+    // Called whenever a flow is abandoned or interrupted (modal close,
+    // view switch away from an in-progress step) so nothing stays stuck
+    // on a "Logging in…" / spinner state forever.
+    resetFormState() {
+      const fx = this.refs();
+      this.setButtonLoading(fx.btnSignUpSubmit, false, "", "Accept invitation");
+      this.setButtonLoading(fx.btnLoginSubmit, false, "", "Log in");
+      this.setButtonLoading(fx.btnForgotSubmit, false, "", "Send reset link");
+      this.clearAlert(fx.signupAlertSlot);
+      this.clearAlert(fx.loginAlertSlot);
     },
 
     // ------------------------------------------------------------
@@ -443,11 +491,24 @@
 
     closeModal() {
       this.refs().modal.classList.remove("active");
+
+      // The blocking modal only ever appears after a successful login or
+      // accept-invitation — at that point the join handshake is genuinely
+      // finished (the account exists and is linked to the workspace); it's
+      // only *dashboard entry* that's on hold. Closing the modal should
+      // land the person on a calm, accurate resting screen rather than
+      // leaving the "Joining workspace" spinner running forever or
+      // reverting to a stuck login/signup form.
+      this.setConnectionStep("join", "done");
+      this.resetFormState();
+
+      const fx = this.refs();
+      fx.doneTitle.textContent = "You're all set";
+      fx.doneMessage.textContent = "Your account is linked to the workspace. You'll get dashboard access as soon as it's ready.";
+      this.switchView("viewDone");
     }
   };
 
   window.PortalEngine = PortalEngine;
   document.addEventListener("DOMContentLoaded", () => PortalEngine.init());
 })();
-
-
