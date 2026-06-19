@@ -1,257 +1,453 @@
-// =============================================================================
-// BIZIPLEX WORKSPACE PORTAL ENGINE (DEFENSIVE CORE)
-// =============================================================================
+/**
+ * ============================================================
+ * BiziPlex Command — Join Portal Engine
+ * /join/portal-engine.js
+ *
+ * Lifecycle:
+ *   1. Read ?token= from URL
+ *   2. RPC get_invitation_details(token)  -> populate identity rail, show signup view
+ *   3. User submits signup -> supabase.auth.signUp() -> RPC accept_team_invitation(token, name)
+ *      OR user logs in directly -> supabase.auth.signInWithPassword() -> RPC accept_team_invitation(token, null)
+ *   4. RPC get_member_runtime_state() -> decide: dashboard, or blocking modal (never onboarding redirect)
+ * ============================================================
+ */
+(function () {
+  const SUPABASE_URL = "https://ugffezktrojjhfbaxrrq.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
 
-// Emergency global error catcher to stop silent infinite loading loops
-window.onerror = function(message, source, lineno, colno, error) {
-    alert("🚨 CRITICAL SYSTEM ERROR:\n" + message + "\nFile: " + source + "\nLine: " + lineno);
-    return false;
-};
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  window.APP_CLIENT = window.APP_CLIENT || client;
 
-// Safe client resolution with hardcoded fallback to prevent 404 path blocks
-const supabase = window.APP_CLIENT || (window.supabase ? window.supabase.createClient(
-    "https://ugffezktrojjhfbaxrrq.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8"
-) : null);
+  const PortalEngine = {
 
-let currentToken = null;
-let invitationData = null;
+    state: {
+      token: null,
+      invite: null, // { email, role, store_id, store_name, logo_url, store_photos, expires_at }
+    },
 
-// Initialize Core Setup Handler
-document.addEventListener("DOMContentLoaded", async () => {
-    try {
-        console.log("Portal Engine initializing...", { supabaseConnected: !!supabase });
-        
-        if (!supabase) {
-            throw new Error("Supabase SDK script wrapper missing from layout headers.");
-        }
+    refs() {
+      return {
+        verify: document.getElementById("viewVerify"),
+        invalid: document.getElementById("viewInvalid"),
+        invalidMessage: document.getElementById("invalidMessage"),
+        signUp: document.getElementById("viewSignUp"),
+        login: document.getElementById("viewLogin"),
+        forgot: document.getElementById("viewForgot"),
+        done: document.getElementById("viewDone"),
+        doneTitle: document.getElementById("doneTitle"),
+        doneMessage: document.getElementById("doneMessage"),
 
-        const urlParams = new URLSearchParams(window.location.search);
-        currentToken = urlParams.get('token');
+        storeCard: document.getElementById("storeCard"),
+        storeName: document.getElementById("storeName"),
+        storeLogo: document.getElementById("storeLogo"),
+        roleChip: document.getElementById("roleChip"),
+        roleChipText: document.getElementById("roleChipText"),
+        railBackdrop: document.getElementById("railBackdrop"),
 
-        if (!currentToken) {
-            console.log("No token detected in URL query context. Routing directly to Login view.");
-            switchView('viewLogin');
-            return;
-        }
+        signupEmail: document.getElementById("signupEmail"),
+        signupName: document.getElementById("signupName"),
+        signupPassword: document.getElementById("signupPassword"),
+        btnSignUpSubmit: document.getElementById("btnSignUpSubmit"),
+        signupAlertSlot: document.getElementById("signupAlertSlot"),
 
-        await executeTokenVerificationPipeline(currentToken);
-    } catch (globalError) {
-        console.error("Portal Execution Halted:", globalError);
-        showModal('🚫', 'Portal Failure', `Initialization error: ${globalError.message}`);
-        // Force-remove preloader view so user isn't stuck staring at a spinner
-        switchView('viewLogin'); 
-    }
-});
+        loginEmail: document.getElementById("loginEmail"),
+        loginPassword: document.getElementById("loginPassword"),
+        btnLoginSubmit: document.getElementById("btnLoginSubmit"),
+        loginAlertSlot: document.getElementById("loginAlertSlot"),
 
-// =============================================================================
-// TOKENS & TRANSACTION HANDSHAKES
-// =============================================================================
+        forgotEmail: document.getElementById("forgotEmail"),
+        btnForgotSubmit: document.getElementById("btnForgotSubmit"),
+        forgotAlertSlot: document.getElementById("forgotAlertSlot"),
 
-async function executeTokenVerificationPipeline(token) {
-    try {
-        const cleanToken = token.trim();
-        const { data, error } = await supabase.rpc('get_invitation_details', { p_token: cleanToken });
-        
+        modal: document.getElementById("systemModal"),
+        modalIcon: document.getElementById("modalIcon"),
+        modalTitle: document.getElementById("modalTitle"),
+        modalText: document.getElementById("modalText"),
+      };
+    },
+
+    // ------------------------------------------------------------
+    // VIEW SWITCHING
+    // ------------------------------------------------------------
+    switchView(viewId) {
+      document.querySelectorAll(".portal-view").forEach(v => v.classList.remove("active"));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add("active");
+    },
+
+    setConnectionStep(step, status) {
+      // step: 'verify' | 'identity' | 'join'   status: 'current' | 'done' | 'error'
+      const el = document.querySelector(`.conn-step[data-step="${step}"]`);
+      if (!el) return;
+      el.classList.remove("is-current", "is-done", "is-error");
+      el.classList.add(`is-${status}`);
+    },
+
+    // ------------------------------------------------------------
+    // ALERTS / TOASTS
+    // ------------------------------------------------------------
+    showAlert(slotEl, type, message) {
+      if (!slotEl) return;
+      const icon = type === "error" ? "⚠️" : "✓";
+      slotEl.innerHTML = `
+        <div class="inline-alert ${type}">
+          <span class="inline-alert-icon">${icon}</span>
+          <span>${message}</span>
+        </div>`;
+    },
+    clearAlert(slotEl) {
+      if (slotEl) slotEl.innerHTML = "";
+    },
+
+    toast(message, type = "success") {
+      const el = document.getElementById("joinToast");
+      if (!el) return;
+      el.className = `toast-${type}`;
+      el.innerHTML = `<span>${message}</span><span class="toast-close" onclick="this.parentElement.style.display='none'">&times;</span>`;
+      el.style.display = "flex";
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => { el.style.display = "none"; }, 5000);
+    },
+
+    setButtonLoading(btn, loading, loadingText, idleText) {
+      if (!btn) return;
+      btn.disabled = loading;
+      btn.classList.toggle("is-loading", loading);
+      const label = btn.querySelector(".btn-label");
+      if (label) label.textContent = loading ? loadingText : idleText;
+    },
+
+    // ------------------------------------------------------------
+    // INIT
+    // ------------------------------------------------------------
+    async init() {
+      window.toast = (msg, type) => this.toast(msg, type === "error" ? "error" : "success");
+
+      const fx = this.refs();
+      const params = new URLSearchParams(window.location.search);
+      this.state.token = params.get("token");
+
+      this.bindStaticEvents(fx);
+
+      if (!this.state.token) {
+        this.setConnectionStep("verify", "error");
+        fx.invalidMessage.textContent = "No invitation token was found in this link. Please use the exact link sent to you.";
+        this.switchView("viewInvalid");
+        return;
+      }
+
+      try {
+        const { data, error } = await window.APP_CLIENT.rpc("get_invitation_details", {
+          p_token: this.state.token
+        });
         if (error) throw error;
-        
-        if (data && data.success === false) {
-            showModal('❌', 'Invitation Invalid', data.error || 'The invitation token has expired or is invalid.', () => {
-                switchView('viewLogin');
-            });
-            return;
+
+        if (!data || data.success === false) {
+          this.setConnectionStep("verify", "error");
+          fx.invalidMessage.textContent = (data && data.error) || "This invitation could not be verified.";
+          this.switchView("viewInvalid");
+          return;
         }
 
-        // Cache invitation data context mapping
-        invitationData = data;
+        this.state.invite = data;
+        this.setConnectionStep("verify", "done");
+        this.setConnectionStep("identity", "current");
+        this.populateIdentity(fx, data);
 
-        // Populate Brand Typography Assets onto target HTML Containers
-        document.getElementById('workspaceName').innerText = data.store_name;
-        
-        if (data.logo_url && data.logo_url.trim() !== '') {
-            document.getElementById('workspaceLogo').innerHTML = `<img src="${data.logo_url}" alt="Logo" style="width:100%; height:100%; object-fit:cover;">`;
+        // Pre-fill and lock the email field, then show signup view
+        fx.signupEmail.value = data.email;
+        this.switchView("viewSignUp");
+
+      } catch (err) {
+        console.error("[PortalEngine] verify failure:", err);
+        this.setConnectionStep("verify", "error");
+        fx.invalidMessage.textContent = "We couldn't verify this invitation right now. Please try again in a moment.";
+        this.switchView("viewInvalid");
+      }
+    },
+
+    populateIdentity(fx, invite) {
+      fx.storeName.textContent = invite.store_name || "BiziPlex Client Workspace";
+
+      if (invite.logo_url) {
+        fx.storeLogo.innerHTML = `<img src="${invite.logo_url}" alt="${invite.store_name || 'Store'} logo">`;
+      } else {
+        const initial = (invite.store_name || "B").trim().charAt(0).toUpperCase();
+        fx.storeLogo.textContent = initial || "B";
+      }
+
+      if (invite.role) {
+        fx.roleChip.style.display = "inline-flex";
+        fx.roleChipText.textContent = String(invite.role).replace("_", " ");
+      }
+
+      requestAnimationFrame(() => fx.storeCard.classList.add("visible"));
+
+      // Ambient backdrop from store_photos, if present
+      if (Array.isArray(invite.store_photos) && invite.store_photos.length > 0) {
+        const url = invite.store_photos[0];
+        const img = new Image();
+        img.onload = () => {
+          fx.railBackdrop.innerHTML = `<img src="${url}" alt="">`;
+          fx.railBackdrop.classList.add("loaded");
+        };
+        img.src = url;
+      }
+    },
+
+    // ------------------------------------------------------------
+    // EVENT BINDING
+    // ------------------------------------------------------------
+    bindStaticEvents(fx) {
+      document.getElementById("formSignUp").addEventListener("submit", (e) => this.handleSignUp(e));
+      document.getElementById("formLogin").addEventListener("submit", (e) => this.handleLogin(e));
+      document.getElementById("formForgot").addEventListener("submit", (e) => this.handleForgot(e));
+
+      document.querySelectorAll(".pw-toggle").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetInput = document.getElementById(btn.dataset.target);
+          const isHidden = targetInput.type === "password";
+          targetInput.type = isHidden ? "text" : "password";
+          btn.textContent = isHidden ? "Hide" : "Show";
+        });
+      });
+    },
+
+    // ------------------------------------------------------------
+    // SIGN UP -> creates auth user, then accepts invite
+    // ------------------------------------------------------------
+    async handleSignUp(e) {
+      e.preventDefault();
+      const fx = this.refs();
+      this.clearAlert(fx.signupAlertSlot);
+
+      const email = fx.signupEmail.value.trim();
+      const name = fx.signupName.value.trim();
+      const password = fx.signupPassword.value;
+
+      if (!name) {
+        this.showAlert(fx.signupAlertSlot, "error", "Please enter your full name.");
+        return;
+      }
+      if (password.length < 6) {
+        this.showAlert(fx.signupAlertSlot, "error", "Password must be at least 6 characters.");
+        return;
+      }
+
+      this.setButtonLoading(fx.btnSignUpSubmit, true, "Creating account…", "Accept invitation");
+
+      try {
+        // Step 1: create the auth identity
+        const { data: signUpData, error: signUpError } = await window.APP_CLIENT.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: name } }
+        });
+
+        if (signUpError) {
+          // Most common real-world case: this email already has an account.
+          if (/already registered|already exists/i.test(signUpError.message || "")) {
+            this.showAlert(fx.signupAlertSlot, "error", "An account already exists for this email. Please log in instead.");
+            this.setButtonLoading(fx.btnSignUpSubmit, false, "", "Accept invitation");
+            return;
+          }
+          throw signUpError;
+        }
+
+        // If email confirmations are enabled on this Supabase project, there is no
+        // active session yet — the invite can't be accepted until the user verifies
+        // their email and logs in. Handle both paths gracefully.
+        if (!signUpData.session) {
+          this.setButtonLoading(fx.btnSignUpSubmit, false, "", "Accept invitation");
+          this.showAlert(
+            fx.signupAlertSlot,
+            "success",
+            "Account created! Check your inbox to confirm your email, then log in to finish joining the workspace."
+          );
+          return;
+        }
+
+        // Step 2: accept the invitation now that we have a session
+        await this.finalizeAcceptance(name);
+
+      } catch (err) {
+        console.error("[PortalEngine] signup failure:", err);
+        this.setConnectionStep("identity", "error");
+        this.showAlert(fx.signupAlertSlot, "error", err.message || "Something went wrong creating your account.");
+        this.setButtonLoading(fx.btnSignUpSubmit, false, "", "Accept invitation");
+      }
+    },
+
+    // ------------------------------------------------------------
+    // LOG IN -> existing users accepting an invite, or returning members
+    // ------------------------------------------------------------
+    async handleLogin(e) {
+      e.preventDefault();
+      const fx = this.refs();
+      this.clearAlert(fx.loginAlertSlot);
+
+      const email = fx.loginEmail.value.trim();
+      const password = fx.loginPassword.value;
+
+      this.setButtonLoading(fx.btnLoginSubmit, true, "Logging in…", "Log in");
+
+      try {
+        const { error: signInError } = await window.APP_CLIENT.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          this.showAlert(fx.loginAlertSlot, "error", "Incorrect email or password. Please try again.");
+          this.setButtonLoading(fx.btnLoginSubmit, false, "", "Log in");
+          return;
+        }
+
+        // If this login happened via a real invite link, finalize acceptance.
+        // If they just navigated to /join/ without a token, send them straight in.
+        if (this.state.token && this.state.invite) {
+          await this.finalizeAcceptance(null);
         } else {
-            document.getElementById('workspaceLogo').innerText = data.store_name.charAt(0).toUpperCase();
+          await this.routeToDashboard();
         }
-        
-        document.getElementById('workspaceBadge').style.visibility = 'visible';
-        document.getElementById('signupEmail').value = data.email;
-        
-        // Push user safely into the onboarding subscription view
-        switchView('viewSignUp');
 
-    } catch (err) {
-        console.error("Token Pipeline Crash:", err);
-        showModal('🚫', 'Connection Interrupted', 'Could not establish security channel context: ' + (err.message || err.details || 'Unknown Network Intercept'));
-        switchView('viewLogin');
-    }
-}
+      } catch (err) {
+        console.error("[PortalEngine] login failure:", err);
+        this.showAlert(fx.loginAlertSlot, "error", err.message || "Couldn't log you in. Please try again.");
+        this.setButtonLoading(fx.btnLoginSubmit, false, "", "Log in");
+      }
+    },
 
-// Handle Form Account Registrations Handshake Node
-async function handleTeamSignUp(e) {
-    e.preventDefault();
-    const submitBtn = document.getElementById('btnSignUpSubmit');
-    const name = document.getElementById('signupName').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const email = invitationData.email;
+    // ------------------------------------------------------------
+    // FORGOT PASSWORD
+    // ------------------------------------------------------------
+    async handleForgot(e) {
+      e.preventDefault();
+      const fx = this.refs();
+      this.clearAlert(fx.forgotAlertSlot);
+      const email = fx.forgotEmail.value.trim();
 
-    setLoadingState(submitBtn, true, 'Processing Access...');
+      this.setButtonLoading(fx.btnForgotSubmit, true, "Sending…", "Send reset link");
 
-    try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-            options: { data: { display_name: name } }
-        });
-
-        if (authError) throw authError;
-
-        const { data: rpcData, error: rpcError } = await supabase.rpc('accept_team_invitation', {
-            p_token: currentToken,
-            p_preferred_name: name
-        });
-
-        if (rpcError) throw rpcError;
-
-        showModal('🎉', 'Welcome Aboard!', `Your team account is linked successfully. Let's head over to the command workspace dashboard.`, () => {
-            evaluateSessionAndRoute();
-        });
-
-    } catch (err) {
-        console.error("Sign up error:", err);
-        showModal('🛑', 'Registration Denied', err.message || 'Error executing transactional authorization mapping.');
-        setLoadingState(submitBtn, false, 'Accept & Activate');
-    }
-}
-
-// Handle Traditional Password Authentication
-async function handleTeamLogin(e) {
-    e.preventDefault();
-    const submitBtn = document.getElementById('btnLoginSubmit');
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-
-    setLoadingState(submitBtn, true, 'Authorizing Entry...');
-
-    try {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+      try {
+        const redirectTo = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, "")}/reset-password.html`;
+        const { error } = await window.APP_CLIENT.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
+        this.showAlert(fx.forgotAlertSlot, "success", "If an account exists for that email, a reset link is on its way.");
+      } catch (err) {
+        console.error("[PortalEngine] forgot-password failure:", err);
+        this.showAlert(fx.forgotAlertSlot, "error", "Couldn't send the reset link right now. Please try again shortly.");
+      } finally {
+        this.setButtonLoading(fx.btnForgotSubmit, false, "", "Send reset link");
+      }
+    },
 
-        await evaluateSessionAndRoute();
-    } catch (err) {
-        console.error("Login verification crashed:", err);
-        showModal('🔐', 'Access Disallowed', err.message || 'Invalid email or password match.');
-        setLoadingState(submitBtn, false, 'Enter Workspace');
-    }
-}
+    // ------------------------------------------------------------
+    // ACCEPT INVITATION (after a session exists)
+    // ------------------------------------------------------------
+    async finalizeAcceptance(preferredName) {
+      const fx = this.refs();
+      this.setConnectionStep("identity", "done");
+      this.setConnectionStep("join", "current");
 
-// Password Reset Node Dispatcher
-async function handleTeamForgot(e) {
-    e.preventDefault();
-    const submitBtn = document.getElementById('btnForgotSubmit');
-    const email = document.getElementById('forgotEmail').value.trim();
-
-    setLoadingState(submitBtn, true, 'Transmitting...');
-
-    try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + getBasePath() + '/join/'
+      try {
+        const { data, error } = await window.APP_CLIENT.rpc("accept_team_invitation", {
+          p_token: this.state.token,
+          p_preferred_name: preferredName
         });
         if (error) throw error;
 
-        showModal('📩', 'Link Dispatched', 'Check your inbox for a password reset option link.', () => {
-            switchView('viewLogin');
-        });
-    } catch (err) {
-        showModal('⚠️', 'Transmission Erred', err.message);
-    } finally {
-        setLoadingState(submitBtn, false, 'Send Recovery Link');
+        this.setConnectionStep("join", "done");
+
+        const fxDone = this.refs();
+        fxDone.doneTitle.textContent = data.already_member ? "Welcome back" : "You're in";
+        fxDone.doneMessage.textContent = data.already_member
+          ? "You're already part of this workspace. Taking you to your dashboard…"
+          : "Your account is connected to the workspace. Taking you to your dashboard…";
+        this.switchView("viewDone");
+
+        await this.routeToDashboard();
+
+      } catch (err) {
+        console.error("[PortalEngine] accept-invitation failure:", err);
+        this.setConnectionStep("join", "error");
+        this.setButtonLoading(this.refs().btnSignUpSubmit, false, "", "Accept invitation");
+        this.setButtonLoading(this.refs().btnLoginSubmit, false, "", "Log in");
+        this.toast(err.message || "Couldn't complete joining the workspace. Please try again.", "error");
+      }
+    },
+
+    // ------------------------------------------------------------
+    // RUNTIME GATING — never sends team members to owner onboarding
+    // ------------------------------------------------------------
+    async routeToDashboard() {
+      try {
+        const { data, error } = await window.APP_CLIENT.rpc("get_member_runtime_state");
+        if (error) throw error;
+
+        const state = Array.isArray(data) ? data[0] : data;
+        if (!state) {
+          window.toast("Workspace context not found. Please contact your workspace owner.", "error");
+          return;
+        }
+
+        if (state.can_access_dashboard) {
+          setTimeout(() => { if (window.safeNavigate) window.safeNavigate("dashboard"); else window.location.href = "../dashboard/"; }, 900);
+          return;
+        }
+
+        // Blocked: show the appropriate premium modal instead of redirecting.
+        this.showBlockingModal(state.blocking_reason, state);
+
+      } catch (err) {
+        console.error("[PortalEngine] runtime-state failure:", err);
+        window.toast("Couldn't check workspace status. Please refresh and try again.", "error");
+      }
+    },
+
+    showBlockingModal(reason, state) {
+      const fx = this.refs();
+      const presets = {
+        owner_onboarding_pending: {
+          tone: "tone-amber",
+          icon: "⏳",
+          title: "Workspace setup in progress",
+          text: "Your workspace owner is still completing initial setup. You'll get access as soon as that's finished — no action is needed from you right now."
+        },
+        suspended: {
+          tone: "tone-red",
+          icon: "🚫",
+          title: "Workspace temporarily suspended",
+          text: state.suspended_reason
+            ? `This workspace is currently suspended: ${state.suspended_reason}`
+            : "This workspace is currently suspended. Please reach out to your workspace owner for details."
+        },
+        inactive: {
+          tone: "tone-red",
+          icon: "🚫",
+          title: "Workspace unavailable",
+          text: "This workspace isn't active right now. Please contact your workspace owner."
+        },
+        billing: {
+          tone: "tone-blue",
+          icon: "💳",
+          title: "Billing action needed",
+          text: "There's a billing issue on this workspace's plan. Your workspace owner needs to resolve this before the team can access the dashboard."
+        }
+      };
+
+      const preset = presets[reason] || presets.owner_onboarding_pending;
+
+      fx.modalIcon.className = `modal-icon ${preset.tone}`;
+      fx.modalIcon.textContent = preset.icon;
+      fx.modalTitle.textContent = preset.title;
+      fx.modalText.textContent = preset.text;
+      fx.modal.classList.add("active");
+    },
+
+    closeModal() {
+      this.refs().modal.classList.remove("active");
     }
-}
+  };
 
-// Multi-Tenant Access Lifecycle Evaluator Guard
-async function evaluateSessionAndRoute() {
-    try {
-        const { data: state, error } = await supabase.rpc('get_store_runtime_state');
-        
-        if (error) {
-            showModal('🚧', 'Membership Unverified', 'Account verified, but no tenant workspace records match this identity.');
-            return;
-        }
+  window.PortalEngine = PortalEngine;
+  document.addEventListener("DOMContentLoaded", () => PortalEngine.init());
+})();
 
-        const s = Array.isArray(state) ? state[0] : state;
-        
-        if (!s || !s.store_id) {
-            showModal('🕵️‍♂️', 'Sync Pending', 'Workspace details are pending synchronization. Try again shortly.');
-            return;
-        }
 
-        if (s.is_suspended || !s.is_active) {
-            showModal('🔒', 'Workspace Restricted', `Access locked: "${s.suspended_reason || 'Administrative Review'}"`);
-            return;
-        }
-
-        if (s.subscription_status !== 'trial' && s.subscription_status !== 'active') {
-            showModal('💳', 'Billing Notice', 'The billing lifecycle for this store requires layout maintenance.');
-            return;
-        }
-
-        if (!s.onboarding_completed) {
-            showModal('⏳', 'Setup Required', `The store owner must finish onboarding before team accounts can access the panel.`, () => {
-                supabase.auth.signOut().then(() => location.reload());
-            });
-            return;
-        }
-
-        // Utilizing global router utility layer
-        if (typeof safeNavigate === 'function') {
-            safeNavigate('dashboard/', true);
-        } else {
-            window.location.replace(window.location.origin + getBasePath() + '/dashboard/');
-        }
-
-    } catch (err) {
-        console.error("Routing calculation failure:", err);
-        showModal('🚨', 'Routing Failure', 'Could not accurately verify tenant routing paths securely.');
-    }
-}
-
-// =============================================================================
-// DISPLAY INTERFACE MODAL WRAPPERS
-// =============================================================================
-
-function switchView(viewId) {
-    document.querySelectorAll('.portal-view').forEach(view => view.classList.remove('active'));
-    const target = document.getElementById(viewId);
-    if (target) target.classList.add('active');
-}
-
-function setLoadingState(buttonElement, isLoading, processText) {
-    if (isLoading) {
-        buttonElement.disabled = true;
-        buttonElement.dataset.originalText = buttonElement.innerHTML;
-        buttonElement.innerHTML = `<div class="spinner" style="width:18px; height:18px; border-width:2px; display:inline-block; vertical-align:middle; margin-right:8px;"></div> ${processText}`;
-    } else {
-        buttonElement.disabled = false;
-        buttonElement.innerHTML = buttonElement.dataset.originalText || processText;
-    }
-}
-
-let modalCallback = null;
-
-function showModal(icon, title, message, callback = null) {
-    document.getElementById('modalIcon').innerText = icon;
-    document.getElementById('modalTitle').innerText = title;
-    document.getElementById('modalText').innerText = message;
-    modalCallback = callback;
-    document.getElementById('systemModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('systemModal').classList.remove('active');
-    if (modalCallback) {
-        const executeCall = modalCallback;
-        modalCallback = null;
-        executeCall();
-    }
-}
