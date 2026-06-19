@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BiziPlex — Smart Team Portal</title>
-  
     <style>
         :root {
             --bizi-gold: #D4AF37;
@@ -40,7 +39,6 @@
             padding: 20px;
         }
 
-        /* Ambient Animated Mesh Background */
         .ambient-glow {
             position: absolute;
             width: 600px;
@@ -58,7 +56,6 @@
             100% { transform: scale(1.2) translate(80px, 50px); }
         }
 
-        /* Core Card Component Container */
         .portal-wrapper {
             width: 100%;
             max-width: 480px;
@@ -79,7 +76,6 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
-        /* Header Workspace Branding */
         .brand-container {
             text-align: center;
             margin-bottom: 32px;
@@ -140,7 +136,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Multi-View Conditional Display Layouts */
         .portal-view {
             display: none;
         }
@@ -169,7 +164,6 @@
             line-height: 1.5;
         }
 
-        /* Form Controls */
         .form-group {
             margin-bottom: 20px;
             position: relative;
@@ -183,10 +177,6 @@
             letter-spacing: 1px;
             color: var(--bizi-light-gray);
             margin-bottom: 8px;
-        }
-
-        .input-wrapper {
-            position: relative;
         }
 
         .form-input {
@@ -207,12 +197,6 @@
             box-shadow: 0 0 0 4px var(--bizi-gold-glow);
         }
 
-        .form-input:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Premium Buttons */
         .btn-primary {
             width: 100%;
             background: linear-gradient(135deg, #E2C15D 0%, var(--bizi-gold) 100%);
@@ -236,11 +220,6 @@
             box-shadow: 0 8px 25px rgba(212, 175, 55, 0.35);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        /* Secondary Navigation Interlinks */
         .view-footer-nav {
             text-align: center;
             margin-top: 24px;
@@ -253,14 +232,12 @@
             text-decoration: none;
             font-weight: 600;
             margin-left: 4px;
-            transition: color 0.2s;
         }
 
         .view-footer-nav a:hover {
             text-decoration: underline;
         }
 
-        /* Custom Full-Screen Modal System */
         .bizi-modal {
             position: fixed;
             top: 0;
@@ -294,34 +271,12 @@
             padding: 32px;
             text-align: center;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-            transform: scale(0.9);
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .bizi-modal.active .modal-body {
-            transform: scale(1);
-        }
+        .modal-icon { font-size: 3rem; margin-bottom: 16px; }
+        .modal-title { font-size: 1.35rem; font-weight: 700; margin-bottom: 12px; }
+        .modal-text { font-size: 0.9rem; color: var(--bizi-light-gray); line-height: 1.6; margin-bottom: 24px; }
 
-        .modal-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .modal-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: #FFFFFF;
-        }
-
-        .modal-text {
-            font-size: 0.9rem;
-            color: var(--bizi-light-gray);
-            line-height: 1.6;
-            margin-bottom: 24px;
-        }
-
-        /* Skeleton Preloader State */
         .preloader-frame {
             display: flex;
             flex-direction: column;
@@ -340,27 +295,8 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
-
-    
-    <script>
-        function getBasePath() {
-            return window.location.hostname.includes('github.io') 
-                ? '/' + window.location.pathname.split('/').filter(Boolean)[0] 
-                : '';
-        }
-
-        function safeNavigate(targetPath, replace = false) {
-            if (!targetPath) return;
-            const cleanTarget = targetPath.startsWith('/') ? targetPath : '/' + targetPath;
-            const finalUrl = window.location.origin + getBasePath() + cleanTarget;
-            if (replace) window.location.replace(finalUrl);
-            else window.location.href = finalUrl;
-        }
-    </script>
 </head>
 <body>
 
@@ -384,8 +320,7 @@
 
         <div class="portal-view" id="viewSignUp">
             <h2 class="view-title">Join Workspace</h2>
-            <p class="view-desc">Create your credentials to accept the invitation and securely connect your devices to the store dashboard.</p>
-            
+            <p class="view-desc">Create your credentials to accept the invitation and connect securely.</p>
             <form id="formSignUp" onsubmit="handleTeamSignUp(event)">
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
@@ -401,15 +336,12 @@
                 </div>
                 <button type="submit" class="btn-primary" id="btnSignUpSubmit">Accept & Activate</button>
             </form>
-            <div class="view-footer-nav">
-                Already have an account?<a href="#" onclick="switchView('viewLogin')">Login here</a>
-            </div>
+            <div class="view-footer-nav">Already have an account?<a href="#" onclick="switchView('viewLogin')">Login here</a></div>
         </div>
 
         <div class="portal-view" id="viewLogin">
             <h2 class="view-title">Team Login</h2>
             <p class="view-desc">Enter your credentials to enter your staff workspace panel.</p>
-            
             <form id="formLogin" onsubmit="handleTeamLogin(event)">
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
@@ -429,8 +361,7 @@
 
         <div class="portal-view" id="viewForgot">
             <h2 class="view-title">Recover Password</h2>
-            <p class="view-desc">Enter your email address and we'll transmit an override link to reset your account credentials safely.</p>
-            
+            <p class="view-desc">Enter your email address to transmit an override password link safely.</p>
             <form id="formForgot" onsubmit="handleTeamForgot(event)">
                 <div class="form-group">
                     <label class="form-label">Account Email</label>
@@ -438,9 +369,7 @@
                 </div>
                 <button type="submit" class="btn-primary" id="btnForgotSubmit">Send Recovery Link</button>
             </form>
-            <div class="view-footer-nav">
-                Remembered details?<a href="#" onclick="switchView('viewLogin')">Return to Login</a>
-            </div>
+            <div class="view-footer-nav">Remembered details?<a href="#" onclick="switchView('viewLogin')">Return to Login</a></div>
         </div>
     </div>
 
@@ -453,13 +382,231 @@
         </div>
     </div>
 
-        
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="../global-config.js"></script>
+    <script>
+        // Catch general compilation failures immediately
+        window.onerror = function(msg, url, line) {
+            alert("🚨 SCRIPT RUNTIME ERROR:\n" + msg + "\nLine: " + line);
+            return false;
+        };
 
-    <script src="portal-engine.js"></script>
+        // Automatic path calculation values
+        function getBasePath() {
+            return window.location.hostname.includes('github.io') 
+                ? '/' + window.location.pathname.split('/').filter(Boolean)[0] 
+                : '';
+        }
+
+        function safeNavigate(targetPath, replace = false) {
+            if (!targetPath) return;
+            const cleanTarget = targetPath.startsWith('/') ? targetPath : '/' + targetPath;
+            const finalUrl = window.location.origin + getBasePath() + cleanTarget;
+            if (replace) window.location.replace(finalUrl);
+            else window.location.href = finalUrl;
+        }
+
+        // Dedicated Supabase Core Instance connection allocation
+        const supabase = window.supabase ? window.supabase.createClient(
+            "https://ugffezktrojjhfbaxrrq.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8"
+        ) : null;
+
+        let currentToken = null;
+        let invitationData = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                if (!supabase) {
+                    throw new Error("Supabase JS library did not resolve correctly from CDN endpoints.");
+                }
+
+                const urlParams = new URLSearchParams(window.location.search);
+                currentToken = urlParams.get('token');
+
+                if (!currentToken) {
+                    console.log("No token provided. Forwarding view to explicit Login channel.");
+                    switchView('viewLogin');
+                    return;
+                }
+
+                await executeTokenVerificationPipeline(currentToken);
+            } catch (err) {
+                console.error("Portal setup exception:", err);
+                alert("Matrix Setup Error: " + err.message);
+                switchView('viewLogin');
+            }
+        });
+
+        async function executeTokenVerificationPipeline(token) {
+            try {
+                const cleanToken = token.trim();
+                const { data, error } = await supabase.rpc('get_invitation_details', { p_token: cleanToken });
+                
+                if (error) throw error;
+                
+                if (data && data.success === false) {
+                    showModal('❌', 'Invitation Invalid', data.error || 'Invitation has decayed.', () => {
+                        switchView('viewLogin');
+                    });
+                    return;
+                }
+
+                invitationData = data;
+                document.getElementById('workspaceName').innerText = data.store_name;
+                
+                if (data.logo_url && data.logo_url.trim() !== '') {
+                    document.getElementById('workspaceLogo').innerHTML = `<img src="${data.logo_url}" alt="Logo" style="width:100%; height:100%; object-fit:cover;">`;
+                } else {
+                    document.getElementById('workspaceLogo').innerText = data.store_name.charAt(0).toUpperCase();
+                }
+                
+                document.getElementById('workspaceBadge').style.visibility = 'visible';
+                document.getElementById('signupEmail').value = data.email;
+                switchView('viewSignUp');
+
+            } catch (err) {
+                console.error("RPC Pipeline breakdown:", err);
+                alert("Connection Channel Error: " + err.message);
+                switchView('viewLogin');
+            }
+        }
+
+        async function handleTeamSignUp(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('btnSignUpSubmit');
+            const name = document.getElementById('signupName').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const email = invitationData.email;
+
+            setLoadingState(submitBtn, true, 'Processing Access...');
+            try {
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: { data: { display_name: name } }
+                });
+                if (authError) throw authError;
+
+                const { error: rpcError } = await supabase.rpc('accept_team_invitation', {
+                    p_token: currentToken,
+                    p_preferred_name: name
+                });
+                if (rpcError) throw rpcError;
+
+                showModal('🎉', 'Welcome Aboard!', `Your account setup was completely automated! Redirecting...`, () => {
+                    evaluateSessionAndRoute();
+                });
+            } catch (err) {
+                alert("Registration Denied:\n" + err.message);
+                setLoadingState(submitBtn, false, 'Accept & Activate');
+            }
+        }
+
+        async function handleTeamLogin(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('btnLoginSubmit');
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            setLoadingState(submitBtn, true, 'Authorizing Entry...');
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                await evaluateSessionAndRoute();
+            } catch (err) {
+                alert("Login Error:\n" + err.message);
+                setLoadingState(submitBtn, false, 'Enter Workspace');
+            }
+        }
+
+        async function handleTeamForgot(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('btnForgotSubmit');
+            const email = document.getElementById('forgotEmail').value.trim();
+
+            setLoadingState(submitBtn, true, 'Transmitting...');
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + getBasePath() + '/join/'
+                });
+                if (error) throw error;
+                showModal('📩', 'Link Dispatched', 'Check your inbox for your access link verification updates.', () => {
+                    switchView('viewLogin');
+                });
+            } catch (err) {
+                alert("Error sending dispatch link: " + err.message);
+            } finally {
+                setLoadingState(submitBtn, false, 'Send Recovery Link');
+            }
+        }
+
+        async function evaluateSessionAndRoute() {
+            try {
+                const { data: state, error } = await supabase.rpc('get_store_runtime_state');
+                if (error) {
+                    showModal('🚧', 'No Membership', 'Account active, but target team membership parameters unmapped.');
+                    return;
+                }
+                const s = Array.isArray(state) ? state[0] : state;
+                if (!s || !s.store_id) {
+                    showModal('🕵️‍♂️', 'Sync Pending', 'Workspace parameters pending master ledger write actions.');
+                    return;
+                }
+                if (s.is_suspended || !s.is_active) {
+                    showModal('🔒', 'Workspace Locked', `Reason: "${s.suspended_reason || 'Administrative Review'}"`);
+                    return;
+                }
+                if (s.subscription_status !== 'trial' && s.subscription_status !== 'active') {
+                    showModal('💳', 'Billing Verification', 'The store billing context requires explicit upkeep attention configuration settings.');
+                    return;
+                }
+                if (!s.onboarding_completed) {
+                    showModal('⏳', 'Setup Incomplete', `The workspace initialization workflow is still executing.`, () => {
+                        supabase.auth.signOut().then(() => location.reload());
+                    });
+                    return;
+                }
+                safeNavigate('dashboard/', true);
+            } catch (err) {
+                alert("Routing Context Failure: " + err.message);
+            }
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.portal-view').forEach(v => v.classList.remove('active'));
+            const target = document.getElementById(viewId);
+            if (target) target.classList.add('active');
+        }
+
+        function setLoadingState(btn, isLoading, txt) {
+            if (isLoading) {
+                btn.disabled = true;
+                btn.dataset.originalText = btn.innerHTML;
+                btn.innerHTML = `<div class="spinner" style="width:18px; height:18px; border-width:2px; display:inline-block; vertical-align:middle; margin-right:8px;"></div> ${txt}`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.dataset.originalText || txt;
+            }
+        }
+
+        let modalCallback = null;
+        function showModal(icon, title, message, callback = null) {
+            document.getElementById('modalIcon').innerText = icon;
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = message;
+            modalCallback = callback;
+            document.getElementById('systemModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('systemModal').classList.remove('active');
+            if (modalCallback) {
+                const call = modalCallback;
+                modalCallback = null;
+                call();
+            }
+        }
+    </script>
 </body>
 </html>
-
-
