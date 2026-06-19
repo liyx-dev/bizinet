@@ -1,612 +1,643 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BiziPlex — Smart Team Portal</title>
-    <style>
-        :root {
-            --bizi-gold: #D4AF37;
-            --bizi-gold-glow: rgba(212, 175, 55, 0.15);
-            --bizi-red: #E63946;
-            --bizi-blue: #1D3557;
-            --bizi-indigo: #4361EE;
-            --bizi-black: #0B0C10;
-            --bizi-dark-gray: #1F2833;
-            --bizi-light-gray: #C5C6C7;
-            --bizi-glass: rgba(31, 40, 51, 0.65);
-            --bizi-border: rgba(197, 198, 199, 0.12);
-            --bizi-success: #2ECC71;
-            --bizi-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BiziPlex Command — Team Workspace Portal</title>
+<meta name="description" content="Securely join your team's BiziPlex workspace.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* =============================================
+   LIYOG DESIGN SYSTEM — CORE VARIABLES
+   (inherited from global.css, extended for /join/)
+============================================= */
+:root{
+  --liyog-green:#28A428;
+  --liyog-green-light:#34BF49;
+  --liyog-green-dark:#228B22;
+  --liyog-deep-green:#006400;
+  --liyog-gold:#FFD700;
+  --liyog-orange:#FF7A00;
+  --liyog-blue:#1877F2;
+  --liyog-blue-dark:#0D5FCB;
+  --liyog-black:#111111;
+  --liyog-black-light:#1A1A1A;
+  --liyog-red:#FF3B30;
+  --liyog-red-dark:#C1271A;
+  --liyog-yellow:#FFEA00;
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: var(--bizi-font);
-            -webkit-font-smoothing: antialiased;
-        }
+  --surface-bg:#f0f4f8;
+  --surface-card:#ffffff;
+  --surface-soft:#f8fafc;
+  --border-subtle:rgba(226,232,240,0.9);
 
-        body {
-            background: radial-gradient(circle at 0% 0%, var(--bizi-dark-gray) 0%, var(--bizi-black) 100%);
-            color: #FFFFFF;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-            padding: 20px;
-        }
+  --text-primary:#0f172a;
+  --text-secondary:#475569;
+  --text-muted:#94a3b8;
 
-        .ambient-glow {
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, var(--bizi-gold-glow) 0%, transparent 70%);
-            top: -150px;
-            left: -150px;
-            z-index: 0;
-            pointer-events: none;
-            animation: pulseGlow 12s infinite alternate ease-in-out;
-        }
+  --font-display:'Syne', sans-serif;
+  --font-body:'DM Sans', sans-serif;
 
-        @keyframes pulseGlow {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.2) translate(80px, 50px); }
-        }
+  --radius-sm:10px;
+  --radius-md:14px;
+  --radius-lg:20px;
+  --radius-xl:28px;
 
-        .portal-wrapper {
-            width: 100%;
-            max-width: 480px;
-            background: var(--bizi-glass);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--bizi-border);
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-            z-index: 10;
-            transform: translateY(20px);
-            opacity: 0;
-            animation: cardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+  --shadow-sm:0 2px 8px rgba(15,23,42,0.06);
+  --shadow-md:0 6px 24px rgba(15,23,42,0.08);
+  --shadow-lg:0 16px 48px rgba(15,23,42,0.10);
+  --shadow-blue:0 8px 24px rgba(24,119,242,0.25);
+  --shadow-red:0 8px 24px rgba(255,59,48,0.25);
 
-        @keyframes cardEntrance {
-            to { transform: translateY(0); opacity: 1; }
-        }
+  /* Portal-specific: the rail is near-black, not white, to host the
+     store's own photography as ambient brand canvas. */
+  --rail-bg:#0B0C10;
+  --rail-glass:rgba(26,28,33,0.72);
+}
 
-        .brand-container {
-            text-align: center;
-            margin-bottom: 32px;
-        }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font-body);
+  background:var(--surface-bg);
+  color:var(--text-primary);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{cursor:pointer;font-family:var(--font-body);}
+img{display:block;max-width:100%;}
+input,select,textarea{font-family:var(--font-body);}
+a{color:inherit;}
 
-        .biziplex-logo {
-            font-size: 1.4rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            color: #FFFFFF;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;}
+}
 
-        .biziplex-logo span {
-            color: var(--bizi-gold);
-        }
+/* =============================================
+   PORTAL SHELL — split rail / action layout
+============================================= */
+.portal-shell{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:minmax(0,440px) minmax(0,1fr);
+}
+@media (max-width:920px){
+  .portal-shell{grid-template-columns:1fr;}
+}
 
-        .workspace-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--bizi-border);
-            padding: 10px 16px;
-            border-radius: 50px;
-            margin-top: 8px;
-            max-width: 100%;
-        }
+/* ---------- LEFT: Identity Rail ---------- */
+.identity-rail{
+  position:relative;
+  background:var(--rail-bg);
+  color:#fff;
+  padding:40px 36px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:100vh;
+  overflow:hidden;
+}
+@media (max-width:920px){
+  .identity-rail{min-height:auto;padding:28px 24px 32px;}
+}
 
-        .workspace-logo-frame {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--bizi-indigo), var(--bizi-blue));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.85rem;
-            color: #FFFFFF;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+.rail-photo-backdrop{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  opacity:0;
+  transition:opacity 1.1s ease;
+}
+.rail-photo-backdrop.loaded{opacity:1;}
+.rail-photo-backdrop img{
+  width:100%;height:100%;object-fit:cover;
+  filter:saturate(0.85) brightness(0.42);
+  transform:scale(1.04);
+}
+.rail-photo-backdrop::after{
+  content:'';
+  position:absolute;inset:0;
+  background:
+    linear-gradient(180deg, rgba(11,12,16,0.55) 0%, rgba(11,12,16,0.88) 100%),
+    radial-gradient(circle at 15% 0%, rgba(24,119,242,0.22) 0%, transparent 55%);
+}
 
-        .workspace-logo-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+.rail-content{position:relative;z-index:2;}
 
-        .workspace-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--bizi-light-gray);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+.wordmark{
+  font-family:var(--font-display);
+  font-size:1.55rem;
+  font-weight:800;
+  letter-spacing:0.02em;
+  display:flex;
+  align-items:baseline;
+  gap:2px;
+}
+.wordmark .w-biziplex{color:var(--liyog-blue);}
+.wordmark .w-command{color:var(--liyog-red);margin-left:8px;font-weight:700;}
+.wordmark-tag{
+  display:block;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  margin-top:6px;
+}
 
-        .portal-view {
-            display: none;
-        }
+/* Connection status strip — the signature element.
+   Mirrors the real async lifecycle: verify -> identity -> join. */
+.connection-strip{
+  margin-top:36px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.conn-step{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  opacity:0.4;
+  transition:opacity 0.4s ease;
+}
+.conn-step.is-current,.conn-step.is-done{opacity:1;}
+.conn-dot{
+  width:22px;height:22px;
+  border-radius:50%;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+  font-weight:700;
+  border:1.5px solid rgba(255,255,255,0.25);
+  background:rgba(255,255,255,0.04);
+  transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.conn-step.is-current .conn-dot{
+  border-color:var(--liyog-blue);
+  box-shadow:0 0 0 4px rgba(24,119,242,0.18);
+}
+.conn-step.is-current .conn-dot::before{
+  content:'';
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--liyog-blue);
+  animation:connPulse 1.3s ease-in-out infinite;
+}
+.conn-step.is-done .conn-dot{
+  background:var(--liyog-green);
+  border-color:var(--liyog-green);
+}
+.conn-step.is-done .conn-dot::before{content:'✓';color:#fff;font-size:11px;}
+.conn-step.is-error .conn-dot{
+  background:var(--liyog-red);
+  border-color:var(--liyog-red);
+}
+.conn-step.is-error .conn-dot::before{content:'!';color:#fff;font-size:12px;font-weight:800;}
+@keyframes connPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(0.6);opacity:0.6;}}
+.conn-label{font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.85);}
+.conn-step.is-current .conn-label{color:#fff;}
 
-        .portal-view.active {
-            display: block;
-            animation: fadeInView 0.4s ease-out forwards;
-        }
+/* Store identity card — populated from profile table */
+.store-identity{
+  margin-top:auto;
+  padding-top:36px;
+}
+@media (max-width:920px){.store-identity{padding-top:24px;}}
 
-        @keyframes fadeInView {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+.store-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:16px 18px;
+  border-radius:var(--radius-lg);
+  background:var(--rail-glass);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.08);
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity 0.5s ease, transform 0.5s ease;
+}
+.store-card.visible{opacity:1;transform:translateY(0);}
+.store-logo{
+  width:46px;height:46px;
+  border-radius:var(--radius-md);
+  background:linear-gradient(135deg, var(--liyog-blue), var(--liyog-blue-dark));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:1rem;color:#fff;
+  flex-shrink:0;overflow:hidden;
+  border:1px solid rgba(255,255,255,0.15);
+}
+.store-logo img{width:100%;height:100%;object-fit:cover;}
+.store-meta{min-width:0;}
+.store-meta-label{
+  font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.08em;color:rgba(255,255,255,0.45);
+}
+.store-meta-name{
+  font-family:var(--font-display);
+  font-size:1.02rem;font-weight:700;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:2px;
+}
+.role-chip{
+  margin-top:12px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;
+  border-radius:50px;
+  font-size:11.5px;font-weight:700;
+  text-transform:capitalize;
+  background:rgba(255,215,0,0.12);
+  color:var(--liyog-gold);
+  border:1px solid rgba(255,215,0,0.25);
+}
 
-        .view-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #FFFFFF;
-        }
+/* ---------- RIGHT: Action Panel ---------- */
+.action-panel{
+  background:var(--surface-bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 24px;
+}
+.action-card{
+  width:100%;
+  max-width:420px;
+}
 
-        .view-desc {
-            font-size: 0.9rem;
-            color: var(--bizi-light-gray);
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
+.panel-eyebrow{
+  font-size:11.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:0.1em;color:var(--text-muted);
+  margin-bottom:10px;
+}
+.view-title{
+  font-family:var(--font-display);
+  font-size:1.65rem;font-weight:800;
+  color:var(--text-primary);
+  letter-spacing:-0.01em;
+  line-height:1.15;
+}
+.view-desc{
+  font-size:14px;color:var(--text-secondary);
+  margin-top:8px;margin-bottom:28px;line-height:1.55;
+}
 
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
+.portal-view{display:none;}
+.portal-view.active{display:block;animation:fadeUp 0.4s cubic-bezier(0.16,1,0.3,1);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
-        .form-label {
-            display: block;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--bizi-light-gray);
-            margin-bottom: 8px;
-        }
+.form-group{margin-bottom:18px;position:relative;}
+.form-label{
+  display:block;font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.07em;
+  color:var(--text-secondary);margin-bottom:7px;
+}
+.input-premium{
+  width:100%;padding:13px 16px;
+  border-radius:var(--radius-md);
+  border:1.5px solid var(--border-subtle);
+  background:var(--surface-card);
+  font-size:14.5px;color:var(--text-primary);
+  outline:none;
+  transition:all 0.2s ease;
+}
+.input-premium::placeholder{color:var(--text-muted);}
+.input-premium:focus{
+  border-color:var(--liyog-blue);
+  box-shadow:0 0 0 3.5px rgba(24,119,242,0.12);
+}
+.input-premium:read-only{
+  background:var(--surface-soft);
+  color:var(--text-secondary);
+  cursor:not-allowed;
+}
+.input-hint{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
+.password-field{position:relative;}
+.pw-toggle{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:transparent;border:none;
+  font-size:11.5px;font-weight:700;color:var(--liyog-blue);
+  padding:8px 10px;
+}
 
-        .form-input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--bizi-border);
-            padding: 14px 16px;
-            border-radius: 12px;
-            color: #FFFFFF;
-            font-size: 0.95rem;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+.btn-primary{
+  width:100%;
+  background:linear-gradient(135deg, var(--liyog-blue), var(--liyog-blue-dark));
+  color:#fff;border:none;
+  border-radius:var(--radius-md);
+  font-weight:700;font-size:15px;
+  padding:14px 18px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:var(--shadow-blue);
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-primary:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 10px 28px rgba(24,119,242,0.35);
+}
+.btn-primary:active:not(:disabled){transform:translateY(0);}
+.btn-primary:disabled{
+  background:#cbd5e1;box-shadow:none;cursor:not-allowed;color:#94a3b8;
+}
+.btn-spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.35);
+  border-top-color:#fff;
+  animation:spin 0.7s linear infinite;
+  display:none;
+}
+.btn-primary.is-loading .btn-spinner{display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-        .form-input:focus {
-            outline: none;
-            border-color: var(--bizi-gold);
-            background: rgba(0, 0, 0, 0.35);
-            box-shadow: 0 0 0 4px var(--bizi-gold-glow);
-        }
+.view-footer-nav{
+  text-align:center;margin-top:22px;
+  font-size:13.5px;color:var(--text-secondary);
+}
+.view-footer-nav a{
+  color:var(--liyog-blue);text-decoration:none;font-weight:700;margin-left:5px;
+}
+.view-footer-nav a:hover{text-decoration:underline;}
 
-        .btn-primary {
-            width: 100%;
-            background: linear-gradient(135deg, #E2C15D 0%, var(--bizi-gold) 100%);
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            color: var(--bizi-black);
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
-        }
+.inline-alert{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:12px 14px;border-radius:var(--radius-md);
+  font-size:13px;line-height:1.5;margin-bottom:18px;
+  border:1px solid transparent;
+}
+.inline-alert.error{background:#FFF0F0;color:var(--liyog-red-dark);border-color:rgba(255,59,48,0.18);}
+.inline-alert.success{background:#EAF7EC;color:var(--liyog-deep-green);border-color:rgba(40,164,40,0.18);}
+.inline-alert-icon{flex-shrink:0;font-size:15px;line-height:1.4;}
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.35);
-        }
+/* Loading / verify view */
+.verify-stage{
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;padding:36px 0 12px;
+}
+.verify-spinner{
+  width:46px;height:46px;border-radius:50%;
+  border:3px solid rgba(24,119,242,0.12);
+  border-top-color:var(--liyog-blue);
+  animation:spin 0.85s linear infinite;
+  margin-bottom:20px;
+}
+.verify-text{font-size:14px;font-weight:600;color:var(--text-secondary);}
+.verify-subtext{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
 
-        .view-footer-nav {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 0.85rem;
-            color: var(--bizi-light-gray);
-        }
+/* Done / success view */
+.done-stage{text-align:center;padding:8px 0;}
+.done-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg, var(--liyog-green-light), var(--liyog-deep-green));
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;color:#fff;margin:0 auto 20px;
+  box-shadow:0 10px 28px rgba(40,164,40,0.3);
+}
 
-        .view-footer-nav a {
-            color: var(--bizi-gold);
-            text-decoration: none;
-            font-weight: 600;
-            margin-left: 4px;
-        }
+/* =============================================
+   MODAL — runtime / blocking states
+   (suspended, billing, owner-onboarding-pending)
+============================================= */
+.bizi-modal{
+  position:fixed;inset:0;
+  background:rgba(11,12,16,0.78);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.35s cubic-bezier(0.4,0,0.2,1);
+  padding:20px;
+}
+.bizi-modal.active{opacity:1;pointer-events:auto;}
+.modal-body{
+  background:var(--surface-card);
+  border-radius:var(--radius-xl);
+  width:100%;max-width:420px;
+  padding:32px 28px;text-align:center;
+  box-shadow:0 30px 60px rgba(0,0,0,0.35);
+  transform:translateY(14px) scale(0.98);
+  transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.bizi-modal.active .modal-body{transform:translateY(0) scale(1);}
+.modal-icon{
+  width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;margin:0 auto 16px;
+}
+.modal-icon.tone-amber{background:#FFF7D6;color:#9A6700;}
+.modal-icon.tone-red{background:#FFF0F0;color:var(--liyog-red);}
+.modal-icon.tone-blue{background:#EAF2FF;color:var(--liyog-blue);}
+.modal-title{font-family:var(--font-display);font-size:1.2rem;font-weight:700;margin-bottom:10px;color:var(--text-primary);}
+.modal-text{font-size:13.5px;color:var(--text-secondary);line-height:1.6;margin-bottom:22px;}
+.modal-actions{display:flex;flex-direction:column;gap:10px;}
+.btn-ghost{
+  background:var(--surface-soft);color:var(--text-secondary);
+  border:1.5px solid var(--border-subtle);
+  border-radius:var(--radius-md);
+  padding:12px 18px;font-weight:700;font-size:14px;
+  transition:all 0.2s;
+}
+.btn-ghost:hover{background:#e2e8f0;color:var(--text-primary);}
 
-        .view-footer-nav a:hover {
-            text-decoration: underline;
-        }
+/* Toast */
+#joinToast{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%);
+  z-index:99999;width:min(92vw,420px);
+  padding:14px 16px;border-radius:var(--radius-md);
+  font-size:13.5px;font-weight:600;
+  display:none;align-items:flex-start;gap:10px;
+  box-shadow:0 16px 36px rgba(0,0,0,0.18);
+  animation:toastSlide 0.3s ease;
+}
+@keyframes toastSlide{from{opacity:0;transform:translate(-50%,-14px);}to{opacity:1;transform:translate(-50%,0);}}
+#joinToast.toast-success{background:#EAF7EC;color:var(--liyog-deep-green);border:1px solid rgba(40,164,40,0.2);}
+#joinToast.toast-error{background:#FFF0F0;color:var(--liyog-red-dark);border:1px solid rgba(255,59,48,0.2);}
+.toast-close{margin-left:auto;cursor:pointer;font-size:16px;opacity:0.6;flex-shrink:0;}
+.toast-close:hover{opacity:1;}
 
-        .bizi-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(11, 12, 16, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 20px;
-        }
-
-        .bizi-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-body {
-            background: linear-gradient(145deg, var(--bizi-dark-gray), var(--bizi-black));
-            border: 1px solid var(--bizi-border);
-            width: 100%;
-            max-width: 440px;
-            border-radius: 20px;
-            padding: 32px;
-            text-align: center;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-        }
-
-        .modal-icon { font-size: 3rem; margin-bottom: 16px; }
-        .modal-title { font-size: 1.35rem; font-weight: 700; margin-bottom: 12px; }
-        .modal-text { font-size: 0.9rem; color: var(--bizi-light-gray); line-height: 1.6; margin-bottom: 24px; }
-
-        .preloader-frame {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 0;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.05);
-            border-top-color: var(--bizi-gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+/* Focus visibility (accessibility floor) */
+a:focus-visible, button:focus-visible, input:focus-visible{
+  outline:2.5px solid var(--liyog-blue);
+  outline-offset:2px;
+}
+</style>
 </head>
 <body>
 
-    <div class="ambient-glow"></div>
+<div id="joinToast" role="status" aria-live="polite"></div>
 
-    <div class="portal-wrapper">
-        <div class="brand-container">
-            <div class="biziplex-logo">Bizi<span>Plex</span></div>
-            <div class="workspace-badge" id="workspaceBadge" style="visibility: hidden;">
-                <div class="workspace-logo-frame" id="workspaceLogo">B</div>
-                <div class="workspace-title" id="workspaceName">Validating Target Node...</div>
-            </div>
-        </div>
+<div class="portal-shell">
 
-        <div class="portal-view active" id="viewVerify">
-            <div class="preloader-frame">
-                <div class="spinner"></div>
-                <div style="font-size: 0.9rem; color: var(--bizi-light-gray); margin-top: 12px;">Verifying Security Tokens...</div>
-            </div>
-        </div>
+  <!-- ============ LEFT: IDENTITY RAIL ============ -->
+  <aside class="identity-rail">
+    <div class="rail-photo-backdrop" id="railBackdrop"></div>
 
-        <div class="portal-view" id="viewSignUp">
-            <h2 class="view-title">Join Workspace</h2>
-            <p class="view-desc">Create your credentials to accept the invitation and connect securely.</p>
-            <form id="formSignUp" onsubmit="handleTeamSignUp(event)">
-                <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" id="signupEmail" class="form-input" readonly required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Your Full Name</label>
-                    <input type="text" id="signupName" class="form-input" placeholder="e.g. John Doe" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Create Security Password</label>
-                    <input type="password" id="signupPassword" class="form-input" minlength="6" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="btn-primary" id="btnSignUpSubmit">Accept & Activate</button>
-            </form>
-            <div class="view-footer-nav">Already have an account?<a href="#" onclick="switchView('viewLogin')">Login here</a></div>
-        </div>
+    <div class="rail-content">
+      <div class="wordmark">
+        <span class="w-biziplex">BiziPlex</span><span class="w-command">Command</span>
+      </div>
+      <span class="wordmark-tag">Team Workspace Portal</span>
 
-        <div class="portal-view" id="viewLogin">
-            <h2 class="view-title">Team Login</h2>
-            <p class="view-desc">Enter your credentials to enter your staff workspace panel.</p>
-            <form id="formLogin" onsubmit="handleTeamLogin(event)">
-                <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" id="loginEmail" class="form-input" placeholder="name@company.com" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="btn-primary" id="btnLoginSubmit">Enter Workspace</button>
-            </form>
-            <div class="view-footer-nav">
-                <a href="#" onclick="switchView('viewForgot')" style="margin-right: 16px;">Forgot Password?</a>
-                New here?<a href="#" onclick="switchView('viewSignUp')">Accept Invite</a>
-            </div>
+      <div class="connection-strip" id="connectionStrip">
+        <div class="conn-step is-current" data-step="verify">
+          <div class="conn-dot"></div>
+          <span class="conn-label">Verifying invitation</span>
         </div>
-
-        <div class="portal-view" id="viewForgot">
-            <h2 class="view-title">Recover Password</h2>
-            <p class="view-desc">Enter your email address to transmit an override password link safely.</p>
-            <form id="formForgot" onsubmit="handleTeamForgot(event)">
-                <div class="form-group">
-                    <label class="form-label">Account Email</label>
-                    <input type="email" id="forgotEmail" class="form-input" placeholder="name@company.com" required>
-                </div>
-                <button type="submit" class="btn-primary" id="btnForgotSubmit">Send Recovery Link</button>
-            </form>
-            <div class="view-footer-nav">Remembered details?<a href="#" onclick="switchView('viewLogin')">Return to Login</a></div>
+        <div class="conn-step" data-step="identity">
+          <div class="conn-dot"></div>
+          <span class="conn-label">Confirming your identity</span>
         </div>
+        <div class="conn-step" data-step="join">
+          <div class="conn-dot"></div>
+          <span class="conn-label">Joining workspace</span>
+        </div>
+      </div>
     </div>
 
-    <div class="bizi-modal" id="systemModal">
-        <div class="modal-body">
-            <div class="modal-icon" id="modalIcon">⚠️</div>
-            <div class="modal-title" id="modalTitle">System Message</div>
-            <div class="modal-text" id="modalText">Context notification payload description.</div>
-            <button class="btn-primary" onclick="closeModal()" id="modalActionBtn">Acknowledge</button>
+    <div class="store-identity">
+      <div class="store-card" id="storeCard">
+        <div class="store-logo" id="storeLogo">B</div>
+        <div class="store-meta">
+          <div class="store-meta-label">You're invited to</div>
+          <div class="store-meta-name" id="storeName">Loading workspace…</div>
         </div>
+      </div>
+      <div class="role-chip" id="roleChip" style="display:none;">
+        <span id="roleChipText">staff</span> access
+      </div>
     </div>
+  </aside>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ============ RIGHT: ACTION PANEL ============ -->
+  <main class="action-panel">
+    <div class="action-card">
 
-    <script>
-        // Catch general compilation failures immediately
-        window.onerror = function(msg, url, line) {
-            alert("🚨 SCRIPT RUNTIME ERROR:\n" + msg + "\nLine: " + line);
-            return false;
-        };
+      <!-- Verify / loading state -->
+      <div class="portal-view active" id="viewVerify">
+        <div class="verify-stage">
+          <div class="verify-spinner"></div>
+          <div class="verify-text">Verifying your invitation</div>
+          <div class="verify-subtext">This only takes a moment.</div>
+        </div>
+      </div>
 
-        // Automatic path calculation values
-        function getBasePath() {
-            return window.location.hostname.includes('github.io') 
-                ? '/' + window.location.pathname.split('/').filter(Boolean)[0] 
-                : '';
-        }
+      <!-- Invalid / expired token -->
+      <div class="portal-view" id="viewInvalid">
+        <div class="panel-eyebrow">Workspace Access</div>
+        <h2 class="view-title">This invitation isn't valid</h2>
+        <p class="view-desc" id="invalidMessage">The invitation link is missing, expired, or has already been used.</p>
+        <div class="view-footer-nav">Already part of a team?<a href="#" onclick="PortalEngine.switchView('viewLogin')">Log in here</a></div>
+      </div>
 
-        function safeNavigate(targetPath, replace = false) {
-            if (!targetPath) return;
-            const cleanTarget = targetPath.startsWith('/') ? targetPath : '/' + targetPath;
-            const finalUrl = window.location.origin + getBasePath() + cleanTarget;
-            if (replace) window.location.replace(finalUrl);
-            else window.location.href = finalUrl;
-        }
+      <!-- Sign up -->
+      <div class="portal-view" id="viewSignUp">
+        <div class="panel-eyebrow">Onboarding</div>
+        <h2 class="view-title">Set up your account</h2>
+        <p class="view-desc">Create your sign-in details to accept the invitation and join the team.</p>
+        <div id="signupAlertSlot"></div>
+        <form id="formSignUp" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="signupEmail">Email address</label>
+            <input type="email" id="signupEmail" class="input-premium" readonly required>
+            <p class="input-hint">This invitation was sent to this address and can't be changed.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupName">Your full name</label>
+            <input type="text" id="signupName" class="input-premium" placeholder="e.g. Amara Okafor" required autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupPassword">Create a password</label>
+            <div class="password-field">
+              <input type="password" id="signupPassword" class="input-premium" minlength="6" placeholder="••••••••" required autocomplete="new-password">
+              <button type="button" class="pw-toggle" data-target="signupPassword">Show</button>
+            </div>
+            <p class="input-hint">At least 6 characters.</p>
+          </div>
+          <button type="submit" class="btn-primary" id="btnSignUpSubmit">
+            <span class="btn-spinner"></span><span class="btn-label">Accept invitation</span>
+          </button>
+        </form>
+        <div class="view-footer-nav">Already have an account?<a href="#" onclick="PortalEngine.switchView('viewLogin')">Log in instead</a></div>
+      </div>
 
-        // Dedicated Supabase Core Instance connection allocation
-        const supabase = window.supabase ? window.supabase.createClient(
-            "https://ugffezktrojjhfbaxrrq.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8"
-        ) : null;
+      <!-- Login -->
+      <div class="portal-view" id="viewLogin">
+        <div class="panel-eyebrow">Team Access</div>
+        <h2 class="view-title">Log in to your workspace</h2>
+        <p class="view-desc">Enter your credentials to access your staff workspace.</p>
+        <div id="loginAlertSlot"></div>
+        <form id="formLogin" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Email address</label>
+            <input type="email" id="loginEmail" class="input-premium" placeholder="name@company.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <div class="password-field">
+              <input type="password" id="loginPassword" class="input-premium" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="pw-toggle" data-target="loginPassword">Show</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="btnLoginSubmit">
+            <span class="btn-spinner"></span><span class="btn-label">Log in</span>
+          </button>
+        </form>
+        <div class="view-footer-nav">
+          <a href="#" onclick="PortalEngine.switchView('viewForgot')" style="margin-right:14px;">Forgot password?</a>
+        </div>
+      </div>
 
-        let currentToken = null;
-        let invitationData = null;
+      <!-- Forgot password -->
+      <div class="portal-view" id="viewForgot">
+        <div class="panel-eyebrow">Account Recovery</div>
+        <h2 class="view-title">Reset your password</h2>
+        <p class="view-desc">Enter your account email and we'll send a secure reset link.</p>
+        <div id="forgotAlertSlot"></div>
+        <form id="formForgot" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="forgotEmail">Account email</label>
+            <input type="email" id="forgotEmail" class="input-premium" placeholder="name@company.com" required autocomplete="email">
+          </div>
+          <button type="submit" class="btn-primary" id="btnForgotSubmit">
+            <span class="btn-spinner"></span><span class="btn-label">Send reset link</span>
+          </button>
+        </form>
+        <div class="view-footer-nav">Remembered it?<a href="#" onclick="PortalEngine.switchView('viewLogin')">Back to log in</a></div>
+      </div>
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            try {
-                if (!supabase) {
-                    throw new Error("Supabase JS library did not resolve correctly from CDN endpoints.");
-                }
+      <!-- Success -->
+      <div class="portal-view" id="viewDone">
+        <div class="done-stage">
+          <div class="done-icon">✓</div>
+          <h2 class="view-title" id="doneTitle">You're in</h2>
+          <p class="view-desc" id="doneMessage">Your account is connected to the workspace. Taking you to your dashboard…</p>
+        </div>
+      </div>
 
-                const urlParams = new URLSearchParams(window.location.search);
-                currentToken = urlParams.get('token');
+    </div>
+  </main>
 
-                if (!currentToken) {
-                    console.log("No token provided. Forwarding view to explicit Login channel.");
-                    switchView('viewLogin');
-                    return;
-                }
+</div>
 
-                await executeTokenVerificationPipeline(currentToken);
-            } catch (err) {
-                console.error("Portal setup exception:", err);
-                alert("Matrix Setup Error: " + err.message);
-                switchView('viewLogin');
-            }
-        });
+<!-- ============ RUNTIME / BLOCKING MODAL ============ -->
+<div class="bizi-modal" id="systemModal">
+  <div class="modal-body">
+    <div class="modal-icon tone-amber" id="modalIcon">⏳</div>
+    <div class="modal-title" id="modalTitle">Workspace setup in progress</div>
+    <div class="modal-text" id="modalText">
+      Your workspace owner is still completing initial setup. You'll get access as soon as that's finished — no action is needed from you right now.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalActionBtn" onclick="PortalEngine.closeModal()">Got it</button>
+    </div>
+  </div>
+</div>
 
-        async function executeTokenVerificationPipeline(token) {
-            try {
-                const cleanToken = token.trim();
-                const { data, error } = await supabase.rpc('get_invitation_details', { p_token: cleanToken });
-                
-                if (error) throw error;
-                
-                if (data && data.success === false) {
-                    showModal('❌', 'Invitation Invalid', data.error || 'Invitation has decayed.', () => {
-                        switchView('viewLogin');
-                    });
-                    return;
-                }
-
-                invitationData = data;
-                document.getElementById('workspaceName').innerText = data.store_name;
-                
-                if (data.logo_url && data.logo_url.trim() !== '') {
-                    document.getElementById('workspaceLogo').innerHTML = `<img src="${data.logo_url}" alt="Logo" style="width:100%; height:100%; object-fit:cover;">`;
-                } else {
-                    document.getElementById('workspaceLogo').innerText = data.store_name.charAt(0).toUpperCase();
-                }
-                
-                document.getElementById('workspaceBadge').style.visibility = 'visible';
-                document.getElementById('signupEmail').value = data.email;
-                switchView('viewSignUp');
-
-            } catch (err) {
-                console.error("RPC Pipeline breakdown:", err);
-                alert("Connection Channel Error: " + err.message);
-                switchView('viewLogin');
-            }
-        }
-
-        async function handleTeamSignUp(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('btnSignUpSubmit');
-            const name = document.getElementById('signupName').value.trim();
-            const password = document.getElementById('signupPassword').value;
-            const email = invitationData.email;
-
-            setLoadingState(submitBtn, true, 'Processing Access...');
-            try {
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: { data: { display_name: name } }
-                });
-                if (authError) throw authError;
-
-                const { error: rpcError } = await supabase.rpc('accept_team_invitation', {
-                    p_token: currentToken,
-                    p_preferred_name: name
-                });
-                if (rpcError) throw rpcError;
-
-                showModal('🎉', 'Welcome Aboard!', `Your account setup was completely automated! Redirecting...`, () => {
-                    evaluateSessionAndRoute();
-                });
-            } catch (err) {
-                alert("Registration Denied:\n" + err.message);
-                setLoadingState(submitBtn, false, 'Accept & Activate');
-            }
-        }
-
-        async function handleTeamLogin(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('btnLoginSubmit');
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-
-            setLoadingState(submitBtn, true, 'Authorizing Entry...');
-            try {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                await evaluateSessionAndRoute();
-            } catch (err) {
-                alert("Login Error:\n" + err.message);
-                setLoadingState(submitBtn, false, 'Enter Workspace');
-            }
-        }
-
-        async function handleTeamForgot(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('btnForgotSubmit');
-            const email = document.getElementById('forgotEmail').value.trim();
-
-            setLoadingState(submitBtn, true, 'Transmitting...');
-            try {
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + getBasePath() + '/join/'
-                });
-                if (error) throw error;
-                showModal('📩', 'Link Dispatched', 'Check your inbox for your access link verification updates.', () => {
-                    switchView('viewLogin');
-                });
-            } catch (err) {
-                alert("Error sending dispatch link: " + err.message);
-            } finally {
-                setLoadingState(submitBtn, false, 'Send Recovery Link');
-            }
-        }
-
-        async function evaluateSessionAndRoute() {
-            try {
-                const { data: state, error } = await supabase.rpc('get_store_runtime_state');
-                if (error) {
-                    showModal('🚧', 'No Membership', 'Account active, but target team membership parameters unmapped.');
-                    return;
-                }
-                const s = Array.isArray(state) ? state[0] : state;
-                if (!s || !s.store_id) {
-                    showModal('🕵️‍♂️', 'Sync Pending', 'Workspace parameters pending master ledger write actions.');
-                    return;
-                }
-                if (s.is_suspended || !s.is_active) {
-                    showModal('🔒', 'Workspace Locked', `Reason: "${s.suspended_reason || 'Administrative Review'}"`);
-                    return;
-                }
-                if (s.subscription_status !== 'trial' && s.subscription_status !== 'active') {
-                    showModal('💳', 'Billing Verification', 'The store billing context requires explicit upkeep attention configuration settings.');
-                    return;
-                }
-                if (!s.onboarding_completed) {
-                    showModal('⏳', 'Setup Incomplete', `The workspace initialization workflow is still executing.`, () => {
-                        supabase.auth.signOut().then(() => location.reload());
-                    });
-                    return;
-                }
-                safeNavigate('dashboard/', true);
-            } catch (err) {
-                alert("Routing Context Failure: " + err.message);
-            }
-        }
-
-        function switchView(viewId) {
-            document.querySelectorAll('.portal-view').forEach(v => v.classList.remove('active'));
-            const target = document.getElementById(viewId);
-            if (target) target.classList.add('active');
-        }
-
-        function setLoadingState(btn, isLoading, txt) {
-            if (isLoading) {
-                btn.disabled = true;
-                btn.dataset.originalText = btn.innerHTML;
-                btn.innerHTML = `<div class="spinner" style="width:18px; height:18px; border-width:2px; display:inline-block; vertical-align:middle; margin-right:8px;"></div> ${txt}`;
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = btn.dataset.originalText || txt;
-            }
-        }
-
-        let modalCallback = null;
-        function showModal(icon, title, message, callback = null) {
-            document.getElementById('modalIcon').innerText = icon;
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalText').innerText = message;
-            modalCallback = callback;
-            document.getElementById('systemModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('systemModal').classList.remove('active');
-            if (modalCallback) {
-                const call = modalCallback;
-                modalCallback = null;
-                call();
-            }
-        }
-    </script>
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../global.js"></script>
+<script src="portal-engine.js"></script>
 </body>
 </html>
