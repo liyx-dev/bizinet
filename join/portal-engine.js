@@ -1,25 +1,36 @@
 // =============================================================================
-// BIZIPLEX WORKSPACE PORTAL ENGINE
+// BIZIPLEX WORKSPACE PORTAL ENGINE (DEFENSIVE CORE)
 // =============================================================================
 
-// Instantly establish the database context connection layer
-const supabase = window.APP_CLIENT;
+// Emergency global error catcher to stop silent infinite loading loops
+window.onerror = function(message, source, lineno, colno, error) {
+    alert("🚨 CRITICAL SYSTEM ERROR:\n" + message + "\nFile: " + source + "\nLine: " + lineno);
+    return false;
+};
+
+// Safe client resolution with hardcoded fallback to prevent 404 path blocks
+const supabase = window.APP_CLIENT || (window.supabase ? window.supabase.createClient(
+    "https://ugffezktrojjhfbaxrrq.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8"
+) : null);
 
 let currentToken = null;
 let invitationData = null;
 
-// Initialize on Document Load Event Handler Node
+// Initialize Core Setup Handler
 document.addEventListener("DOMContentLoaded", async () => {
     try {
+        console.log("Portal Engine initializing...", { supabaseConnected: !!supabase });
+        
         if (!supabase) {
-            throw new Error("The master client database instance is uninitialized. Verify global-config.js path mappings.");
+            throw new Error("Supabase SDK script wrapper missing from layout headers.");
         }
 
         const urlParams = new URLSearchParams(window.location.search);
         currentToken = urlParams.get('token');
 
         if (!currentToken) {
-            // No token provided: default directly to team member login view
+            console.log("No token detected in URL query context. Routing directly to Login view.");
             switchView('viewLogin');
             return;
         }
@@ -28,6 +39,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (globalError) {
         console.error("Portal Execution Halted:", globalError);
         showModal('🚫', 'Portal Failure', `Initialization error: ${globalError.message}`);
+        // Force-remove preloader view so user isn't stuck staring at a spinner
+        switchView('viewLogin'); 
     }
 });
 
@@ -49,7 +62,7 @@ async function executeTokenVerificationPipeline(token) {
             return;
         }
 
-        // Cache invitation state data context mapping
+        // Cache invitation data context mapping
         invitationData = data;
 
         // Populate Brand Typography Assets onto target HTML Containers
@@ -70,6 +83,7 @@ async function executeTokenVerificationPipeline(token) {
     } catch (err) {
         console.error("Token Pipeline Crash:", err);
         showModal('🚫', 'Connection Interrupted', 'Could not establish security channel context: ' + (err.message || err.details || 'Unknown Network Intercept'));
+        switchView('viewLogin');
     }
 }
 
@@ -178,7 +192,7 @@ async function evaluateSessionAndRoute() {
         }
 
         if (s.subscription_status !== 'trial' && s.subscription_status !== 'active') {
-            showModal('¼¼', 'Billing Notice', 'The billing lifecycle for this store requires layout maintenance.');
+            showModal('💳', 'Billing Notice', 'The billing lifecycle for this store requires layout maintenance.');
             return;
         }
 
@@ -189,7 +203,12 @@ async function evaluateSessionAndRoute() {
             return;
         }
 
-        safeNavigate('dashboard/', true);
+        // Utilizing global router utility layer
+        if (typeof safeNavigate === 'function') {
+            safeNavigate('dashboard/', true);
+        } else {
+            window.location.replace(window.location.origin + getBasePath() + '/dashboard/');
+        }
 
     } catch (err) {
         console.error("Routing calculation failure:", err);
