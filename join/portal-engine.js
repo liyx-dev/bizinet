@@ -2,18 +2,11 @@
 // BIZIPLEX WORKSPACE PORTAL ENGINE
 // =============================================================================
 
-// Initialize Core Supabase Configuration Context
-const SUPABASE_URL = "https://ugffezktrojjhfbaxrrq.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
-const supabase = PollingInterceptorClient();
-
-function PollingInterceptorClient() {
-    if (typeof window.supabase === 'undefined') {
-        console.error("Critical: Supabase script injection matrix offline.");
-        return null;
-    }
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
+// Safely pull the unified, authenticated client instance created by config.js
+const supabase = window.APP_CLIENT || (window.supabase ? window.supabase.createClient(
+    window.APP_CONFIG?.supabaseUrl || "https://ugffezktrojjhfbaxrrq.supabase.co",
+    window.APP_CONFIG?.supabaseKey || ""
+) : null);
 
 // Global Operational State References
 let currentToken = null;
@@ -21,16 +14,25 @@ let invitationData = null;
 
 // On Initialization: Intercept Parameters from URL Routing Footprint
 document.addEventListener("DOMContentLoaded", async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    currentToken = urlParams.get('token');
+    try {
+        if (!supabase) {
+            throw new Error("Core database connector could not resolve. Ensure config.js is loaded prior to engine instantiation.");
+        }
 
-    if (!currentToken) {
-        // No explicit invitation mapping sequence provided: route straight to standard fallback login layout
-        switchView('viewLogin');
-        return;
+        const urlParams = new URLSearchParams(window.location.search);
+        currentToken = urlParams.get('token');
+
+        if (!currentToken) {
+            // No explicit invitation mapping sequence provided: route straight to standard fallback login layout
+            switchView('viewLogin');
+            return;
+        }
+
+        await executeTokenVerificationPipeline(currentToken);
+    } catch (globalError) {
+        console.error("Portal Initialization Matrix Broken:", globalError);
+        showModal('🚫', 'System Failure', `Initialization error: ${globalError.message}`);
     }
-
-    await executeTokenVerificationPipeline(currentToken);
 });
 
 // =============================================================================
@@ -39,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function executeTokenVerificationPipeline(token) {
     try {
-        const { data, error } = await supabase.rpc('get_invitation_details', { p_token: token });
+        const { data, error } = await supabase.rpc('get_invitation_details', { p_token: token.trim() });
         
         if (error) throw error;
         
@@ -56,7 +58,7 @@ async function executeTokenVerificationPipeline(token) {
         // Render Premium Brand Metadata inside Layout Containers
         document.getElementById('workspaceName').innerText = data.store_name;
         if (data.logo_url) {
-            document.getElementById('workspaceLogo').innerHTML = `<img src="${data.logo_url}" alt="Logo">`;
+            document.getElementById('workspaceLogo').innerHTML = `<img src="${data.logo_url}" alt="Logo" style="width:100%; height:100%; object-fit:cover;">`;
         } else {
             // Generate elegant initial character token dynamically
             document.getElementById('workspaceLogo').innerText = data.store_name.charAt(0).toUpperCase();
@@ -71,7 +73,7 @@ async function executeTokenVerificationPipeline(token) {
 
     } catch (err) {
         console.error("Token verification crashed:", err);
-        showModal('🚫', 'Portal Failure', 'Could not establish connection to BiziPlex security schemas. ' + err.message);
+        showModal('🚫', 'Portal Failure', 'Could not establish connection to BiziPlex security schemas: ' + (err.message || err.details));
     }
 }
 
@@ -174,7 +176,6 @@ async function evaluateSessionAndRoute() {
         const { data: state, error } = await supabase.rpc('get_store_runtime_state');
         
         if (error) {
-            // No membership mapping rows found for identity
             showModal('🚧', 'No Workspace Membership', 'You have successfully signed up, but you are not linked to an active workspace. Contact your administrator.');
             return;
         }
@@ -200,8 +201,7 @@ async function evaluateSessionAndRoute() {
         // Check internal activation progress
         if (!s.onboarding_completed) {
             showModal('⏳', 'Setup Incomplete', `The workspace owner has not finalized their initial business profile wizard setup. Access to the team interface will activate as soon as they complete onboarding.`, () => {
-                supabase.auth.signOut();
-                location.reload();
+                supabase.auth.signOut().then(() => location.reload());
             });
             return;
         }
@@ -231,7 +231,7 @@ function setLoadingState(buttonElement, isLoading, processText) {
     if (isLoading) {
         buttonElement.disabled = true;
         buttonElement.dataset.originalText = buttonElement.innerHTML;
-        buttonElement.innerHTML = `<div class="spinner" style="width:18px; height:18px; border-width:2px;"></div> ${processText}`;
+        buttonElement.innerHTML = `<div class="spinner" style="width:18px; height:18px; border-width:2px; display:inline-block; vertical-align:middle; margin-right:8px;"></div> ${processText}`;
     } else {
         buttonElement.disabled = false;
         buttonElement.innerHTML = buttonElement.dataset.originalText || processText;
@@ -256,4 +256,3 @@ function closeModal() {
         executeCall();
     }
 }
-
