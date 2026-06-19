@@ -267,6 +267,17 @@ a{color:inherit;}
   width:100%;
   max-width:420px;
 }
+@media (max-width:920px){
+  .action-panel{
+    align-items:flex-start;
+    padding:32px 20px calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width:480px){
+  .action-panel{
+    padding:28px 18px calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
 
 .panel-eyebrow{
   font-size:11.5px;font-weight:700;text-transform:uppercase;
@@ -586,6 +597,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{
         </form>
         <div class="view-footer-nav">
           <a href="#" onclick="PortalEngine.switchView('viewForgot')" style="margin-right:14px;">Forgot password?</a>
+          <span id="loginBackToInviteWrap" style="display:none;">·<a href="#" onclick="PortalEngine.switchView('viewSignUp')" style="margin-left:14px;">Back to invitation</a></span>
         </div>
       </div>
 
@@ -604,7 +616,10 @@ a:focus-visible, button:focus-visible, input:focus-visible{
             <span class="btn-spinner"></span><span class="btn-label">Send reset link</span>
           </button>
         </form>
-        <div class="view-footer-nav">Remembered it?<a href="#" onclick="PortalEngine.switchView('viewLogin')">Back to log in</a></div>
+        <div class="view-footer-nav">
+          Remembered it?<a href="#" onclick="PortalEngine.switchView('viewLogin')">Back to log in</a>
+          <span id="forgotBackToInviteWrap" style="display:none;"> ·<a href="#" onclick="PortalEngine.switchView('viewSignUp')" style="margin-left:6px;">Back to invitation</a></span>
+        </div>
       </div>
 
       <!-- Success -->
