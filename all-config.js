@@ -27,8 +27,6 @@
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnZmZlemt0cm9qamhmYmF4cnJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2ODg3NzIsImV4cCI6MjA5MTI2NDc3Mn0.gzFuLSj225QRnxdwyrH25Xpe1YZqPiK7fp_nrsETsW8";
 
-  const REPO_BASE = "https://liyx-dev.github.io/bizinet/";
-
   if (typeof supabase === "undefined") {
     console.error(
       "[Biziplex] Supabase SDK not loaded. Include the supabase-js " +
@@ -47,30 +45,45 @@
   });
 
   /**
-   * Centralized, defensive navigation. Every portal should route through
-   * this instead of hand-rolling window.location.href, so redirect targets
-   * stay consistent and we have one place to add logging/guards later.
+   * Navigation is delegated entirely to global.js's window.safeNavigate.
+   * THIS WAS THE BUG: this file used to define its OWN safeNavigate with a
+   * different base-path strategy than global.js. Two functions computing
+   * two different "final" URLs for the same logical redirect produced a
+   * ping-pong loop between /auth/ and /dashboard/ — each side's redirect
+   * logic disagreed with the other about what the "correct" URL was.
+   * There must be exactly ONE navigation authority on the page. global.js's
+   * getBasePath()-aware version is it. We always pass replace=true so a
+   * failed/looping redirect REPLACES history instead of stacking new entries
+   * (which is what made it visually "vibrate" — each bounce added a back-
+   * button-reachable entry instead of settling).
    */
   function safeNavigate(path) {
-    if (!path || typeof path !== "string") {
-      console.warn("[Biziplex] safeNavigate called with invalid path:", path);
-      path = "auth";
+    if (typeof window.safeNavigate !== "function") {
+      console.error(
+        "[Biziplex] window.safeNavigate (from global.js) is missing. " +
+          "Make sure global.js loads BEFORE all-config.js on every page."
+      );
+      window.location.href = "/" + String(path || "auth").replace(/^\/+/, "");
+      return;
     }
-    // Strip any accidental leading slash duplication / protocol smuggling.
-    const clean = path.replace(/^\/+/, "");
-    window.location.href = REPO_BASE + clean;
+    window.safeNavigate(path, true); // replace:true — never stack history
   }
 
   /**
    * Calls the runtime-state RPC. This RPC is the ONLY source of truth for
    * "where should this logged-in user go." No page should ever compute a
    * redirect target by inspecting localStorage or guessing from form state.
+   *
+   * Your actual function ALWAYS returns exactly one row (it falls back to
+   * a null-store / onboarding row via "if not found" inside the function
+   * body), so data.length === 0 should never really happen — but we still
+   * guard for it defensively in case of a transport hiccup.
    */
   async function resolveRuntimeState() {
     const { data, error } = await client.rpc("get_store_runtime_state");
     if (error) throw error;
     if (!data || data.length === 0) {
-      return { redirect_to: "dashboard/onboarding" };
+      return { redirect_to: "/dashboard/onboarding/", store_id: null, can_access_dashboard: false };
     }
     return data[0];
   }
@@ -95,6 +108,5 @@
     safeNavigate,
     resolveRuntimeState,
     ensureWorkspace,
-    REPO_BASE,
   };
 })();
