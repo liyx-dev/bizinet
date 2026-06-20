@@ -615,3 +615,37 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   outline: 2px solid var(--biz-blue);
   outline-offset: 2px;
 }
+/* ==========================================================================
+   MOBILE FOOTER
+   ========================================================================== */
+
+.mobile-footer {
+  margin-top: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.82rem;
+}
+
+.mobile-footer strong {
+  color: var(--text-primary, #0f172a);
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-weight: 800;
+}
+
+.mobile-footer span {
+  color: var(--text-secondary, #475569);
+}
+
+.mobile-footer small {
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.5;
+}
+@media (min-width: 1000px) {
+  .mobile-footer {
+    display: none;
+  }
+}
+
