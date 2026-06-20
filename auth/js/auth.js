@@ -12,8 +12,24 @@
 (function () {
   "use strict";
 
-  const { client: supa, safeNavigate, resolveRuntimeState, ensureWorkspace } =
+  const { client: supa, resolveRuntimeState, ensureWorkspace } =
     window.BiziplexConfig || {};
+
+  // Navigation always goes through global.js's window.safeNavigate, called
+  // directly — no wrapper, no second implementation. replace:true so a
+  // redirect never stacks a new back-button-reachable history entry.
+  function goTo(path) {
+    if (typeof window.safeNavigate !== "function") {
+      console.error(
+        "[Biziplex] window.safeNavigate is missing. global.js must be " +
+          "loaded (and already executed) before auth.js runs. Check that " +
+          "global.js's <script> tag has no `defer`/`async` mismatch with " +
+          "the scripts that come after it."
+      );
+      return;
+    }
+    window.safeNavigate(path, true);
+  }
 
   if (!supa) {
     console.error("[Biziplex] all-config.js must load before auth.js");
@@ -261,7 +277,7 @@
           });
         }
 
-        safeNavigate(runtime.redirect_to);
+        goTo(runtime.redirect_to);
       } catch (err) {
         console.error(err);
         showMessage("error", humanizeAuthError(err));
@@ -313,7 +329,7 @@
           });
         }
 
-        safeNavigate(runtime.redirect_to);
+        goTo(runtime.redirect_to);
       } catch (err) {
         console.error(err);
         showMessage("error", humanizeAuthError(err));
@@ -491,7 +507,7 @@
         runtime = await guaranteeWorkspace(fallbackName);
       }
 
-      safeNavigate(runtime.redirect_to);
+      goTo(runtime.redirect_to);
     } catch (err) {
       console.error("[Biziplex] boot error:", err);
       // Fail open into the auth form rather than a blank/stuck page.
@@ -500,7 +516,7 @@
 
   supa.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT") {
-      safeNavigate("auth");
+      goTo("auth");
     }
   });
 
