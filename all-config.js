@@ -45,29 +45,17 @@
   });
 
   /**
-   * Navigation is delegated entirely to global.js's window.safeNavigate.
-   * THIS WAS THE BUG: this file used to define its OWN safeNavigate with a
-   * different base-path strategy than global.js. Two functions computing
-   * two different "final" URLs for the same logical redirect produced a
-   * ping-pong loop between /auth/ and /dashboard/ — each side's redirect
-   * logic disagreed with the other about what the "correct" URL was.
-   * There must be exactly ONE navigation authority on the page. global.js's
-   * getBasePath()-aware version is it. We always pass replace=true so a
-   * failed/looping redirect REPLACES history instead of stacking new entries
-   * (which is what made it visually "vibrate" — each bounce added a back-
-   * button-reachable entry instead of settling).
+   * NOTE: Navigation is NOT handled here. Use window.safeNavigate directly
+   * (defined in global.js, loaded in <head> on every page). This file used
+   * to wrap it, which caused a real bug: if this script ran before
+   * global.js had finished loading/executing, the wrapper's fallback
+   * fired and produced a URL with the /bizinet prefix stripped out
+   * entirely. Removing the wrapper removes that failure mode — there's
+   * nothing here to race against. Just make sure global.js's <script> tag
+   * appears before this file's <script> tag in the HTML, with no `defer`
+   * mismatch between them (either both deferred, or global.js loaded
+   * earlier as a normal blocking script).
    */
-  function safeNavigate(path) {
-    if (typeof window.safeNavigate !== "function") {
-      console.error(
-        "[Biziplex] window.safeNavigate (from global.js) is missing. " +
-          "Make sure global.js loads BEFORE all-config.js on every page."
-      );
-      window.location.href = "/" + String(path || "auth").replace(/^\/+/, "");
-      return;
-    }
-    window.safeNavigate(path, true); // replace:true — never stack history
-  }
 
   /**
    * Calls the runtime-state RPC. This RPC is the ONLY source of truth for
@@ -105,7 +93,6 @@
 
   window.BiziplexConfig = {
     client,
-    safeNavigate,
     resolveRuntimeState,
     ensureWorkspace,
   };
